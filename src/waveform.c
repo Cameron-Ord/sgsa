@@ -10,7 +10,11 @@ f64 sawtooth(f64 time, f64 freq){
 
 void voices_initialize(struct voice voices[VOICE_MAX]){
     for(i32 i = 0; i < VOICE_MAX; i++){
-        memset(&voices[i], 0, sizeof(struct voice));
+        struct voice *v = &voices[i];
+        v->active = false;
+        v->freq = 0.0;
+        v->midi_key = -1;
+        v->time = 0.0;
     }
 }
 
@@ -22,6 +26,7 @@ void voice_set_iterate(struct voice voices[VOICE_MAX], i32 midi_key, f64 freq){
             v->midi_key = midi_key;
             v->freq = freq;
             v->time = 0.0;
+            return;
         }
     }
 }
@@ -29,7 +34,7 @@ void voice_set_iterate(struct voice voices[VOICE_MAX], i32 midi_key, f64 freq){
 void voice_clear_iterate(struct voice voices[VOICE_MAX], i32 midi_key){
     for(i32 i = 0; i < VOICE_MAX; i++){
         struct voice *v = &voices[i];
-        if(v->midi_key == midi_key){
+        if(v->active && v->midi_key == midi_key){
             v->active = false;
             v->midi_key = -1;
             v->freq = 0.0;
