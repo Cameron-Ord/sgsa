@@ -7,7 +7,7 @@
 const f64 volume = 1.0;
 const i32 SAMPLE_PER_CALLBACK = 128;
 const f64 MASTER_GAIN = 0.9;
-const f64 alpha = 0.0025;
+const f64 alpha = 1.0 / SAMPLE_RATE;
 f64 interpolated_gain = 0.0;
 
 static void render_frame_push(const size_t samples, const f32 *src, f32 *dst){
