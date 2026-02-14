@@ -2,7 +2,45 @@
 #include "../include/waveform.h"
 #include <stdio.h>
 
+const f64 volume = 1.0;
 const i32 SAMPLE_PER_CALLBACK = 128;
+
+// linear adsr
+static f64 adsr(i32 *state, f64 *envelope, const f64 *release){
+    f64 mutated = *envelope;
+    switch(*state){
+        default:break;
+        case ENVELOPE_ATTACK:{
+            mutated += ATTACK_INCREMENT;
+            if(mutated >= 1.0){
+                mutated = 1.0;
+                *state = ENVELOPE_DECAY;
+            }
+        }break;
+    
+        case ENVELOPE_SUSTAIN: break;
+
+        case ENVELOPE_DECAY: {
+            mutated -= DECAY_INCREMENT;
+            if(mutated <= SUSTAIN_LEVEL){
+                mutated = SUSTAIN_LEVEL;
+                *state = ENVELOPE_SUSTAIN;
+            }
+        }break;
+
+        case ENVELOPE_RELEASE:{
+            mutated -= *release;
+            if(mutated <= 0.0){
+                mutated = 0.0;
+                *state = ENVELOPE_OFF;
+            }
+        }break;
+
+        case ENVELOPE_OFF: break;
+    }
+    *envelope = mutated;
+    return mutated;
+}
 
 bool stream_feed(SDL_AudioStream *stream, const f32 samples[], i32 len){
     return SDL_PutAudioStreamData(stream, samples, len);
@@ -23,16 +61,20 @@ void stream_callback(void *userdata, SDL_AudioStream *stream, i32 add, i32 total
             i32 active_count = 0;
 
             for(u32 j = 0; j < VOICE_MAX; j++){
-                struct voice *voice = &voices[j];
-                if(voice->active){
-                    voice->time += 1.0 / SAMPLE_RATE;
-                    sample += sawtooth(voice->time, voice->freq);
+                struct voice *v = &voices[j];
+                if(v->state != ENVELOPE_OFF){
+                    v->phase += v->freq / SAMPLE_RATE;
+                    if(v->phase >= 1.0) v->phase -= 1.0;
+
+                    sample += v->waveform(v->phase) * adsr(&v->state, &v->envelope, &v->release_increment);
                     active_count++;
                 }
             }
-            if(active_count > 0) sample /= active_count;
+            //works for now but want to change this later
+            const f64 gain = 1.0 / VOICE_MAX;
+            sample *= gain;
 
-            samples[i] = (f32)sample * 1.0f;
+            samples[i] = (f32)sample;
         }
 
         stream_feed(stream, samples, (i32)valid_samples * (i32)sizeof(f32));

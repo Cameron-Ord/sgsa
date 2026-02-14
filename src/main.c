@@ -84,12 +84,11 @@ int main(int argc, char **argv){
         switch(in.status){
             default: break;
             case NOTE_ON:{
-                printf("%d\n", in.first);
                 voice_set_iterate(voices, in.first, midi_to_base_freq(in.first));
             }break;
 
             case NOTE_OFF:{
-                voice_clear_iterate(voices, in.first);
+                voice_release_iterate(voices, in.first);
             }break;
         }
 
