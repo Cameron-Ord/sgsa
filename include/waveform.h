@@ -38,7 +38,7 @@ struct voice {
 
 f64 linear_interpolate(f64 target, f64 current, const f64 alpha);
 void voices_set_waveform(struct voice voices[VOICE_MAX], wave waveform);
-void voices_initialize(struct voice voices[VOICE_MAX]);
+void voices_initialize(struct voice voices[VOICE_MAX], wave waveform);
 void voice_set_iterate(struct voice voices[VOICE_MAX], i32 midi_key, f64 freq);
 void voice_release_iterate(struct voice voices[VOICE_MAX], i32 midi_key);
 

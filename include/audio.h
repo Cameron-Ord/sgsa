@@ -4,7 +4,13 @@
 #include <stdbool.h>
 #include "typedef.h"
 
+struct render_frame;
 struct voice;
+
+struct userdata {
+    struct render_frame *frame;
+    struct voice *voices;
+};
 
 struct playback_device {
     u32 id;
@@ -22,7 +28,7 @@ void pause_audio(u32 id);
 void resume_audio(u32 id);
 void close_audio_device(u32 id);
 
-bool set_audio_callback(SDL_AudioStream *stream, struct voice *voices);
+bool set_audio_callback(SDL_AudioStream *stream, struct userdata *data);
 SDL_AudioStream *audio_stream_create(SDL_AudioSpec input, SDL_AudioSpec output);
 void audio_stream_destroy(SDL_AudioStream *stream);
 bool audio_stream_bind(SDL_AudioStream *stream, u32 id);

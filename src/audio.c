@@ -1,9 +1,18 @@
 #include "../include/audio.h"
 #include "../include/waveform.h"
+#include "../include/render.h"
 #include <stdio.h>
 
 const f64 volume = 1.0;
 const i32 SAMPLE_PER_CALLBACK = 128;
+f64 smoothed = 0.0;
+
+static void render_frame_push(const size_t samples, const f32 *src, f32 *dst){
+    if(samples > 0 && src && dst){
+        memmove(dst, dst + samples, (FRAME_RESOLUTION - samples) * sizeof(f32));
+        memcpy(dst + (FRAME_RESOLUTION - samples), src, samples * sizeof(f32));
+    }
+}
 
 // linear adsr
 static f64 adsr(i32 *state, f64 *envelope, const f64 *release){
@@ -46,9 +55,9 @@ bool stream_feed(SDL_AudioStream *stream, const f32 samples[], i32 len){
     return SDL_PutAudioStreamData(stream, samples, len);
 }
 
-void stream_callback(void *userdata, SDL_AudioStream *stream, i32 add, i32 total){
-    struct voice *voices = (struct voice *)userdata;
-    if(!voices) { return; }
+void stream_callback(void *data, SDL_AudioStream *stream, i32 add, i32 total){
+    struct userdata *ud = (struct userdata *)data;
+    if(!ud) { return; }
 
     u32 sample_count = (u32)add / sizeof(f32);
     while(sample_count > 0){
@@ -61,7 +70,7 @@ void stream_callback(void *userdata, SDL_AudioStream *stream, i32 add, i32 total
             i32 active_count = 0;
 
             for(u32 j = 0; j < VOICE_MAX; j++){
-                struct voice *v = &voices[j];
+                struct voice *v = &ud->voices[j];
                 if(v->state != ENVELOPE_OFF){
                     v->phase += v->freq / SAMPLE_RATE;
                     if(v->phase >= 1.0) v->phase -= 1.0;
@@ -70,14 +79,18 @@ void stream_callback(void *userdata, SDL_AudioStream *stream, i32 add, i32 total
                     active_count++;
                 }
             }
-            //works for now but want to change this later
-            const f64 gain = 1.0 / VOICE_MAX;
-            sample *= gain;
+            if(active_count > 0){
+                //Use a linear interpolation to negate clicks from large jumps
+                const f64 gain = 1.0 / active_count;
+                smoothed += linear_interpolate(gain, smoothed, 0.001);
+                sample *= smoothed;
+            }
 
             samples[i] = (f32)sample;
         }
 
         stream_feed(stream, samples, (i32)valid_samples * (i32)sizeof(f32));
+        render_frame_push(valid_samples, samples, ud->frame->samples);
         sample_count -= valid_samples;
     }
 
@@ -109,8 +122,8 @@ SDL_AudioStream *audio_stream_create(SDL_AudioSpec input, SDL_AudioSpec output){
     return stream;
 }
 
-bool set_audio_callback(SDL_AudioStream *stream, struct voice *voices){
-    if(!SDL_SetAudioStreamGetCallback(stream, stream_callback, voices)){
+bool set_audio_callback(SDL_AudioStream *stream, struct userdata *data){
+    if(!SDL_SetAudioStreamGetCallback(stream, stream_callback, data)){
         printf("%s\n", SDL_GetError());
         return false;
     }

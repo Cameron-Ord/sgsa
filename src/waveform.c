@@ -37,10 +37,10 @@ void voices_set_waveform(struct voice voices[VOICE_MAX], wave waveform){
     }
 }
 
-void voices_initialize(struct voice voices[VOICE_MAX]){
+void voices_initialize(struct voice voices[VOICE_MAX], wave waveform){
     for(i32 i = 0; i < VOICE_MAX; i++){
         struct voice *v = &voices[i];
-        v->waveform = square;
+        v->waveform = waveform;
         v->state = ENVELOPE_OFF;
         v->freq = 0.0;
         v->midi_key = -1;
