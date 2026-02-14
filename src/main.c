@@ -4,7 +4,7 @@
 #include <math.h>
 
 #include "../include/controller.h"
-
+#include "../include/waveform.h"
 
 int main(int argc, char **argv){
     if(initialize_controller() < 0){
@@ -23,17 +23,20 @@ int main(int argc, char **argv){
         return 0;
     }    
 
+    struct voice voices[VOICE_MAX];
+    voices_initialize(voices);
+
     while(true){
         struct midi_input in = midi_read_input(device.stream, 1);
         switch(in.status){
             default: break;
 
             case NOTE_ON:{
-                printf("%d\n", in.first);
+                voice_set_iterate(voices, in.first, midi_to_base_freq(in.first));
             }break;
 
             case NOTE_OFF:{
-                printf("%d\n", in.first);
+                voice_clear_iterate(voices, in.first);
             }break;
         }
     }
