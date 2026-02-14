@@ -1,0 +1,1 @@
+Programming a basic(to start) midi synthesizer
