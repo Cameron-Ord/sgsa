@@ -7,7 +7,7 @@
 #define RENDER_WIDTH 768
 #define RENDER_HEIGHT 576
 
-#define FRAME_RESOLUTION 256
+#define FRAME_RESOLUTION 1024
 
 struct render_frame {
     f32 samples[FRAME_RESOLUTION];

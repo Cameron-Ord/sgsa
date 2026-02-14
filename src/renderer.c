@@ -1,5 +1,6 @@
 #include "../include/render.h"
-
+#include "../include/waveform.h"
+#include <stdio.h>
 
 void render_set_sample_rects(SDL_Renderer *renderer, f32 samples[FRAME_RESOLUTION], i32 ww, i32 wh){
     const f32 HALF_HEIGHT = (f32)wh / 2;
