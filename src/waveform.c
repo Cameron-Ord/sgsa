@@ -1,10 +1,34 @@
 #include "../include/waveform.h"
 #include <math.h>
+#include <stdio.h>
 
 const f64 PI = 3.1415926535897932384626433832795;
 
+f64 fourier_sawtooth(f64 phase, f64 freq){
+    const i32 nyquist = SAMPLE_RATE / 2;
+    const i32 cutoff = (i32)((nyquist * 0.5) / freq);
+    f64 sum = 0.0;
+    for(i32 k = 1; k <= cutoff; k++){
+        sum += pow(-1.0, k) * sin(2.0 * PI * k * phase) / k;
+    }
+    sum *= -(2 * 1.0 / PI);
+    return sum;
+}
+
+f64 reverse_fourier_sawtooth(f64 phase, f64 freq){
+    const i32 nyquist = SAMPLE_RATE / 2;
+    const i32 cutoff = (i32)((nyquist * 0.5) / freq);
+    f64 sum = 0.0;
+    for(i32 k = 1; k <= cutoff; k++){
+        sum += pow(-1.0, k) * sin(2.0 * PI * k * phase) / k;
+    }
+    sum *= (2 * 1.0 / PI);
+    return sum;
+}
+
+
 // https://en.wikipedia.org/wiki/Sawtooth_wave
-f64 sawtooth(f64 phase){
+f64 sawtooth(f64 phase, f64 freq){
     return 2.0 * (phase - 0.5);
 }
 
@@ -14,15 +38,15 @@ f64 sgn(f64 x){
     return 0.0;
 }
 
-f64 square(f64 phase){
+f64 square(f64 phase, f64 freq){
     return sgn(cos(2.0 * PI * phase));
 }
 
-f64 triangle(f64 phase){
+f64 triangle(f64 phase, f64 freq){
     return 2.0 * fabs(2.0 * (phase - 0.5)) - 1.0;
 }
 
-f64 sine(f64 phase){
+f64 sine(f64 phase, f64 freq){
     return 1.0 * sin(2.0 * PI * phase);
 }
 

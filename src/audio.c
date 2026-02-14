@@ -2,10 +2,13 @@
 #include "../include/waveform.h"
 #include "../include/render.h"
 #include <stdio.h>
+#include <math.h>
 
 const f64 volume = 1.0;
 const i32 SAMPLE_PER_CALLBACK = 128;
-f64 smoothed = 0.0;
+const f64 MASTER_GAIN = 0.9;
+const f64 alpha = 0.0025;
+f64 interpolated_gain = 0.0;
 
 static void render_frame_push(const size_t samples, const f32 *src, f32 *dst){
     if(samples > 0 && src && dst){
@@ -67,26 +70,31 @@ void stream_callback(void *data, SDL_AudioStream *stream, i32 add, i32 total){
         const u32 valid_samples = SDL_min(sample_count, SDL_arraysize(samples));
         for(u32 i = 0; i < valid_samples; i++){
             f64 sample = 0.0;
-            i32 active_count = 0;
+            f64 wave_samples[VOICE_MAX];
+            u32 active_count = 0;
 
             for(u32 j = 0; j < VOICE_MAX; j++){
                 struct voice *v = &ud->voices[j];
+                wave_samples[j] = 0.0;
+
                 if(v->state != ENVELOPE_OFF){
                     v->phase += v->freq / SAMPLE_RATE;
                     if(v->phase >= 1.0) v->phase -= 1.0;
 
-                    sample += v->waveform(v->phase) * adsr(&v->state, &v->envelope, &v->release_increment);
+                    wave_samples[j] = v->waveform(v->phase, v->freq) * adsr(&v->state, &v->envelope, &v->release_increment);
                     active_count++;
                 }
             }
-            if(active_count > 0){
-                //Use a linear interpolation to negate clicks from large jumps
+
+            for(u32 k = 0; k < VOICE_MAX; k++){
+                if(wave_samples[k] == 0.0) continue;
                 const f64 gain = 1.0 / active_count;
-                smoothed += linear_interpolate(gain, smoothed, 0.001);
-                sample *= smoothed;
+                interpolated_gain += linear_interpolate(gain, interpolated_gain, alpha);
+                wave_samples[k] *= interpolated_gain;
+                sample += wave_samples[k];
             }
 
-            samples[i] = (f32)sample;
+            samples[i] = (f32)tanh(sample * MASTER_GAIN);
         }
 
         stream_feed(stream, samples, (i32)valid_samples * (i32)sizeof(f32));

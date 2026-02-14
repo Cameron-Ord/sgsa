@@ -24,7 +24,7 @@ enum ENVELOPE_STATES {
 #define DECAY_INCREMENT (1.0 - SUSTAIN_LEVEL) / (DECAY_TIME * SAMPLE_RATE)
 #define RELEASE_INCREMENT(envelope) (envelope) / (RELEASE_TIME * SAMPLE_RATE)
 
-typedef f64 (*wave)(f64 phase);
+typedef f64 (*wave)(f64 phase, f64 freq);
 
 struct voice {
     wave waveform;
@@ -43,8 +43,10 @@ void voice_set_iterate(struct voice voices[VOICE_MAX], i32 midi_key, f64 freq);
 void voice_release_iterate(struct voice voices[VOICE_MAX], i32 midi_key);
 
 f64 sgn(f64 x);
-f64 sawtooth(f64 phase); 
-f64 square(f64 phase);
-f64 triangle(f64 phase);
-f64 sine(f64 phase);
+f64 sawtooth(f64 phase, f64 freq); 
+f64 fourier_sawtooth(f64 phase, f64 freq); 
+f64 reverse_fourier_sawtooth(f64 phase, f64 freq);
+f64 square(f64 phase, f64 freq);
+f64 triangle(f64 phase, f64 freq);
+f64 sine(f64 phase, f64 freq);
 #endif

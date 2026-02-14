@@ -15,7 +15,14 @@
 i32 window_width = 1024;
 i32 window_height = 768;
 
-const wave waveforms[] = { triangle, square, sawtooth, sine };
+const wave waveforms[] = { 
+    triangle, 
+    square, 
+    fourier_sawtooth, 
+    reverse_fourier_sawtooth, 
+    sine 
+};
+
 const size_t waveform_count = sizeof(waveforms) / sizeof(waveforms[0]);
 size_t waveform_index = 0;
 
