@@ -4,8 +4,10 @@
 #include <stdbool.h>
 #include <stdarg.h>
 
+#define PI 3.1415926535897932384626433832795
 #define SAMPLE_RATE 44100
-#define VOICE_MAX 8
+#define VOICE_MAX 4
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
 
 enum ENVELOPE_STATES {
     ENVELOPE_ATTACK = 0,
@@ -29,7 +31,9 @@ enum WAVEFORM_IDS {
     WAVE_FORM_BEGIN = 0,
     TRIANGLE,
     SQUARE,
+    FOURIER_PULSE,
     FOURIER_ST,
+    FOURIER_SQUARE,
     R_FOURIER_ST,
     SINE,
     WAVE_FORM_END,
@@ -57,6 +61,8 @@ void voice_release_iterate(struct voice voices[VOICE_MAX], i32 midi_key);
 
 f64 sgn(f64 x, f64 duty);
 f64 sawtooth(f64 phase); 
+f64 fourier_pulse(f64 phase, f64 freq, f64 duty);
+f64 fourier_square(f64 phase, f64 freq);
 f64 fourier_sawtooth(f64 phase, f64 freq); 
 f64 reverse_fourier_sawtooth(f64 phase, f64 freq);
 f64 square(f64 phase, f64 duty);

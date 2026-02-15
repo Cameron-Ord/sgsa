@@ -6,7 +6,11 @@
 //Read this and fix your shit, ya dummy
 //https://www.martin-finke.de/articles/audio-plugins-018-polyblep-oscillator/
 
-const f64 PI = 3.1415926535897932384626433832795;
+//One of the downsides to using fourier waveforms is that at higher iterations it just
+//produces an ungodly amount of harmonics and mix that in with multiple notes
+//and you give flubby mess. So just using a hard set constant to limit the harmonic content generated.
+//I do wanna add some polyblep versions though
+const i32 HARMONIC_MAX = 150;
 
 static char *wfid_to_str(i32 wfid){
     switch(wfid){
@@ -19,6 +23,12 @@ static char *wfid_to_str(i32 wfid){
         }break;
         case SQUARE:{
             return "Square Wave";
+        }break;
+        case FOURIER_PULSE:{
+            return "Additive Pulse Wave";
+        }break;
+        case FOURIER_SQUARE:{
+            return "Additive Square Wave";
         }break;
         case FOURIER_ST:{
             return "Additive Saw Wave";
@@ -54,30 +64,43 @@ i32 next_waveform(const i32 current){
     return next;
 }
 
-f64 fourier_sawtooth(f64 phase, f64 freq){
-    const i32 nyquist = SAMPLE_RATE / 2;
-    const i32 cutoff = (i32)((nyquist * 0.66) / freq);
+//https://en.wikipedia.org/wiki/Pulse_wave
+f64 fourier_pulse(f64 phase, f64 freq, f64 duty){
     f64 sum = 0.0;
-
-    for(i32 k = 1; k <= cutoff; k++){
-        sum += pow(-1.0, k) * sin(2.0 * PI * k * phase) / k;
+    for(i32 n = 1; n <= HARMONIC_MAX / VOICE_MAX; n++){
+        sum += (1.0 / n) 
+        * sin(PI * n * duty) 
+        * cos(2.0 * PI * n * phase);
     }
-    sum *= -(2 * 1.0 / PI);
+    return duty + (2.0 / PI) * sum;
 
-    return sum;
+}
+
+//https://en.wikipedia.org/wiki/Square_wave_(waveform)
+f64 fourier_square(f64 phase, f64 freq){
+    f64 sum = 0.0;
+    for(i32 k = 1; k <= HARMONIC_MAX / VOICE_MAX; k++){
+        f64 n = 2.0 * k - 1.0;
+        sum += (1.0 / n) * sin(2.0 * PI * n * phase);
+    }
+    return sum * (4.0 / PI);
+}
+
+f64 fourier_sawtooth(f64 phase, f64 freq){
+    f64 sum = 0.0;
+    for(i32 k = 1; k <= HARMONIC_MAX / VOICE_MAX; k++){
+        sum += pow(-1.0, k+1) * sin(2.0 * PI * k * phase) / k;
+        //sum += pow(-1.0, k) * sin(2.0 * PI * k * phase) / k;
+    }
+    return sum * -(2 * 1.0 / PI);
 }
 
 f64 reverse_fourier_sawtooth(f64 phase, f64 freq){
-    const i32 nyquist = SAMPLE_RATE / 2;
-    const i32 cutoff = (i32)((nyquist * 0.66) / freq);
     f64 sum = 0.0;
-
-    for(i32 k = 1; k <= cutoff; k++){
+    for(i32 k = 1; k <= HARMONIC_MAX / VOICE_MAX; k++){
         sum += pow(-1.0, k) * sin(2.0 * PI * k * phase) / k;
     }
-    sum *= (2 * 1.0 / PI);
-
-    return sum;
+    return sum * (2 * 1.0 / PI);
 }
 
 // https://en.wikipedia.org/wiki/Sawtooth_wave

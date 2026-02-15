@@ -3,9 +3,9 @@
 #include <stdio.h>
 #include <math.h>
 
-const f64 volume = 1.0;
+const f32 volume = 0.8f;
 const i32 SAMPLE_PER_CALLBACK = 128;
-const f64 MASTER_GAIN = 0.66;
+const f32 MASTER_GAIN = 0.75f;
 const f64 alpha = 1.0 / SAMPLE_RATE;
 f64 interpolated_gain = 0.0;
 
@@ -63,50 +63,49 @@ void stream_callback(void *data, SDL_AudioStream *stream, i32 add, i32 total){
         for(u32 i = 0; i < valid_samples; i++){
             f64 sample = 0.0;
             f64 wave_samples[VOICE_MAX];
-            u32 active_count = 0;
 
             for(u32 j = 0; j < VOICE_MAX; j++){
                 struct voice *v = &voices[j];
                 wave_samples[j] = 0.0;
 
                 if(v->state != ENVELOPE_OFF){
-                    v->phase += vibrato(4.0, 3.0, v->freq) / SAMPLE_RATE;
-                    if(v->phase >= 1.0) v->phase -= 1.0;
-
+                    const f64 vib_freq = vibrato(4.0, 3.0, v->freq);
+                    v->phase += vib_freq / SAMPLE_RATE;
+                    while(v->phase >= 1.0) v->phase -= 1.0;
+                    
                     switch(v->waveform_id){
                         default:break;
                         case SINE:{
                             wave_samples[j] = sine(v->phase);
                         }break;
                         case FOURIER_ST:{
-                            wave_samples[j] = fourier_sawtooth(v->phase, v->freq);
+                            wave_samples[j] = fourier_sawtooth(v->phase, vib_freq);
                         }break;
                         case R_FOURIER_ST:{
-                            wave_samples[j] = reverse_fourier_sawtooth(v->phase, v->freq);
+                            wave_samples[j] = reverse_fourier_sawtooth(v->phase, vib_freq);
+                        }break;
+                        case FOURIER_PULSE:{
+                            wave_samples[j] = fourier_pulse(v->phase, vib_freq, 0.25);
                         }break;
                         case SQUARE:{
                             wave_samples[j] = square(v->phase, 0.25);
+                        }break;
+                        case FOURIER_SQUARE:{
+                            wave_samples[j] = fourier_square(v->phase, vib_freq);
                         }break;
                         case TRIANGLE:{
                             wave_samples[j] = triangle(v->phase);
                         }break;
                     }
 
-                    wave_samples[j] = wave_samples[j] * adsr(&v->state, &v->envelope, &v->release_increment);
-                    active_count++;
+                    const f64 env = adsr(&v->state, &v->envelope, &v->release_increment);
+                    wave_samples[j] = wave_samples[j] * env;
+                    sample += wave_samples[j];
                 }
             }
-
-            for(u32 k = 0; k < VOICE_MAX; k++){
-                struct voice *v = &voices[k];
-                if(wave_samples[k] == 0.0) continue;
-                const f64 gain = 1.0 / active_count;
-                interpolated_gain += linear_interpolate(gain, interpolated_gain, alpha);
-                wave_samples[k] *= interpolated_gain;
-                sample += wave_samples[k];
-            }
-
-            samples[i] = (f32)tanh(sample * MASTER_GAIN);
+            //const f32 compressed_arctan = (2.0f / (f32)PI) * atanf((f32)sample * (f32)MASTER_GAIN);
+            const f32 compressed_tanh = tanhf((f32)sample * MASTER_GAIN);
+            samples[i] = compressed_tanh * volume;
         }
 
         stream_feed(stream, samples, (i32)valid_samples * (i32)sizeof(f32));
