@@ -5,6 +5,27 @@
 
 const f64 PI = 3.1415926535897932384626433832795;
 
+static char *wfid_to_str(i32 wfid){
+    switch(wfid){
+        default: return "Unknown ID";
+        case TRIANGLE:{
+            return "Triangle Wave";
+        }break;
+        case SINE:{
+            return "Sine Wave";
+        }break;
+        case SQUARE:{
+            return "Square Wave";
+        }break;
+        case FOURIER_ST:{
+            return "Additive Saw Wave";
+        }break;
+        case R_FOURIER_ST:{
+            return "Reverse Additive Saw Wave";
+        }break;
+    }
+}
+
 f64 vibrato(f64 vrate, f64 depth, f64 freq){
     static f64 phase;
     phase += vrate / SAMPLE_RATE; 
@@ -12,6 +33,14 @@ f64 vibrato(f64 vrate, f64 depth, f64 freq){
 
     const f64 mod = sin(2.0 * PI * phase);
     return freq + mod * depth;
+}
+
+i32 prev_waveform(const i32 current){
+    i32 prev = current - 1;
+    if(prev <= WAVE_FORM_BEGIN){
+        prev = WAVE_FORM_END - 1;    
+    }
+    return prev;
 }
 
 i32 next_waveform(const i32 current){
@@ -76,6 +105,7 @@ f64 linear_interpolate(f64 target, f64 current, const f64 alpha){
 }
 
 void voices_set_waveform(struct voice voices[VOICE_MAX], i32 wfid){
+    printf("Set to: %s\n", wfid_to_str(wfid));
     for(i32 i = 0; i < VOICE_MAX; i++){
         struct voice *v = &voices[i];
         v->waveform_id = wfid;
@@ -83,6 +113,7 @@ void voices_set_waveform(struct voice voices[VOICE_MAX], i32 wfid){
 }
 
 void voices_initialize(struct voice voices[VOICE_MAX], i32 wfid){
+    printf("Set to: %s\n", wfid_to_str(wfid));
     for(i32 i = 0; i < VOICE_MAX; i++){
         struct voice *v = &voices[i];
         v->waveform_id = wfid;

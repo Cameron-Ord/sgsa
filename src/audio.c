@@ -1,6 +1,5 @@
 #include "../include/audio.h"
 #include "../include/waveform.h"
-#include "../include/render.h"
 #include <stdio.h>
 #include <math.h>
 
@@ -9,13 +8,6 @@ const i32 SAMPLE_PER_CALLBACK = 128;
 const f64 MASTER_GAIN = 0.9;
 const f64 alpha = 1.0 / SAMPLE_RATE;
 f64 interpolated_gain = 0.0;
-
-static void render_frame_push(const size_t samples, const f32 *src, f32 *dst){
-    if(samples > 0 && src && dst){
-        memmove(dst, dst + samples, (FRAME_RESOLUTION - samples) * sizeof(f32));
-        memcpy(dst + (FRAME_RESOLUTION - samples), src, samples * sizeof(f32));
-    }
-}
 
 // linear adsr
 static f64 adsr(i32 *state, f64 *envelope, const f64 *release){
@@ -59,8 +51,8 @@ bool stream_feed(SDL_AudioStream *stream, const f32 samples[], i32 len){
 }
 
 void stream_callback(void *data, SDL_AudioStream *stream, i32 add, i32 total){
-    struct userdata *ud = (struct userdata *)data;
-    if(!ud) { return; }
+    struct voice *voices = (struct voice *)data;
+    if(!voices) { return; }
 
     u32 sample_count = (u32)add / sizeof(f32);
     while(sample_count > 0){
@@ -74,7 +66,7 @@ void stream_callback(void *data, SDL_AudioStream *stream, i32 add, i32 total){
             u32 active_count = 0;
 
             for(u32 j = 0; j < VOICE_MAX; j++){
-                struct voice *v = &ud->voices[j];
+                struct voice *v = &voices[j];
                 wave_samples[j] = 0.0;
 
                 if(v->state != ENVELOPE_OFF){
@@ -117,7 +109,6 @@ void stream_callback(void *data, SDL_AudioStream *stream, i32 add, i32 total){
         }
 
         stream_feed(stream, samples, (i32)valid_samples * (i32)sizeof(f32));
-        render_frame_push(valid_samples, samples, ud->frame->samples);
         sample_count -= valid_samples;
     }
 
@@ -149,7 +140,7 @@ SDL_AudioStream *audio_stream_create(SDL_AudioSpec input, SDL_AudioSpec output){
     return stream;
 }
 
-bool set_audio_callback(SDL_AudioStream *stream, struct userdata *data){
+bool set_audio_callback(SDL_AudioStream *stream, struct voice *data){
     if(!SDL_SetAudioStreamGetCallback(stream, stream_callback, data)){
         printf("%s\n", SDL_GetError());
         return false;

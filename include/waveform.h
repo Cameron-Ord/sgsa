@@ -47,6 +47,7 @@ struct voice {
 
 f64 vibrato(f64 vrate, f64 depth, f64 freq);
 i32 next_waveform(const i32 current);
+i32 prev_waveform(const i32 current);
 f64 linear_interpolate(f64 target, f64 current, const f64 alpha);
 void voices_set_waveform(struct voice voices[VOICE_MAX], i32 wfid);
 void voices_initialize(struct voice voices[VOICE_MAX], i32 wfid);

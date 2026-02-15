@@ -4,7 +4,6 @@ SRCS = src/main.c
 SRCS += src/controller.c
 SRCS += src/audio.c
 SRCS += src/waveform.c
-SRCS += src/renderer.c
 
 CC = x86_64-w64-mingw32-gcc
 LFLAGS = -lm -lSDL3 -lportmidi

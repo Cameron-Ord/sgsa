@@ -8,7 +8,13 @@
 
 enum STATUS {
     NOTE_ON = 0x90,
-    NOTE_OFF = 0x80
+    NOTE_OFF = 0x80,
+    CONTROL = 0xB0,
+    CONTROL_ON = 0x7F,
+    CONTROL_OFF = 0x0,
+    WAVE_LEFT = 0x1C,
+    WAVE_RIGHT = 0x1D,
+    MODE_PRESET = 0x1,
 };
 
 struct device_data {
