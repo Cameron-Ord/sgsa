@@ -122,16 +122,19 @@ SDL_AudioSpec make_audio_spec(i32 channels, i32 samplerate, SDL_AudioFormat form
     return spec;
 }
 
-struct playback_device open_audio_device(SDL_AudioSpec output_spec){
-    u32 id = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &output_spec);
+struct playback_device open_audio_device(void){
+    u32 id = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, NULL);
     if(!id){
         return (struct playback_device){ 0, NULL, { 0, 0, 0 }, false };
     }
-    return (struct playback_device){ id, NULL, output_spec, true };
+    SDL_AudioSpec obtained = {0};
+    SDL_GetAudioDeviceFormat(id, &obtained, NULL);
+    printf("Output spec: 0x%X - %d - %d\n", obtained.format, obtained.channels, obtained.freq);
+    return (struct playback_device){ id, NULL, obtained, true };
 }
 
-SDL_AudioStream *audio_stream_create(SDL_AudioSpec input, SDL_AudioSpec output){
-    SDL_AudioStream *stream = SDL_CreateAudioStream(&input, &output);
+SDL_AudioStream *audio_stream_create(SDL_AudioSpec internal, SDL_AudioSpec device_out){
+    SDL_AudioStream *stream = SDL_CreateAudioStream(&internal, &device_out);
     if(!stream){
         printf("%s\n", SDL_GetError());
         return NULL;

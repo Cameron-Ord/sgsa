@@ -27,8 +27,9 @@ int main(int argc, char **argv){
     i32 current_waveform = SQUARE;
     voices_initialize(voices, SQUARE);
 
-    struct playback_device pbdev = open_audio_device(make_audio_spec(2, SAMPLE_RATE, SDL_AUDIO_F32));
-    pbdev.stream = audio_stream_create(pbdev.output_spec, pbdev.output_spec);
+    SDL_AudioSpec internal_spec = make_audio_spec(2, SAMPLE_RATE, SDL_AUDIO_F32);
+    struct playback_device pbdev = open_audio_device();
+    pbdev.stream = audio_stream_create(internal_spec, pbdev.output_spec);
     
     pause_audio(pbdev.id);
     set_audio_callback(pbdev.stream, voices);
