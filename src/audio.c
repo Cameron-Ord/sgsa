@@ -5,7 +5,7 @@
 
 const f64 volume = 1.0;
 const i32 SAMPLE_PER_CALLBACK = 128;
-const f64 MASTER_GAIN = 0.9;
+const f64 MASTER_GAIN = 0.66;
 const f64 alpha = 1.0 / SAMPLE_RATE;
 f64 interpolated_gain = 0.0;
 
@@ -98,10 +98,12 @@ void stream_callback(void *data, SDL_AudioStream *stream, i32 add, i32 total){
             }
 
             for(u32 k = 0; k < VOICE_MAX; k++){
+                struct voice *v = &voices[k];
                 if(wave_samples[k] == 0.0) continue;
                 const f64 gain = 1.0 / active_count;
                 interpolated_gain += linear_interpolate(gain, interpolated_gain, alpha);
                 wave_samples[k] *= interpolated_gain;
+                wave_samples[k] = lp(&v->prev, wave_samples[k], 8000);
                 sample += wave_samples[k];
             }
 

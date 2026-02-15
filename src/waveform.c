@@ -26,6 +26,16 @@ static char *wfid_to_str(i32 wfid){
     }
 }
 
+f64 lp(f64 *prev, f64 x, f64 cutoff){
+    const f64 dt = 1.0 / SAMPLE_RATE;
+    //Convert to radians
+    const f64 rc = 1.0 / (2.0 * PI * cutoff);
+    const f64 a = dt / (rc + dt);
+    const f64 current = a * x + (1.0 - a) * *prev;
+    *prev = current;
+    return current;
+}
+
 f64 vibrato(f64 vrate, f64 depth, f64 freq){
     static f64 phase;
     phase += vrate / SAMPLE_RATE; 
@@ -53,7 +63,7 @@ i32 next_waveform(const i32 current){
 
 f64 fourier_sawtooth(f64 phase, f64 freq){
     const i32 nyquist = SAMPLE_RATE / 2;
-    const i32 cutoff = (i32)((nyquist * 0.5) / freq);
+    const i32 cutoff = (i32)((nyquist * 0.66) / freq);
     f64 sum = 0.0;
 
     for(i32 k = 1; k <= cutoff; k++){
@@ -66,7 +76,7 @@ f64 fourier_sawtooth(f64 phase, f64 freq){
 
 f64 reverse_fourier_sawtooth(f64 phase, f64 freq){
     const i32 nyquist = SAMPLE_RATE / 2;
-    const i32 cutoff = (i32)((nyquist * 0.5) / freq);
+    const i32 cutoff = (i32)((nyquist * 0.66) / freq);
     f64 sum = 0.0;
 
     for(i32 k = 1; k <= cutoff; k++){
@@ -122,6 +132,7 @@ void voices_initialize(struct voice voices[VOICE_MAX], i32 wfid){
         v->midi_key = -1;
         v->phase = 0.0;
         v->envelope = 0.0;
+        v->prev = 0.0;
     }
 }
 
@@ -135,6 +146,7 @@ void voice_set_iterate(struct voice voices[VOICE_MAX], i32 midi_key, f64 freq){
             v->phase = 0.0;
             v->envelope = 0.0;
             v->release_increment = 0.0;
+            v->prev = 0.0;
             return;
         }
     }

@@ -41,10 +41,12 @@ struct voice {
     f64 phase;
     f64 freq;
     f64 envelope;
+    f64 prev;
     i32 state;
     f64 release_increment;
 };
 
+f64 lp(f64 *prev, f64 x, f64 cutoff);
 f64 vibrato(f64 vrate, f64 depth, f64 freq);
 i32 next_waveform(const i32 current);
 i32 prev_waveform(const i32 current);
