@@ -9,6 +9,8 @@
 
 #include <SDL3/SDL.h>
 
+const i32 INTERNAL_SAMPLE_RATE = 48000;
+
 static bool initialize_sdl(void);
 
 static bool initialize_sdl(void){
@@ -23,16 +25,22 @@ int main(int argc, char **argv){
     u64 init_start = SDL_GetTicks();
     printf("Init start timer: %zums\n", init_start);
 
-    struct voice voices[VOICE_MAX];
-    i32 current_waveform = SQUARE;
-    voices_initialize(voices, SQUARE);
+    i32 current_waveform = SQUARE_RAW;
+    struct voice_control vc;
+    vc_initialize(
+        &vc,
+        current_waveform,
+        make_format(MONO, INTERNAL_SAMPLE_RATE, SDL_AUDIO_F32),
+        make_osciliator(0.0, 0.0), 
+        make_env(ENVELOPE_OFF, 0.0, 0.0)
+    );
 
-    SDL_AudioSpec internal_spec = make_audio_spec(2, SAMPLE_RATE, SDL_AUDIO_F32);
+    SDL_AudioSpec internal_spec = make_audio_spec(vc.fmt.CHANNELS, vc.fmt.SAMPLE_RATE, vc.fmt.FORMAT);
     struct playback_device pbdev = open_audio_device();
     pbdev.stream = audio_stream_create(internal_spec, pbdev.output_spec);
     
     pause_audio(pbdev.id);
-    set_audio_callback(pbdev.stream, voices);
+    set_audio_callback(pbdev.stream, &vc);
     audio_stream_bind(pbdev.stream, pbdev.id);
     resume_audio(pbdev.id);
 
@@ -72,7 +80,7 @@ int main(int argc, char **argv){
                             default: break;
                             case CONTROL_ON:{
                                 const i32 prev = prev_waveform(current_waveform);
-                                voices_set_waveform(voices, prev);
+                                vc_set_waveform(&vc, prev);
                                 current_waveform = prev;
                             }break;
                         }
@@ -83,7 +91,7 @@ int main(int argc, char **argv){
                             default: break;
                             case CONTROL_ON:{
                                 const i32 next = next_waveform(current_waveform);
-                                voices_set_waveform(voices, next);
+                                vc_set_waveform(&vc, next);
                                 current_waveform = next;
                             }break;
                         }
@@ -92,11 +100,20 @@ int main(int argc, char **argv){
             }break;
 
             case NOTE_ON:{
-                voice_set_iterate(voices, in.first, midi_to_base_freq(in.first));
+                voice_set_iterate(
+                    vc.voices, 
+                    in.first, 
+                    make_osciliator(0.0, midi_to_base_freq(in.first)), 
+                    make_env(ENVELOPE_ATTACK, 0.0, 0.0)
+                );
             }break;
 
             case NOTE_OFF:{
-                voice_release_iterate(voices, in.first);
+                voice_release_iterate(
+                    vc.voices, 
+                    in.first,
+                    vc.fmt.SAMPLE_RATE
+                );
             }break;
         }
 

@@ -6,111 +6,62 @@
 const f32 volume = 0.8f;
 const i32 SAMPLE_PER_CALLBACK = 128;
 const f32 MASTER_GAIN = 0.75f;
-const f64 alpha = 1.0 / SAMPLE_RATE;
-f64 interpolated_gain = 0.0;
-
-// linear adsr
-static f64 adsr(i32 *state, f64 *envelope, const f64 *release){
-    f64 mutated = *envelope;
-    switch(*state){
-        default:break;
-        case ENVELOPE_ATTACK:{
-            mutated += ATTACK_INCREMENT;
-            if(mutated >= 1.0){
-                mutated = 1.0;
-                *state = ENVELOPE_DECAY;
-            }
-        }break;
-    
-        case ENVELOPE_SUSTAIN: break;
-
-        case ENVELOPE_DECAY: {
-            mutated -= DECAY_INCREMENT;
-            if(mutated <= SUSTAIN_LEVEL){
-                mutated = SUSTAIN_LEVEL;
-                *state = ENVELOPE_SUSTAIN;
-            }
-        }break;
-
-        case ENVELOPE_RELEASE:{
-            mutated -= *release;
-            if(mutated <= 0.0){
-                mutated = 0.0;
-                *state = ENVELOPE_OFF;
-            }
-        }break;
-
-        case ENVELOPE_OFF: break;
-    }
-    *envelope = mutated;
-    return mutated;
-}
+//const f64 alpha = 1.0 / SAMPLE_RATE;
 
 bool stream_feed(SDL_AudioStream *stream, const f32 samples[], i32 len){
     return SDL_PutAudioStreamData(stream, samples, len);
 }
 
+static f32 loop_voicings(struct voice voices[VOICE_MAX], f64 wave_samples[VOICE_MAX], i32 wfid, i32 samplerate){
+    f32 sample = 0.0;
+    for(u32 i = 0; i < VOICE_MAX; i++){
+        struct voice *v = &voices[i];
+        wave_samples[i] = 0.0;
+
+        if(v->env.state != ENVELOPE_OFF){
+            const f64 dt = v->osc.freq / samplerate;
+            v->osc.phase += dt;
+            if(v->osc.phase >= 1.0){
+                v->osc.phase -= 1.0;
+            }
+
+            switch(wfid){
+                default:break;
+                case SQUARE_RAW:{
+                    wave_samples[i] = square(v->osc.phase, 0.25);
+                }break;
+            }
+
+            adsr(&v->env.state, &v->env.envelope, &v->env.release_increment, samplerate);
+            wave_samples[i] *= v->env.envelope;
+        }
+        sample += (f32)wave_samples[i];
+    }
+    return sample;
+}
+
+static void loop_samples(u32 count, f32 *samplebuffer, struct voice_control *vc){
+    for(u32 i = 0; i < count; i++){
+        f32 sample = 0.0;
+        f64 wave_samples[VOICE_MAX];
+        sample += loop_voicings(vc->voices, wave_samples, vc->waveform_id, vc->fmt.SAMPLE_RATE);
+        samplebuffer[i] = tanhf(sample * 0.5f);
+    }
+}
+
 void stream_callback(void *data, SDL_AudioStream *stream, i32 add, i32 total){
-    struct voice *voices = (struct voice *)data;
-    if(!voices) { return; }
+    struct voice_control *vc = (struct voice_control *)data;
+    if(!vc) { return; }
 
     u32 sample_count = (u32)add / sizeof(f32);
     while(sample_count > 0){
         f32 samples[SAMPLE_PER_CALLBACK];
         memset(samples, 0, sizeof(samples));
-        
         const u32 valid_samples = SDL_min(sample_count, SDL_arraysize(samples));
-        for(u32 i = 0; i < valid_samples; i++){
-            f64 sample = 0.0;
-            f64 wave_samples[VOICE_MAX];
-
-            for(u32 j = 0; j < VOICE_MAX; j++){
-                struct voice *v = &voices[j];
-                wave_samples[j] = 0.0;
-
-                if(v->state != ENVELOPE_OFF){
-                    v->phase += v->freq / SAMPLE_RATE;
-                    while(v->phase >= 1.0) v->phase -= 1.0;
-                    
-                    switch(v->waveform_id){
-                        default:break;
-                        case SINE:{
-                            wave_samples[j] = sine(v->phase);
-                        }break;
-                        case FOURIER_ST:{
-                            wave_samples[j] = fourier_sawtooth(v->phase, v->freq);
-                        }break;
-                        case R_FOURIER_ST:{
-                            wave_samples[j] = reverse_fourier_sawtooth(v->phase, v->freq);
-                        }break;
-                        case FOURIER_PULSE:{
-                            wave_samples[j] = fourier_pulse(v->phase, v->freq, 0.25);
-                        }break;
-                        case SQUARE:{
-                            wave_samples[j] = square(v->phase, 0.25);
-                        }break;
-                        case FOURIER_SQUARE:{
-                            wave_samples[j] = fourier_square(v->phase, v->freq);
-                        }break;
-                        case TRIANGLE:{
-                            wave_samples[j] = triangle(v->phase);
-                        }break;
-                    }
-
-                    const f64 env = adsr(&v->state, &v->envelope, &v->release_increment);
-                    wave_samples[j] = wave_samples[j] * env;
-                    sample += wave_samples[j];
-                }
-            }
-            //const f32 compressed_arctan = (2.0f / (f32)PI) * atanf((f32)sample * (f32)MASTER_GAIN);
-            const f32 compressed_tanh = tanhf((f32)sample * MASTER_GAIN);
-            samples[i] = compressed_tanh * volume;
-        }
-
+        loop_samples(valid_samples, samples, vc);
         stream_feed(stream, samples, (i32)valid_samples * (i32)sizeof(f32));
         sample_count -= valid_samples;
     }
-
 }
 
 SDL_AudioSpec make_audio_spec(i32 channels, i32 samplerate, SDL_AudioFormat format){
@@ -142,7 +93,7 @@ SDL_AudioStream *audio_stream_create(SDL_AudioSpec internal, SDL_AudioSpec devic
     return stream;
 }
 
-bool set_audio_callback(SDL_AudioStream *stream, struct voice *data){
+bool set_audio_callback(SDL_AudioStream *stream, struct voice_control *data){
     if(!SDL_SetAudioStreamGetCallback(stream, stream_callback, data)){
         printf("%s\n", SDL_GetError());
         return false;
