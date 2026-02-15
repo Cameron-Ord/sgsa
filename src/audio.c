@@ -78,10 +78,29 @@ void stream_callback(void *data, SDL_AudioStream *stream, i32 add, i32 total){
                 wave_samples[j] = 0.0;
 
                 if(v->state != ENVELOPE_OFF){
-                    v->phase += v->freq / SAMPLE_RATE;
+                    v->phase += vibrato(4.0, 1.1, v->freq) / SAMPLE_RATE;
                     if(v->phase >= 1.0) v->phase -= 1.0;
 
-                    wave_samples[j] = v->waveform(v->phase, v->freq) * adsr(&v->state, &v->envelope, &v->release_increment);
+                    switch(v->waveform_id){
+                        default:break;
+                        case SINE:{
+                            wave_samples[j] = sine(v->phase);
+                        }break;
+                        case FOURIER_ST:{
+                            wave_samples[j] = fourier_sawtooth(v->phase, v->freq);
+                        }break;
+                        case R_FOURIER_ST:{
+                            wave_samples[j] = reverse_fourier_sawtooth(v->phase, v->freq);
+                        }break;
+                        case SQUARE:{
+                            wave_samples[j] = square(v->phase, 0.25);
+                        }break;
+                        case TRIANGLE:{
+                            wave_samples[j] = triangle(v->phase);
+                        }break;
+                    }
+
+                    wave_samples[j] = wave_samples[j] * adsr(&v->state, &v->envelope, &v->release_increment);
                     active_count++;
                 }
             }

@@ -15,17 +15,6 @@
 i32 window_width = 1024;
 i32 window_height = 768;
 
-const wave waveforms[] = { 
-    triangle, 
-    square, 
-    fourier_sawtooth, 
-    reverse_fourier_sawtooth, 
-    sine 
-};
-
-const size_t waveform_count = sizeof(waveforms) / sizeof(waveforms[0]);
-size_t waveform_index = 0;
-
 static bool initialize_sdl(void);
 static SDL_Renderer *create_renderer(SDL_Window *w);
 static SDL_Window *create_window(const char *name, i32 width, i32 height);
@@ -91,8 +80,9 @@ int main(int argc, char **argv){
 
     struct render_frame frame = {{0}};
     struct voice voices[VOICE_MAX];
-    voices_initialize(voices, waveforms[waveform_index]);
-    
+    i32 current_waveform = SQUARE;
+    voices_initialize(voices, SQUARE);
+
     struct playback_device pbdev = open_audio_device(make_audio_spec(2, SAMPLE_RATE, SDL_AUDIO_F32));
     pbdev.stream = audio_stream_create(pbdev.output_spec, pbdev.output_spec);
     
@@ -151,12 +141,9 @@ int main(int argc, char **argv){
                 case SDL_EVENT_KEY_DOWN:{
                     switch(event.key.key){
                         case SDLK_SPACE:{
-                            size_t next = waveform_index + 1;
-                            if(next >= waveform_count){
-                                next = 0;
-                            }
-                            waveform_index = next;
-                            voices_set_waveform(voices, waveforms[waveform_index]);
+                            const i32 next = next_waveform(current_waveform);
+                            voices_set_waveform(voices, next);
+                            current_waveform = next;
                         }break;
                     }
                 }break;
