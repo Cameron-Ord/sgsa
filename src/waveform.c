@@ -22,7 +22,6 @@ i32 next_waveform(const i32 current){
     return next;
 }
 
-
 f64 fourier_sawtooth(f64 phase, f64 freq){
     const i32 nyquist = SAMPLE_RATE / 2;
     const i32 cutoff = (i32)((nyquist * 0.5) / freq);
