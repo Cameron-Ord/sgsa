@@ -6,7 +6,7 @@
 
 #define PI 3.1415926535897932384626433832795
 #define SAMPLE_RATE 44100
-#define VOICE_MAX 4
+#define VOICE_MAX 2
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 
 enum ENVELOPE_STATES {
@@ -17,10 +17,10 @@ enum ENVELOPE_STATES {
     ENVELOPE_OFF,
 };
 
-#define ATTACK_TIME 0.1
+#define ATTACK_TIME 0.05
 #define DECAY_TIME 0.1
 #define SUSTAIN_LEVEL 0.9
-#define RELEASE_TIME 0.1
+#define RELEASE_TIME 0.05
 //  0 -> 1  0 -> 1 
 // (VALUE - VALUE) / SAMPLES
 #define ATTACK_INCREMENT (1.0 - 0.0) / (ATTACK_TIME * SAMPLE_RATE)

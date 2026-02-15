@@ -69,8 +69,7 @@ void stream_callback(void *data, SDL_AudioStream *stream, i32 add, i32 total){
                 wave_samples[j] = 0.0;
 
                 if(v->state != ENVELOPE_OFF){
-                    const f64 vib_freq = vibrato(4.0, 3.0, v->freq);
-                    v->phase += vib_freq / SAMPLE_RATE;
+                    v->phase += v->freq / SAMPLE_RATE;
                     while(v->phase >= 1.0) v->phase -= 1.0;
                     
                     switch(v->waveform_id){
@@ -79,19 +78,19 @@ void stream_callback(void *data, SDL_AudioStream *stream, i32 add, i32 total){
                             wave_samples[j] = sine(v->phase);
                         }break;
                         case FOURIER_ST:{
-                            wave_samples[j] = fourier_sawtooth(v->phase, vib_freq);
+                            wave_samples[j] = fourier_sawtooth(v->phase, v->freq);
                         }break;
                         case R_FOURIER_ST:{
-                            wave_samples[j] = reverse_fourier_sawtooth(v->phase, vib_freq);
+                            wave_samples[j] = reverse_fourier_sawtooth(v->phase, v->freq);
                         }break;
                         case FOURIER_PULSE:{
-                            wave_samples[j] = fourier_pulse(v->phase, vib_freq, 0.25);
+                            wave_samples[j] = fourier_pulse(v->phase, v->freq, 0.25);
                         }break;
                         case SQUARE:{
                             wave_samples[j] = square(v->phase, 0.25);
                         }break;
                         case FOURIER_SQUARE:{
-                            wave_samples[j] = fourier_square(v->phase, vib_freq);
+                            wave_samples[j] = fourier_square(v->phase, v->freq);
                         }break;
                         case TRIANGLE:{
                             wave_samples[j] = triangle(v->phase);
