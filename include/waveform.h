@@ -15,9 +15,9 @@ enum ENVELOPE_STATES {
     ENVELOPE_OFF,
 };
 
-#define ATTACK_TIME 0.0
+#define ATTACK_TIME 0.1
 #define DECAY_TIME 0.1
-#define SUSTAIN_LEVEL 0.8
+#define SUSTAIN_LEVEL 0.9
 #define RELEASE_TIME 0.1
 //  0 -> 1  0 -> 1 
 // (VALUE - VALUE) / SAMPLES

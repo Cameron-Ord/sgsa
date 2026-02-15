@@ -78,7 +78,7 @@ void stream_callback(void *data, SDL_AudioStream *stream, i32 add, i32 total){
                 wave_samples[j] = 0.0;
 
                 if(v->state != ENVELOPE_OFF){
-                    v->phase += vibrato(4.0, 1.1, v->freq) / SAMPLE_RATE;
+                    v->phase += vibrato(4.0, 3.0, v->freq) / SAMPLE_RATE;
                     if(v->phase >= 1.0) v->phase -= 1.0;
 
                     switch(v->waveform_id){
