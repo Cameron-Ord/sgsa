@@ -103,7 +103,6 @@ void stream_callback(void *data, SDL_AudioStream *stream, i32 add, i32 total){
                 const f64 gain = 1.0 / active_count;
                 interpolated_gain += linear_interpolate(gain, interpolated_gain, alpha);
                 wave_samples[k] *= interpolated_gain;
-                wave_samples[k] = lp(&v->prev, wave_samples[k], 8000);
                 sample += wave_samples[k];
             }
 

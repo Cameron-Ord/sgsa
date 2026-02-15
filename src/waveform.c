@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+//Read this and fix your shit, ya dummy
+//https://www.martin-finke.de/articles/audio-plugins-018-polyblep-oscillator/
+
 const f64 PI = 3.1415926535897932384626433832795;
 
 static char *wfid_to_str(i32 wfid){
@@ -24,16 +27,6 @@ static char *wfid_to_str(i32 wfid){
             return "Reverse Additive Saw Wave";
         }break;
     }
-}
-
-f64 lp(f64 *prev, f64 x, f64 cutoff){
-    const f64 dt = 1.0 / SAMPLE_RATE;
-    //Convert to radians
-    const f64 rc = 1.0 / (2.0 * PI * cutoff);
-    const f64 a = dt / (rc + dt);
-    const f64 current = a * x + (1.0 - a) * *prev;
-    *prev = current;
-    return current;
 }
 
 f64 vibrato(f64 vrate, f64 depth, f64 freq){
