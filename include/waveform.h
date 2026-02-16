@@ -21,9 +21,9 @@ enum ENVELOPE_STATES {
     ENVELOPE_OFF,
 };
 
-#define ATTACK_TIME 0.1
+#define ATTACK_TIME 0.0
 #define DECAY_TIME 0.1
-#define SUSTAIN_LEVEL 0.1
+#define SUSTAIN_LEVEL 0.2
 #define RELEASE_TIME 0.1
 //  0 -> 1  0 -> 1 
 // (VALUE - VALUE) / SAMPLES
@@ -33,12 +33,12 @@ enum ENVELOPE_STATES {
 
 enum WAVEFORM_IDS {
     WAVE_FORM_BEGIN = 0,
-    SQUARE_RAW,
-    SINE_RAW,
+    PULSE_RAW,
     SAW_RAW,
     TRIANGLE_RAW,
+
     POLY_SAW,
-    POLY_SQUARE,
+    POLY_PULSE,
     WAVE_FORM_END,
 };
 

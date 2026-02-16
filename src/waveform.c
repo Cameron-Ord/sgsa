@@ -81,23 +81,20 @@ f64 adsr(i32 *state, f64 *envelope, const f64 *release, i32 samplerate){
 static char *wfid_to_str(i32 wfid){
     switch(wfid){
         default: return "Unknown ID";
-        case POLY_SQUARE:{
-            return "Poly Square";
+        case POLY_PULSE:{
+            return "Polybleb Pulse";
         }break;
         case POLY_SAW: {
-            return "PolyBlep Saw";
-        }break;
-        case SQUARE_RAW:{
-            return "SQUARE";
-        } break;
-        case SINE_RAW:{
-            return "SINE";
+            return "PolyBlep Sawtooth";
         }break;
         case SAW_RAW:{
-            return "SAW";
+            return "Sawtooth";
+        }break;
+        case PULSE_RAW:{
+            return "Square";
         }break;
         case TRIANGLE_RAW:{
-            return "TRIANGLE";
+            return "Triangle";
         }break;
     }
 }
@@ -158,9 +155,9 @@ void vc_set_waveform(struct voice_control *vc, i32 wfid){
 }
 
 f64 map_velocity(i32 second){
-    f64 base_amp = 1.0, low_scale = 0.0125, high_scale = 0.075;
-    const i32 high_threshold = 80;
-    const i32 low_threshold = 50;
+    f64 base_amp = 1.0, low_scale = 0.0125, high_scale = 0.0225;
+    const i32 high_threshold = 75;
+    const i32 low_threshold = 45;
     
     if(second > high_threshold){
         base_amp += (second - high_threshold) * high_scale;
@@ -169,9 +166,9 @@ f64 map_velocity(i32 second){
     }
 
     if(base_amp < 0.25){
-        base_amp = 0.25;
-    } else if (base_amp > 2.5){
-        base_amp = 3.0;
+        base_amp = 0.125;
+    } else if (base_amp > 2.25){
+        base_amp = 2.25;
     }
 
     return base_amp;

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <math.h>
 
+const f64 DUTY_CYCLE = 0.125;
 const f64 VIBRATO_ON = 0.18;
 const f64 TREM_ON = 0.12;
 const f32 volume = 1.0f;
@@ -29,14 +30,14 @@ static f32 loop_voicings(struct voice voices[VOICE_MAX], f64 wave_samples[VOICE_
 
             switch(wfid){
                 default:break;
-                case POLY_SQUARE:{
-                    wave_samples[i] = poly_square(v->osc.amplitude, dt, v->osc.phase, 0.25);
+                case POLY_PULSE:{
+                    wave_samples[i] = poly_square(v->osc.amplitude, dt, v->osc.phase, DUTY_CYCLE);
                 }break;
                 case POLY_SAW:{
                     wave_samples[i] = poly_saw(v->osc.amplitude, dt, v->osc.phase);
                 }break;
-                case SQUARE_RAW:{
-                    wave_samples[i] = square(v->osc.amplitude, v->osc.phase, 0.25);
+                case PULSE_RAW:{
+                    wave_samples[i] = square(v->osc.amplitude, v->osc.phase, DUTY_CYCLE);
                 }break;
                 case SAW_RAW:{
                     wave_samples[i] = sawtooth(v->osc.amplitude, v->osc.phase);
@@ -44,15 +45,12 @@ static f32 loop_voicings(struct voice voices[VOICE_MAX], f64 wave_samples[VOICE_
                 case TRIANGLE_RAW:{
                     wave_samples[i] = triangle(v->osc.amplitude, v->osc.phase);
                 }break;
-                case SINE_RAW:{
-                    wave_samples[i] = sine(v->osc.amplitude, v->osc.phase);
-                }break;
             }
 
             adsr(&v->env.state, &v->env.envelope, &v->env.release_increment, samplerate);
             wave_samples[i] *= v->env.envelope;
             if(v->osc.time > TREM_ON){
-                wave_samples[i] *= tremolo(4.5, 0.0875, v->osc.phase);
+                wave_samples[i] *= tremolo(4.5, 0.1, v->osc.phase);
             }
 
             v->osc.phase += dt;
