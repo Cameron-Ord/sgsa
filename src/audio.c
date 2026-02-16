@@ -7,7 +7,7 @@
 const f64 VIBRATO_ON = 0.18;
 const f32 VOLUME = 1.0f;
 const i32 SAMPLE_PER_CALLBACK = 128;
-const f32 MASTER_GAIN = 0.75f;
+const f32 MASTER_GAIN = 1.5f;
 const f64 VRATE = 4.0;
 const f64 EFFECT_DEPTH = 2.25;
 const i32 BIT_DEPTH = 8;
@@ -49,9 +49,9 @@ static f64 loop_oscilators(f64 amp, struct layer *l, i32 samplerate){
             osc->phase -= 1.0;
         }
         osc->time += 1.0 / samplerate;
-        sum += generated;
+        sum += generated / l->oscilators;
     }
-    return tanh(sum);
+    return sum;
 }
 
 static f32 loop_voicings(struct voice voices[VOICE_MAX], f64 wave_samples[VOICE_MAX], i32 samplerate){
@@ -64,7 +64,7 @@ static f32 loop_voicings(struct voice voices[VOICE_MAX], f64 wave_samples[VOICE_
             const f64 envelope = adsr(&v->env.state, &v->env.envelope, &v->env.release_increment, samplerate);
             wave_samples[i] *= envelope;
         }
-        sample += (f32)tanh(wave_samples[i] * (f64)MASTER_GAIN) * VOLUME;
+        sample += (f32)tanh(wave_samples[i] * (f64)MASTER_GAIN / VOICE_MAX) * VOLUME;
     }
     return sample;
 }

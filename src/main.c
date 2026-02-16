@@ -7,10 +7,12 @@
 #include "../include/waveform.h"
 #include "../include/audio.h"
 
+#include <assert.h>
 #include <stdlib.h>
 #include <time.h>
 
 #include <SDL3/SDL.h>
+
 //https://github-wiki-see.page/m/pret/pokeemerald/wiki/Implementing-ipatix%27s-High-Quality-Audio-Mixer
 const i32 INTERNAL_SAMPLE_RATE = 48000;
 
@@ -35,9 +37,14 @@ static u32 change_layer(i32 msg1, u32 layer_count, u32 current_layer){
 }
 
 int main(int argc, char **argv){
-    //shutup
-    (void)argc;
-    (void)argv;
+    const char *devname = NULL;
+    if(argc > 1 && argc < 3){
+        devname = argv[1];
+    } else {
+        printf("Usage: sgsa {device name}\n");
+        return 0;
+    }
+    assert(devname != NULL);
     srand((u32)time(NULL));
 
     if(!initialize_sdl()){
@@ -94,7 +101,7 @@ int main(int argc, char **argv){
         return 0;
     }
 
-    struct device_data device = get_first_input_controller();
+    struct device_data device = get_input_controller(devname);
     if(!device.valid){
         terminate_controller();
         return 0;

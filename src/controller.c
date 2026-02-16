@@ -41,13 +41,13 @@ static struct device_data make_device_data(i32 id, const char *name, const char 
     memset(data.interface, 0, sizeof(data.interface));
 
     if(name){
-        const size_t len = strnlen(name, DEV_NAME_MAX);
+        const size_t len = strlen(name);
         strncpy(data.name, name, len);
         data.name[len] = NULLCHAR;
     }
 
     if(interf){
-        const size_t len = strnlen(interf, DEV_INTERF_MAX);
+        const size_t len = strlen(interf);
         strncpy(data.interface, interf, len);
         data.interface[len] = NULLCHAR;
     }
@@ -55,12 +55,12 @@ static struct device_data make_device_data(i32 id, const char *name, const char 
     return data;
 }
 
-struct device_data get_first_input_controller(void){
+struct device_data get_input_controller(const char *name){
     const i32 dcount = Pm_CountDevices();
     for(i32 i = 0; i < dcount; i++){
         const PmDeviceInfo *info = Pm_GetDeviceInfo(i);
         printf("%d: %s [%s] %s\n",i, info->name, info->interf, info->input ? "input" : "output");
-        if(info->input){
+        if(info->input && strcmp(info->name, name) == 0){
             return make_device_data(i, info->name, info->interf, info->input);
         }
     }
