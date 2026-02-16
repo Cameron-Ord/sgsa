@@ -26,8 +26,8 @@ SDL3
 - PolyBLEP is used to avoid aliasing in saw and square waves even at low sample rates.
 
 ## License
-MIT License – feel free to use or modify.
+- MIT License – feel free to use or modify.
 
 ## Todo
 - Add triangle and noise channels to better emulate GBA channels 2–4.
-- Add filter effects, maybe.
+- Add filter effects; like reverb, maybe.
