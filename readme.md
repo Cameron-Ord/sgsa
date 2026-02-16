@@ -1,4 +1,4 @@
-# GBA-Style 6-Voice Polyphonic Synth
+4-Voice Polyphonic Synth
 A 4-voice polyphonic synthesizer using PortMidi for MIDI input and SDL3 for audio output.
 
 > This project is not complete and is still in progress. It is not really at a stage that I want it to be yet.
