@@ -33,6 +33,7 @@ f64 poly_saw(f64 amp, f64 dt, f64 phase){
     return amp * saw;
 }
 
+// NOT IMPLEMENTED
 f64 poly_triangle(void){
     return 0.0;
 }
@@ -153,7 +154,7 @@ void vc_set_waveform(struct voice_control *vc, i32 wfid){
 }
 
 f64 map_velocity(i32 second){
-    f64 base_amp = 1.0, scale = 0.035;
+    f64 base_amp = 1.0, scale = 0.01;
     const i32 high_threshold = 85;
     const i32 low_threshold = 50;
     
@@ -163,8 +164,8 @@ f64 map_velocity(i32 second){
         base_amp -= (low_threshold - second) * scale;
     }
 
-    if(base_amp < 0.0){
-        base_amp = 0.0;
+    if(base_amp < 0.25){
+        base_amp = 0.25;
     } else if (base_amp > 2.5){
         base_amp = 2.5;
     }

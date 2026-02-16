@@ -22,7 +22,7 @@ static f32 loop_voicings(struct voice voices[VOICE_MAX], f64 wave_samples[VOICE_
         if(v->env.state != ENVELOPE_OFF){
             f64 freq = v->osc.freq;
             if(v->osc.time > TIMEGATE){
-                freq = vibrato(6.0, 4.0, freq, samplerate);
+                freq = vibrato(5.0, 4.0, freq, samplerate);
             }
             const f64 dt = freq / samplerate;
 
