@@ -9,7 +9,7 @@ A 6-voice polyphonic synthesizer designed to emulate the characteristic sound of
 - Cross-platform – built on SDL3 and PortMidi for broad compatibility.
 
 ## Audio Engine
-- Sample rate: 13,379 Hz.
+- Sample rate: 13,379 Hz. Note that SDL3 resamples it to whatever the output device uses.
 - Amplitude scaling: Designed for dynamic response based on MIDI velocity.
 - Bit depth & quality: Uses floating-point samples; low sample rate naturally gives a lo-fi sound.
 - Slight vibrato on notes held longer than 1 second.
@@ -29,5 +29,7 @@ SDL3
 - MIT License – feel free to use or modify.
 
 ## Todo
+- Make things more customizable - use less constants for some stuff.
 - Add triangle and noise channels to better emulate GBA channels 2–4.
 - Add filter effects; like reverb, maybe.
+- Since it uses SDL, possibly add an optional visualizer
