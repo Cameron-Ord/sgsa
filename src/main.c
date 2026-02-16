@@ -7,9 +7,12 @@
 #include "../include/waveform.h"
 #include "../include/audio.h"
 
+#include <stdlib.h>
+#include <time.h>
+
 #include <SDL3/SDL.h>
 //https://github-wiki-see.page/m/pret/pokeemerald/wiki/Implementing-ipatix%27s-High-Quality-Audio-Mixer
-const i32 INTERNAL_SAMPLE_RATE = 13379;
+const i32 INTERNAL_SAMPLE_RATE = 48000;
 
 static bool initialize_sdl(void);
 
@@ -17,10 +20,25 @@ static bool initialize_sdl(void){
     return SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS);
 }
 
+static u32 change_layer(i32 msg1, u32 layer_count, u32 current_layer){
+    switch(msg1){
+        default:break;
+        case WAVE_LEFT:{
+            return prev_layer(current_layer, layer_count);
+        }break;
+        
+        case WAVE_RIGHT:{
+            return next_layer(current_layer, layer_count);
+        }break;
+    }
+    return current_layer;
+}
+
 int main(int argc, char **argv){
     //shutup
     (void)argc;
     (void)argv;
+    srand((u32)time(NULL));
 
     if(!initialize_sdl()){
         return 0;
@@ -29,13 +47,37 @@ int main(int argc, char **argv){
     u64 init_start = SDL_GetTicks();
     printf("Init start timer: %zums\n", init_start);
 
-    i32 current_waveform = PULSE_RAW;
+    const struct layer layers[] = {
+        make_layer(1, 
+            make_oscilator(PULSE_RAW, make_wave_spec(1.0, 0.125, 1.0, 0.0))
+        ), 
+        make_layer(1, 
+            make_oscilator(PULSE_RAW, make_wave_spec(1.0, 0.25, 1.0, 0.0))
+        ),
+        make_layer(2, 
+            make_oscilator(PULSE_RAW, make_wave_spec(1.0, 0.5, 1.0, 0.0)),
+            make_oscilator(PULSE_RAW, make_wave_spec(1.0, 0.5, 1.0, rand_range_f64(-0.004, 0.004)))
+        ),
+        make_layer(1, 
+            make_oscilator(PULSE_RAW, make_wave_spec(1.0, 0.5, 1.0, 0.0))
+        ),
+        make_layer(2,
+            make_oscilator(SAW_RAW, make_wave_spec(2.0, 1.0, 1.0, 0.0)),
+            make_oscilator(SAW_RAW, make_wave_spec(1.0, 1.0, 0.5, 0.0))
+        ), 
+        make_layer(2,
+            make_oscilator(SAW_RAW, make_wave_spec(1.0, 1.0, 1.0, 0.0)),
+            make_oscilator(SAW_RAW, make_wave_spec(1.0, 1.0, 0.5, rand_range_f64(-0.004, 0.004)))
+        ), 
+    };
+    u32 current_layer = 0;
+    const u32 layer_count = sizeof(layers) / sizeof(layers[0]);
+
     struct voice_control vc;
     vc_initialize(
         &vc,
-        current_waveform,
         make_format(MONO, INTERNAL_SAMPLE_RATE, SDL_AUDIO_F32),
-        make_osciliator(0.0, 0.0, 0.0, 0.0), 
+        layers[current_layer], 
         make_env(ENVELOPE_OFF, 0.0, 0.0)
     );
 
@@ -74,31 +116,12 @@ int main(int argc, char **argv){
         struct midi_input in = midi_read_input(device.stream, 1);
         switch(in.status){
             default: break;
-            
-            //this is quite nested, maybe do something about that
             case CONTROL:{
-                switch(in.first){
-                    default:break;
-                    case WAVE_LEFT:{
-                        switch(in.second){
-                            default: break;
-                            case CONTROL_ON:{
-                                const i32 prev = prev_waveform(current_waveform);
-                                vc_set_waveform(&vc, prev);
-                                current_waveform = prev;
-                            }break;
-                        }
-                    }break;
-                    
-                    case WAVE_RIGHT:{
-                        switch(in.second){
-                            default: break;
-                            case CONTROL_ON:{
-                                const i32 next = next_waveform(current_waveform);
-                                vc_set_waveform(&vc, next);
-                                current_waveform = next;
-                            }break;
-                        }
+                switch(in.second){
+                    default: break;
+                    case CONTROL_ON:{
+                        current_layer = change_layer(in.first, layer_count, current_layer);
+                        print_layer("Changed layer",layers[current_layer]);
                     }break;
                 }
             }break;
@@ -106,8 +129,9 @@ int main(int argc, char **argv){
             case NOTE_ON:{
                 voice_set_iterate(
                     vc.voices, 
+                    map_velocity(in.second), 
                     in.first, 
-                    make_osciliator(0.0, midi_to_base_freq(in.first), 0.0, map_velocity(in.second)), 
+                    set_layer_freq(layers[current_layer], midi_to_base_freq(in.first)), 
                     make_env(ENVELOPE_ATTACK, 0.0, 0.0)
                 );
             }break;

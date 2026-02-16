@@ -5,8 +5,8 @@
 #include <stdarg.h>
 
 #define PI 3.1415926535897932384626433832795
-#define VOICE_MAX 6
-#define MIN(x, y) ((x) < (y) ? (x) : (y))
+#define VOICE_MAX 4
+#define OSCILATOR_MAX 8
 #define MONO 1
 #define STEREO 2
 
@@ -21,10 +21,10 @@ enum ENVELOPE_STATES {
     ENVELOPE_OFF,
 };
 
-#define ATTACK_TIME 0.0
-#define DECAY_TIME 0.1
-#define SUSTAIN_LEVEL 0.2
-#define RELEASE_TIME 0.1
+#define ATTACK_TIME 0.1
+#define DECAY_TIME 0.2
+#define SUSTAIN_LEVEL 0.6
+#define RELEASE_TIME 0.3
 //  0 -> 1  0 -> 1 
 // (VALUE - VALUE) / SAMPLES
 #define ATTACK_INCREMENT(samplerate) (1.0 - 0.0) / (ATTACK_TIME * (samplerate))
@@ -37,6 +37,13 @@ enum WAVEFORM_IDS {
     SAW_RAW,
     TRIANGLE_RAW,
     WAVE_FORM_END,
+};
+
+struct wave_spec {
+    f64 octave_increment;
+    f64 coefficient;
+    f64 volume;
+    f64 detune;
 };
 
 struct envelope {
@@ -53,22 +60,31 @@ struct internal_format {
 
 struct oscilator {
     f64 phase;
-    f64 freq;
     f64 time;
-    f64 amplitude;
+    i32 waveform_id;
+    struct wave_spec spec;
+};
+
+struct layer {
+    u32 oscilators;
+    f64 base_freq;
+    struct oscilator osc[OSCILATOR_MAX];
 };
 
 struct voice {
     i32 midi_key;
-    struct oscilator osc;
+    f64 amplitude;
+    struct layer l;
     struct envelope env;
 };
 
 struct voice_control {
-    i32 waveform_id;
     struct internal_format fmt;
     struct voice voices[VOICE_MAX];
 };
+
+f64 rand_range_f64(f64 x, f64 y);
+f64 rand_f64(void);
 
 f64 quantize(f64 x, i32 depth);
 f64 adsr(i32 *state, f64 *envelope, const f64 *release, i32 samplerate);
@@ -76,27 +92,29 @@ f64 vibrato(f64 vrate, f64 depth, f64 freq, f64 samplerate);
 f64 tremolo(f64 trate, f64 depth, f64 time);
 
 f64 map_velocity(i32 second);
-i32 next_waveform(const i32 current);
-i32 prev_waveform(const i32 current);
+u32 next_layer(u32 current, u32 last);
+u32 prev_layer(u32 current, u32 last);
 
+void print_layer(const char *msg, struct layer l);
+struct wave_spec make_wave_spec(f64 octave_increment, f64 coefficient, f64 volume, f64 detune);
+struct layer set_layer_freq(struct layer, f64 freq);
+struct layer make_layer(u32 count, ...);
 struct envelope make_env(i32 state, f64 env, f64 release);
-struct oscilator make_osciliator(f64 phase, f64 freq, f64 time, f64 amplitude);
+struct oscilator make_oscilator(i32 wfid, struct wave_spec spec);
 struct internal_format make_format(u8 channels, i32 samplerate, u32 format);
 
-void voice_set_osc(struct voice *v, struct oscilator fmt);
-void voice_set_env(struct voice *v, struct envelope fmt);
+void voice_set_layer(struct voice *v, struct layer l);
+void voice_set_env(struct voice *v, struct envelope env);
 
-void voice_set_iterate(struct voice voices[VOICE_MAX], i32 midi_key, struct oscilator osc, struct envelope env);
+void voice_set_iterate(struct voice voices[VOICE_MAX], f64 amp, i32 midi_key, struct layer l, struct envelope env);
 void voice_release_iterate(struct voice voices[VOICE_MAX], i32 midi_key, i32 samplerate);
 
-void voices_initialize(struct voice voices[VOICE_MAX], struct oscilator osc, struct envelope env);
+void voices_initialize(struct voice voices[VOICE_MAX], struct layer l, struct envelope env);
 
-void vc_initialize(struct voice_control *vc, i32 wfid, struct internal_format fmt, struct oscilator osc, struct envelope env);
-void vc_set_waveform(struct voice_control *vc, i32 wfid);
+void vc_initialize(struct voice_control *vc, struct internal_format fmt, struct layer l, struct envelope env);
 void vc_set_fmt(struct voice_control *vc, struct internal_format fmt);
 
 // Raw waves
-f64 sgn(f64 x, f64 duty);
 f64 sawtooth(f64 amp, f64 phase); 
 f64 square(f64 amp, f64 phase, f64 duty);
 f64 triangle(f64 amp, f64 phase);

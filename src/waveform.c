@@ -1,7 +1,16 @@
 #include "../include/waveform.h"
 #include <math.h>
-#include <stdio.h>
 #include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+f64 rand_f64(void){
+    return (f64)rand() / (f64)RAND_MAX;
+}
+
+f64 rand_range_f64(f64 x, f64 y){
+    return x + (y - x) * rand_f64();
+}
 
 f64 quantize(f64 x, i32 depth){
     const i32 step = (i32)round(x * depth);
@@ -98,6 +107,7 @@ f64 adsr(i32 *state, f64 *envelope, const f64 *release, i32 samplerate){
     return mutated;
 }
 
+
 static char *wfid_to_str(i32 wfid){
     switch(wfid){
         default: return "Unknown ID";
@@ -113,25 +123,36 @@ static char *wfid_to_str(i32 wfid){
     }
 }
 
-i32 prev_waveform(const i32 current){
-    i32 prev = current - 1;
-    if(prev <= WAVE_FORM_BEGIN){
-        prev = WAVE_FORM_END - 1;    
+void print_layer(const char *msg, struct layer l){
+    printf("=======\n");
+    for(u32 i = 0; i < l.oscilators; i++){
+        struct wave_spec s = l.osc[i].spec;
+        printf("%s->%d: %s {OCTAVE: %.3f, COEFF: %.3f, VOLUME: %.3f DETUNE: %.3f}\n", 
+            msg,
+            i + 1, 
+            wfid_to_str(l.osc[i].waveform_id), 
+            s.octave_increment, s.coefficient, s.volume, s.detune
+        );
     }
-    return prev;
+    printf("=======\n");
 }
 
-i32 next_waveform(const i32 current){
-    i32 next = current + 1;
-    if(next >= WAVE_FORM_END){
-        next = WAVE_FORM_BEGIN + 1;    
+u32 prev_layer(u32 current, u32 last){
+    i32 scurrent = (i32)current;
+    const i32 slast = (i32)last; 
+    i32 prev = scurrent - 1; 
+    if(prev < 0){
+        prev = slast - 1;
+    }
+    return (u32)prev;
+}
+
+u32 next_layer(u32 current, u32 last){
+    u32 next = current + 1;
+    if(next >= last){
+        next = 0;    
     }
     return next;
-}
-
-void vc_set_waveform(struct voice_control *vc, i32 wfid){
-    printf("Set to: %s\n", wfid_to_str(wfid));
-    vc->waveform_id = wfid;
 }
 
 f64 map_velocity(i32 second){
@@ -154,62 +175,79 @@ f64 map_velocity(i32 second){
     return base_amp;
 }
 
+struct wave_spec make_wave_spec(f64 octave_increment, f64 coefficient, f64 volume, f64 detune){
+    return (struct wave_spec) { octave_increment, coefficient, volume, 1.0 + detune };
+}
+
+struct layer make_layer(u32 count, ...){
+    struct layer l = {0};
+    l.oscilators = count;
+    l.base_freq = 0.0;
+    va_list args;
+    va_start(args, count);
+    for(u32 i = 0; i < count; i++){
+        l.osc[i] = va_arg(args, struct oscilator);
+    }
+    va_end(args);
+    print_layer("Created layer", l);
+    return l;
+}
+
 struct envelope make_env(i32 state, f64 env, f64 release){
     return (struct envelope){state, env, release};
 }
 
-struct oscilator make_osciliator(f64 phase, f64 freq, f64 time, f64 amplitude){
-    return (struct oscilator){phase, freq, time, amplitude};
+struct oscilator make_oscilator(i32 wfid, struct wave_spec spec){
+    return (struct oscilator){ rand_range_f64(0.0, 1.0), 0.0, wfid, spec };
 }
 
 struct internal_format make_format(u8 channels, i32 samplerate, u32 format){
-    return (struct internal_format){channels, samplerate, format};
+    return (struct internal_format){ channels, samplerate, format };
+}
+
+struct layer set_layer_freq(struct layer l, f64 freq){
+    l.base_freq = freq;
+    return l;
 }
 
 void vc_set_fmt(struct voice_control *v, struct internal_format fmt){
-    struct internal_format *f = &v->fmt;
-    f->CHANNELS = fmt.CHANNELS;
-    f->FORMAT = fmt.FORMAT;
-    f->SAMPLE_RATE = fmt.SAMPLE_RATE;
+    v->fmt.CHANNELS = fmt.CHANNELS;
+    v->fmt.FORMAT = fmt.FORMAT;
+    v->fmt.SAMPLE_RATE = fmt.SAMPLE_RATE;
 }
 
-void voice_set_osc(struct voice *v, struct oscilator osc){
-    struct oscilator *o = &v->osc;
-    o->freq = osc.freq;
-    o->phase = osc.phase;
-    o->time = osc.time;
-    o->amplitude = osc.amplitude;
+void voice_set_layer(struct voice *v, struct layer l){
+    v->l = l;
 }
 
 void voice_set_env(struct voice *v, struct envelope env){
-    struct envelope *e = &v->env;
-    e->envelope = env.envelope;
-    e->release_increment = env.release_increment;
-    e->state = env.state;
+    v->env = env;
 }
 
-void vc_initialize(struct voice_control *vc, i32 wfid, struct internal_format fmt, struct oscilator osc, struct envelope env){
+void vc_initialize(struct voice_control *vc, struct internal_format fmt, struct layer l, struct envelope env){
     vc->fmt = fmt;
-    vc->waveform_id = wfid;
-    voices_initialize(vc->voices, osc, env);
+    voices_initialize(vc->voices, l, env);
 }
 
-void voices_initialize(struct voice voices[VOICE_MAX], struct oscilator osc, struct envelope env){
+void voices_initialize(struct voice voices[VOICE_MAX], struct layer l, struct envelope env){
+    print_layer("Initializing voices with layer", l);
     for(i32 i = 0; i < VOICE_MAX; i++){
         struct voice *v = &voices[i];
         v->midi_key = -1;
-        voice_set_osc(v, osc);
+        v->amplitude = 1.0;
+        voice_set_layer(v, l);
         voice_set_env(v, env);
     }
 }
 
-void voice_set_iterate(struct voice voices[VOICE_MAX], i32 midi_key, struct oscilator osc, struct envelope env){
+void voice_set_iterate(struct voice voices[VOICE_MAX], f64 amp, i32 midi_key, struct layer l, struct envelope env){
     for(i32 i = 0; i < VOICE_MAX; i++){
         struct voice *v = &voices[i];
         if(v->env.state == ENVELOPE_OFF){
             v->midi_key = midi_key;
+            v->amplitude = amp;
+            voice_set_layer(v, l);
             voice_set_env(v, env);
-            voice_set_osc(v, osc);
             return;
         }
     }

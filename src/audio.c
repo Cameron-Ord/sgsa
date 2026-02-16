@@ -4,13 +4,12 @@
 #include <stdio.h>
 #include <math.h>
 
-const f64 DUTY_CYCLE = 0.25;
 const f64 VIBRATO_ON = 0.18;
 const f32 VOLUME = 1.0f;
 const i32 SAMPLE_PER_CALLBACK = 128;
 const f32 MASTER_GAIN = 0.75f;
-const f64 VRATE = 5.5;
-const f64 EFFECT_DEPTH = 4.25;
+const f64 VRATE = 4.0;
+const f64 EFFECT_DEPTH = 2.25;
 const i32 BIT_DEPTH = 8;
 
 //const f64 alpha = 1.0 / SAMPLE_RATE;
@@ -19,52 +18,64 @@ bool stream_feed(SDL_AudioStream *stream, const f32 samples[], i32 len){
     return SDL_PutAudioStreamData(stream, samples, len);
 }
 
-static f32 loop_voicings(struct voice voices[VOICE_MAX], f64 wave_samples[VOICE_MAX], i32 wfid, i32 samplerate){
+static f64 loop_oscilators(f64 amp, struct layer *l, i32 samplerate){
+    f64 sum = 0.0;
+    for(u32 i = 0; i < l->oscilators; i++){
+        f64 generated = 0.0;
+        struct oscilator *osc = &l->osc[i];
+        f64 freq = l->base_freq * osc->spec.octave_increment;// * osc->spec.detune;
+        if(osc->time > VIBRATO_ON){
+            freq = vibrato(VRATE, EFFECT_DEPTH, freq, samplerate);
+        }
+        const f64 dt = freq / samplerate;
+
+        switch(osc->waveform_id){
+            default: break;
+            case PULSE_RAW:{
+                generated = poly_square(
+                    amp, osc->phase, dt, osc->spec.coefficient
+                ) * osc->spec.volume;
+            }break;
+
+            case SAW_RAW:{
+                generated = poly_saw(
+                    amp, dt, osc->phase
+                ) * osc->spec.volume;
+            }break;
+        }
+
+        osc->phase += dt;
+        if(osc->phase >= 1.0) {
+            osc->phase -= 1.0;
+        }
+        osc->time += 1.0 / samplerate;
+        sum += generated;
+    }
+    return tanh(sum);
+}
+
+static f32 loop_voicings(struct voice voices[VOICE_MAX], f64 wave_samples[VOICE_MAX], i32 samplerate){
     f32 sample = 0.0;
     for(u32 i = 0; i < VOICE_MAX; i++){
         struct voice *v = &voices[i];
         wave_samples[i] = 0.0;
-
         if(v->env.state != ENVELOPE_OFF){
-            f64 freq = v->osc.freq;
-            if(v->osc.time > VIBRATO_ON){
-                freq = vibrato(VRATE, EFFECT_DEPTH, freq, samplerate);
-            }
-            const f64 dt = freq / samplerate;
-
-            switch(wfid){
-                default:break;
-                case PULSE_RAW:{
-                    wave_samples[i] = quantize(square(v->osc.amplitude, v->osc.phase, DUTY_CYCLE), BIT_DEPTH);
-                }break;
-                case SAW_RAW:{
-                    wave_samples[i] = quantize(sawtooth(v->osc.amplitude, v->osc.phase), BIT_DEPTH);
-                }break;
-                case TRIANGLE_RAW:{
-                    wave_samples[i] = quantize(triangle(v->osc.amplitude, v->osc.phase), BIT_DEPTH);
-                }break;
-            }
-
-            adsr(&v->env.state, &v->env.envelope, &v->env.release_increment, samplerate);
-            wave_samples[i] *= v->env.envelope;
-
-            v->osc.phase += dt;
-            if(v->osc.phase >= 1.0){
-                v->osc.phase -= 1.0;
-            }
-            v->osc.time += 1.0 / samplerate;
+            wave_samples[i] = loop_oscilators(v->amplitude,&v->l, samplerate);
+            const f64 envelope = adsr(&v->env.state, &v->env.envelope, &v->env.release_increment, samplerate);
+            wave_samples[i] *= envelope;
         }
-        sample += (f32)wave_samples[i];
+        sample += (f32)tanh(wave_samples[i] * (f64)MASTER_GAIN) * VOLUME;
     }
     return sample;
 }
 
 static void loop_samples(size_t count, f32 *samplebuffer, struct voice_control *vc){
     for(size_t n = 0; n < count; n++){
-        f32 sample = 0.0;
         f64 wave_samples[VOICE_MAX];
-        sample += loop_voicings(vc->voices, wave_samples, vc->waveform_id, vc->fmt.SAMPLE_RATE);
-        samplebuffer[n] = tanhf(sample * MASTER_GAIN) * VOLUME;
+        samplebuffer[n] = loop_voicings(vc
+            ->voices, wave_samples, 
+            vc->fmt.SAMPLE_RATE
+        ) * VOLUME;
     }
 }
 
