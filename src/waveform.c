@@ -3,11 +3,10 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-// Not used
-const i32 TRIANGLE_HARMONIC_MAX = 25;
-const i32 SAW_HARMONIC_MAX = 50;
-const i32 SQUARE_HARMONIC_MAX = 40;
-
+f64 quantize(f64 x, i32 depth){
+    const i32 step = (i32)round(x * depth);
+    return (f64)step / depth;
+}
 //polybleppers
 f64 polyblep(f64 dt, f64 phase){
     if(phase < dt){
@@ -21,21 +20,42 @@ f64 polyblep(f64 dt, f64 phase){
 }
 
 f64 poly_square(f64 amp, f64 dt, f64 phase, f64 duty){
-    f64 val = phase < duty ? 1.0 : -1.0;
-    val += polyblep(dt, phase);
-    val -= polyblep(dt, fmod(phase + duty, 1.0));
-    return amp * val;
+    f64 sqr = square(1.0, phase, duty);
+    sqr += polyblep(dt, phase);
+    sqr -= polyblep(dt, fmod(phase + duty, 1.0));
+    return amp * sqr;
 }   
 
 f64 poly_saw(f64 amp, f64 dt, f64 phase){
-    f64 saw = sawtooth(amp, phase);
+    f64 saw = sawtooth(1.0, phase);
     saw -= polyblep(dt, phase);
     return amp * saw;
 }
 
-// NOT IMPLEMENTED
-f64 poly_triangle(void){
-    return 0.0;
+// https://en.wikipedia.org/wiki/Sawtooth_wave
+f64 sawtooth(f64 amp, f64 phase){
+    return amp * (2.0 * (phase - 1.0));
+}
+
+f64 square(f64 amp, f64 phase, f64 duty){
+    return amp * phase < duty ? 1.0 : -1.0;
+}
+
+f64 triangle(f64 amp, f64 phase){
+    return amp * (2.0 * fabs(2.0 * (phase - 0.5)) - 1.0);
+}
+
+f64 sine(f64 amp, f64 phase){
+    return amp * (1.0 * sin(2.0 * PI * phase));
+}
+
+f64 vibrato(f64 vrate, f64 depth, f64 freq, f64 samplerate){
+    static f64 phase;
+    phase += vrate / samplerate; 
+    if(phase >= 1.0) phase -= 1.0;
+
+    const f64 mod = sin(2.0 * PI * phase);
+    return freq + mod * depth;
 }
 
 f64 tremolo(f64 trate, f64 depth, f64 phase){
@@ -81,12 +101,6 @@ f64 adsr(i32 *state, f64 *envelope, const f64 *release, i32 samplerate){
 static char *wfid_to_str(i32 wfid){
     switch(wfid){
         default: return "Unknown ID";
-        case POLY_PULSE:{
-            return "Polybleb Pulse";
-        }break;
-        case POLY_SAW: {
-            return "PolyBlep Sawtooth";
-        }break;
         case SAW_RAW:{
             return "Sawtooth";
         }break;
@@ -97,15 +111,6 @@ static char *wfid_to_str(i32 wfid){
             return "Triangle";
         }break;
     }
-}
-
-f64 vibrato(f64 vrate, f64 depth, f64 freq, f64 samplerate){
-    static f64 phase;
-    phase += vrate / samplerate; 
-    if(phase >= 1.0) phase -= 1.0;
-
-    const f64 mod = sin(2.0 * PI * phase);
-    return freq + mod * depth;
 }
 
 i32 prev_waveform(const i32 current){
@@ -122,31 +127,6 @@ i32 next_waveform(const i32 current){
         next = WAVE_FORM_BEGIN + 1;    
     }
     return next;
-}
-
-// RAW WAVE PRODUCTS
-
-// https://en.wikipedia.org/wiki/Sawtooth_wave
-f64 sawtooth(f64 amp, f64 phase){
-    return amp * (2.0 * (phase - 1.0));
-}
-
-f64 sgn(f64 x, f64 threshold){
-    if(x > threshold) return 1.0;
-    if(x < threshold) return -1.0;
-    return 0.0;
-}
-
-f64 square(f64 amp, f64 phase, f64 duty){
-    return amp * sgn(cos(2.0 * PI * phase), cos(PI * duty));
-}
-
-f64 triangle(f64 amp, f64 phase){
-    return amp * (2.0 * fabs(2.0 * (phase - 0.5)) - 1.0);
-}
-
-f64 sine(f64 amp, f64 phase){
-    return amp * (1.0 * sin(2.0 * PI * phase));
 }
 
 void vc_set_waveform(struct voice_control *vc, i32 wfid){
@@ -245,44 +225,4 @@ void voice_release_iterate(struct voice voices[VOICE_MAX], i32 midi_key, i32 sam
             return;
         }
     }
-}
-
-// UNUSED (FOR LEARNING PURPOSES)
-
-//https://en.wikipedia.org/wiki/Pulse_wave
-f64 fourier_pulse(f64 phase, f64 duty){
-    f64 sum = 0.0;
-    for(i32 n = 1; n <= SQUARE_HARMONIC_MAX; n++){
-        sum += (1.0 / n) 
-        * sin(PI * n * duty) 
-        * cos(2.0 * PI * n * phase);
-    }
-    return duty + (2.0 / PI) * sum;
-
-}
-
-//https://en.wikipedia.org/wiki/Square_wave_(waveform)
-f64 fourier_square(f64 phase){
-    f64 sum = 0.0;
-    for(i32 k = 1; k <= SQUARE_HARMONIC_MAX; k++){
-        f64 n = 2.0 * k - 1.0;
-        sum += (1.0 / n) * sin(2.0 * PI * n * phase);
-    }
-    return sum * (4.0 / PI);
-}
-
-f64 fourier_sawtooth(f64 phase){
-    f64 sum = 0.0;
-    for(i32 k = 1; k <= SAW_HARMONIC_MAX; k++){
-        sum += pow(-1.0, k) * sin(2.0 * PI * k * phase) / k;
-    }
-    return sum * -(2 * 1.0 / PI);
-}
-
-f64 reverse_fourier_sawtooth(f64 phase){
-    f64 sum = 0.0;
-    for(i32 k = 1; k <= SAW_HARMONIC_MAX; k++){
-        sum += pow(-1.0, k) * sin(2.0 * PI * k * phase) / k;
-    }
-    return sum * (2 * 1.0 / PI);
 }

@@ -36,9 +36,6 @@ enum WAVEFORM_IDS {
     PULSE_RAW,
     SAW_RAW,
     TRIANGLE_RAW,
-
-    POLY_SAW,
-    POLY_PULSE,
     WAVE_FORM_END,
 };
 
@@ -73,7 +70,7 @@ struct voice_control {
     struct voice voices[VOICE_MAX];
 };
 
-
+f64 quantize(f64 x, i32 depth);
 f64 adsr(i32 *state, f64 *envelope, const f64 *release, i32 samplerate);
 f64 vibrato(f64 vrate, f64 depth, f64 freq, f64 samplerate);
 f64 tremolo(f64 trate, f64 depth, f64 time);

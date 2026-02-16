@@ -29,7 +29,7 @@ int main(int argc, char **argv){
     u64 init_start = SDL_GetTicks();
     printf("Init start timer: %zums\n", init_start);
 
-    i32 current_waveform = POLY_PULSE;
+    i32 current_waveform = PULSE_RAW;
     struct voice_control vc;
     vc_initialize(
         &vc,

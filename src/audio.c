@@ -1,14 +1,18 @@
 #include "../include/audio.h"
 #include "../include/waveform.h"
+#include <SDL3/SDL_audio.h>
 #include <stdio.h>
 #include <math.h>
 
-const f64 DUTY_CYCLE = 0.125;
+const f64 DUTY_CYCLE = 0.25;
 const f64 VIBRATO_ON = 0.18;
-const f64 TREM_ON = 0.12;
-const f32 volume = 1.0f;
+const f32 VOLUME = 1.0f;
 const i32 SAMPLE_PER_CALLBACK = 128;
 const f32 MASTER_GAIN = 0.75f;
+const f64 VRATE = 5.5;
+const f64 EFFECT_DEPTH = 4.25;
+const i32 BIT_DEPTH = 8;
+
 //const f64 alpha = 1.0 / SAMPLE_RATE;
 
 bool stream_feed(SDL_AudioStream *stream, const f32 samples[], i32 len){
@@ -24,34 +28,25 @@ static f32 loop_voicings(struct voice voices[VOICE_MAX], f64 wave_samples[VOICE_
         if(v->env.state != ENVELOPE_OFF){
             f64 freq = v->osc.freq;
             if(v->osc.time > VIBRATO_ON){
-                freq = vibrato(4.0, 2.0, freq, samplerate);
+                freq = vibrato(VRATE, EFFECT_DEPTH, freq, samplerate);
             }
             const f64 dt = freq / samplerate;
 
             switch(wfid){
                 default:break;
-                case POLY_PULSE:{
-                    wave_samples[i] = poly_square(v->osc.amplitude, dt, v->osc.phase, DUTY_CYCLE);
-                }break;
-                case POLY_SAW:{
-                    wave_samples[i] = poly_saw(v->osc.amplitude, dt, v->osc.phase);
-                }break;
                 case PULSE_RAW:{
-                    wave_samples[i] = square(v->osc.amplitude, v->osc.phase, DUTY_CYCLE);
+                    wave_samples[i] = quantize(square(v->osc.amplitude, v->osc.phase, DUTY_CYCLE), BIT_DEPTH);
                 }break;
                 case SAW_RAW:{
-                    wave_samples[i] = sawtooth(v->osc.amplitude, v->osc.phase);
+                    wave_samples[i] = quantize(sawtooth(v->osc.amplitude, v->osc.phase), BIT_DEPTH);
                 }break;
                 case TRIANGLE_RAW:{
-                    wave_samples[i] = triangle(v->osc.amplitude, v->osc.phase);
+                    wave_samples[i] = quantize(triangle(v->osc.amplitude, v->osc.phase), BIT_DEPTH);
                 }break;
             }
 
             adsr(&v->env.state, &v->env.envelope, &v->env.release_increment, samplerate);
             wave_samples[i] *= v->env.envelope;
-            if(v->osc.time > TREM_ON){
-                wave_samples[i] *= tremolo(4.5, 0.1, v->osc.phase);
-            }
 
             v->osc.phase += dt;
             if(v->osc.phase >= 1.0){
@@ -69,7 +64,7 @@ static void loop_samples(size_t count, f32 *samplebuffer, struct voice_control *
         f32 sample = 0.0;
         f64 wave_samples[VOICE_MAX];
         sample += loop_voicings(vc->voices, wave_samples, vc->waveform_id, vc->fmt.SAMPLE_RATE);
-        samplebuffer[n] = tanhf(sample * MASTER_GAIN) * volume;
+        samplebuffer[n] = tanhf(sample * MASTER_GAIN) * VOLUME;
     }
 }
 
@@ -104,7 +99,8 @@ struct playback_device open_audio_device(void){
     }
     SDL_AudioSpec obtained = {0};
     SDL_GetAudioDeviceFormat(id, &obtained, NULL);
-    printf("Output spec: 0x%X - %d - %d\n", obtained.format, obtained.channels, obtained.freq);
+    const char *name = SDL_GetAudioDeviceName(id);
+    printf("Device name: %s, Output spec: 0x%X - %d - %d\n", name, obtained.format, obtained.channels, obtained.freq);
     return (struct playback_device){ id, NULL, obtained, true };
 }
 
