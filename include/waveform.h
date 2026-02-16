@@ -5,10 +5,13 @@
 #include <stdarg.h>
 
 #define PI 3.1415926535897932384626433832795
-#define VOICE_MAX 2
+#define VOICE_MAX 6
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 #define MONO 1
 #define STEREO 2
+
+#define MIDI_VELOCITY_MAX 127
+#define MIDI_NOTE_MAX 127
 
 enum ENVELOPE_STATES {
     ENVELOPE_ATTACK = 0,
@@ -19,8 +22,8 @@ enum ENVELOPE_STATES {
 };
 
 #define ATTACK_TIME 0.05
-#define DECAY_TIME 0.1
-#define SUSTAIN_LEVEL 0.9
+#define DECAY_TIME 0.05
+#define SUSTAIN_LEVEL 0.1
 #define RELEASE_TIME 0.05
 //  0 -> 1  0 -> 1 
 // (VALUE - VALUE) / SAMPLES
@@ -34,6 +37,8 @@ enum WAVEFORM_IDS {
     SINE_RAW,
     SAW_RAW,
     TRIANGLE_RAW,
+    POLY_SAW,
+    POLY_SQUARE,
     WAVE_FORM_END,
 };
 
@@ -52,6 +57,8 @@ struct internal_format {
 struct oscilator {
     f64 phase;
     f64 freq;
+    f64 time;
+    f64 amplitude;
 };
 
 struct voice {
@@ -70,11 +77,12 @@ struct voice_control {
 f64 adsr(i32 *state, f64 *envelope, const f64 *release, i32 samplerate);
 f64 vibrato(f64 vrate, f64 depth, f64 freq, f64 samplerate);
 
+f64 map_velocity(i32 second);
 i32 next_waveform(const i32 current);
 i32 prev_waveform(const i32 current);
 
 struct envelope make_env(i32 state, f64 env, f64 release);
-struct oscilator make_osciliator(f64 phase, f64 freq);
+struct oscilator make_osciliator(f64 phase, f64 freq, f64 time, f64 amplitude);
 struct internal_format make_format(u8 channels, i32 samplerate, u32 format);
 
 void voice_set_osc(struct voice *v, struct oscilator fmt);
@@ -89,18 +97,17 @@ void vc_initialize(struct voice_control *vc, i32 wfid, struct internal_format fm
 void vc_set_waveform(struct voice_control *vc, i32 wfid);
 void vc_set_fmt(struct voice_control *vc, struct internal_format fmt);
 
-
 // Raw waves
 f64 sgn(f64 x, f64 duty);
-f64 sawtooth(f64 phase); 
-f64 square(f64 phase, f64 duty);
-f64 triangle(f64 phase);
-f64 sine(f64 phase);
+f64 sawtooth(f64 amp, f64 phase); 
+f64 square(f64 amp, f64 phase, f64 duty);
+f64 triangle(f64 amp, f64 phase);
+f64 sine(f64 amp, f64 phase);
 
 // Polynomial blep methods
-f64 polyblep(void);
-f64 poly_sqaure(void);
-f64 poly_saw(void);
+f64 polyblep(f64 dt, f64 phase);
+f64 poly_square(f64 amp, f64 dt, f64 phase, f64 duty);
+f64 poly_saw(f64 amp, f64 dt, f64 phase);
 f64 poly_triangle(void);
 
 // Unused additive methods

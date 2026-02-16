@@ -3,16 +3,39 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-//Read this and fix your shit, ya dummy
-//https://www.martin-finke.de/articles/audio-plugins-018-polyblep-oscillator/
-
-//One of the downsides to using fourier waveforms is that at higher iterations it just
-//produces an ungodly amount of harmonics and mix that in with multiple notes
-//and you give flubby mess. So just using a hard set constant to limit the harmonic content generated.
-//I do wanna add some polyblep versions though
+// Not used
 const i32 TRIANGLE_HARMONIC_MAX = 25;
 const i32 SAW_HARMONIC_MAX = 50;
 const i32 SQUARE_HARMONIC_MAX = 40;
+
+//polybleppers
+f64 polyblep(f64 dt, f64 phase){
+    if(phase < dt){
+        phase /= dt;
+        return phase + phase - phase * phase - 1.0;
+    } else if (phase > 1.0 - dt){
+        phase = (phase - 1.0) / dt;
+        return phase * phase + phase + phase + 1.0;
+    }
+    return 0.0;
+}
+
+f64 poly_square(f64 amp, f64 dt, f64 phase, f64 duty){
+    f64 val = phase < duty ? 1.0 : -1.0;
+    val += polyblep(dt, phase);
+    val -= polyblep(dt, fmod(phase + duty, 1.0));
+    return amp * val;
+}   
+
+f64 poly_saw(f64 amp, f64 dt, f64 phase){
+    f64 saw = sawtooth(amp, phase);
+    saw -= polyblep(dt, phase);
+    return amp * saw;
+}
+
+f64 poly_triangle(void){
+    return 0.0;
+}
 
 f64 adsr(i32 *state, f64 *envelope, const f64 *release, i32 samplerate){
     f64 mutated = *envelope;
@@ -53,6 +76,12 @@ f64 adsr(i32 *state, f64 *envelope, const f64 *release, i32 samplerate){
 static char *wfid_to_str(i32 wfid){
     switch(wfid){
         default: return "Unknown ID";
+        case POLY_SQUARE:{
+            return "Poly Square";
+        }break;
+        case POLY_SAW: {
+            return "PolyBlep Saw";
+        }break;
         case SQUARE_RAW:{
             return "SQUARE";
         } break;
@@ -96,8 +125,8 @@ i32 next_waveform(const i32 current){
 // RAW WAVE PRODUCTS
 
 // https://en.wikipedia.org/wiki/Sawtooth_wave
-f64 sawtooth(f64 phase){
-    return 2.0 * (phase - 0.5);
+f64 sawtooth(f64 amp, f64 phase){
+    return amp * (2.0 * (phase - 1.0));
 }
 
 f64 sgn(f64 x, f64 threshold){
@@ -106,16 +135,16 @@ f64 sgn(f64 x, f64 threshold){
     return 0.0;
 }
 
-f64 square(f64 phase, f64 duty){
-    return sgn(cos(2.0 * PI * phase), cos(PI * duty));
+f64 square(f64 amp, f64 phase, f64 duty){
+    return amp * sgn(cos(2.0 * PI * phase), cos(PI * duty));
 }
 
-f64 triangle(f64 phase){
-    return 2.0 * fabs(2.0 * (phase - 0.5)) - 1.0;
+f64 triangle(f64 amp, f64 phase){
+    return amp * (2.0 * fabs(2.0 * (phase - 0.5)) - 1.0);
 }
 
-f64 sine(f64 phase){
-    return 1.0 * sin(2.0 * PI * phase);
+f64 sine(f64 amp, f64 phase){
+    return amp * (1.0 * sin(2.0 * PI * phase));
 }
 
 void vc_set_waveform(struct voice_control *vc, i32 wfid){
@@ -123,12 +152,32 @@ void vc_set_waveform(struct voice_control *vc, i32 wfid){
     vc->waveform_id = wfid;
 }
 
+f64 map_velocity(i32 second){
+    f64 base_amp = 1.0, scale = 0.035;
+    const i32 high_threshold = 85;
+    const i32 low_threshold = 50;
+    
+    if(second > high_threshold){
+        base_amp += (second - high_threshold) * scale;
+    } else if (second < low_threshold){
+        base_amp -= (low_threshold - second) * scale;
+    }
+
+    if(base_amp < 0.0){
+        base_amp = 0.0;
+    } else if (base_amp > 2.5){
+        base_amp = 2.5;
+    }
+
+    return base_amp;
+}
+
 struct envelope make_env(i32 state, f64 env, f64 release){
     return (struct envelope){state, env, release};
 }
 
-struct oscilator make_osciliator(f64 phase, f64 freq){
-    return (struct oscilator){phase, freq};
+struct oscilator make_osciliator(f64 phase, f64 freq, f64 time, f64 amplitude){
+    return (struct oscilator){phase, freq, time, amplitude};
 }
 
 struct internal_format make_format(u8 channels, i32 samplerate, u32 format){
@@ -146,6 +195,8 @@ void voice_set_osc(struct voice *v, struct oscilator osc){
     struct oscilator *o = &v->osc;
     o->freq = osc.freq;
     o->phase = osc.phase;
+    o->time = osc.time;
+    o->amplitude = osc.amplitude;
 }
 
 void voice_set_env(struct voice *v, struct envelope env){

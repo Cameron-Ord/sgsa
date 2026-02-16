@@ -3,9 +3,10 @@
 #include <stdio.h>
 #include <math.h>
 
-const f32 volume = 0.8f;
+const f64 TIMEGATE = 1.0;
+const f32 volume = 1.0f;
 const i32 SAMPLE_PER_CALLBACK = 128;
-const f32 MASTER_GAIN = 0.75f;
+const f32 MASTER_GAIN = 1.0f;
 //const f64 alpha = 1.0 / SAMPLE_RATE;
 
 bool stream_feed(SDL_AudioStream *stream, const f32 samples[], i32 len){
@@ -19,33 +20,54 @@ static f32 loop_voicings(struct voice voices[VOICE_MAX], f64 wave_samples[VOICE_
         wave_samples[i] = 0.0;
 
         if(v->env.state != ENVELOPE_OFF){
-            const f64 dt = v->osc.freq / samplerate;
-            v->osc.phase += dt;
-            if(v->osc.phase >= 1.0){
-                v->osc.phase -= 1.0;
+            f64 freq = v->osc.freq;
+            if(v->osc.time > TIMEGATE){
+                freq = vibrato(6.0, 4.0, freq, samplerate);
             }
+            const f64 dt = freq / samplerate;
 
             switch(wfid){
                 default:break;
+                case POLY_SQUARE:{
+                    wave_samples[i] = poly_square(v->osc.amplitude, dt, v->osc.phase, 0.25);
+                }break;
+                case POLY_SAW:{
+                    wave_samples[i] = poly_saw(v->osc.amplitude, dt, v->osc.phase);
+                }break;
                 case SQUARE_RAW:{
-                    wave_samples[i] = square(v->osc.phase, 0.25);
+                    wave_samples[i] = square(v->osc.amplitude, v->osc.phase, 0.25);
+                }break;
+                case SAW_RAW:{
+                    wave_samples[i] = sawtooth(v->osc.amplitude, v->osc.phase);
+                }break;
+                case TRIANGLE_RAW:{
+                    wave_samples[i] = triangle(v->osc.amplitude, v->osc.phase);
+                }break;
+                case SINE_RAW:{
+                    wave_samples[i] = sine(v->osc.amplitude, v->osc.phase);
                 }break;
             }
 
             adsr(&v->env.state, &v->env.envelope, &v->env.release_increment, samplerate);
             wave_samples[i] *= v->env.envelope;
+
+            v->osc.phase += dt;
+            if(v->osc.phase >= 1.0){
+                v->osc.phase -= 1.0;
+            }
+            v->osc.time += 1.0 / samplerate;
         }
         sample += (f32)wave_samples[i];
     }
     return sample;
 }
 
-static void loop_samples(u32 count, f32 *samplebuffer, struct voice_control *vc){
-    for(u32 i = 0; i < count; i++){
+static void loop_samples(size_t count, f32 *samplebuffer, struct voice_control *vc){
+    for(size_t n = 0; n < count; n++){
         f32 sample = 0.0;
         f64 wave_samples[VOICE_MAX];
         sample += loop_voicings(vc->voices, wave_samples, vc->waveform_id, vc->fmt.SAMPLE_RATE);
-        samplebuffer[i] = tanhf(sample * 0.5f);
+        samplebuffer[n] = tanhf(sample * MASTER_GAIN) * volume;
     }
 }
 
@@ -53,11 +75,11 @@ void stream_callback(void *data, SDL_AudioStream *stream, i32 add, i32 total){
     struct voice_control *vc = (struct voice_control *)data;
     if(!vc) { return; }
 
-    u32 sample_count = (u32)add / sizeof(f32);
+    size_t sample_count = (u32)add / sizeof(f32);
     while(sample_count > 0){
         f32 samples[SAMPLE_PER_CALLBACK];
         memset(samples, 0, sizeof(samples));
-        const u32 valid_samples = SDL_min(sample_count, SDL_arraysize(samples));
+        const size_t valid_samples = SDL_min(sample_count, SDL_arraysize(samples));
         loop_samples(valid_samples, samples, vc);
         stream_feed(stream, samples, (i32)valid_samples * (i32)sizeof(f32));
         sample_count -= valid_samples;

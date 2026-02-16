@@ -8,8 +8,8 @@
 #include "../include/audio.h"
 
 #include <SDL3/SDL.h>
-
-const i32 INTERNAL_SAMPLE_RATE = 48000;
+//https://github-wiki-see.page/m/pret/pokeemerald/wiki/Implementing-ipatix%27s-High-Quality-Audio-Mixer
+const i32 INTERNAL_SAMPLE_RATE = 13379;
 
 static bool initialize_sdl(void);
 
@@ -18,6 +18,10 @@ static bool initialize_sdl(void){
 }
 
 int main(int argc, char **argv){
+    //shutup
+    (void)argc;
+    (void)argv;
+
     if(!initialize_sdl()){
         return 0;
     }
@@ -31,7 +35,7 @@ int main(int argc, char **argv){
         &vc,
         current_waveform,
         make_format(MONO, INTERNAL_SAMPLE_RATE, SDL_AUDIO_F32),
-        make_osciliator(0.0, 0.0), 
+        make_osciliator(0.0, 0.0, 0.0, 0.0), 
         make_env(ENVELOPE_OFF, 0.0, 0.0)
     );
 
@@ -103,7 +107,7 @@ int main(int argc, char **argv){
                 voice_set_iterate(
                     vc.voices, 
                     in.first, 
-                    make_osciliator(0.0, midi_to_base_freq(in.first)), 
+                    make_osciliator(0.0, midi_to_base_freq(in.first), 0.0, map_velocity(in.second)), 
                     make_env(ENVELOPE_ATTACK, 0.0, 0.0)
                 );
             }break;
