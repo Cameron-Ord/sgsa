@@ -21,10 +21,10 @@ enum ENVELOPE_STATES {
     ENVELOPE_OFF,
 };
 
-#define ATTACK_TIME 0.05
-#define DECAY_TIME 0.05
+#define ATTACK_TIME 0.1
+#define DECAY_TIME 0.1
 #define SUSTAIN_LEVEL 0.1
-#define RELEASE_TIME 0.05
+#define RELEASE_TIME 0.1
 //  0 -> 1  0 -> 1 
 // (VALUE - VALUE) / SAMPLES
 #define ATTACK_INCREMENT(samplerate) (1.0 - 0.0) / (ATTACK_TIME * (samplerate))
@@ -76,6 +76,7 @@ struct voice_control {
 
 f64 adsr(i32 *state, f64 *envelope, const f64 *release, i32 samplerate);
 f64 vibrato(f64 vrate, f64 depth, f64 freq, f64 samplerate);
+f64 tremolo(f64 trate, f64 depth, f64 time);
 
 f64 map_velocity(i32 second);
 i32 next_waveform(const i32 current);

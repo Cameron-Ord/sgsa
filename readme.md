@@ -1,6 +1,8 @@
 # GBA-Style 6-Voice Polyphonic Synth
 A 6-voice polyphonic synthesizer designed to emulate the characteristic sound of the Nintendo GBA, using PortMidi for MIDI input and SDL3 for audio output.
 
+> This project is not complete and is still in progress. It is not really at a stage that I want it to be yet
+
 ## Features
 - 6 simultaneous voices – full polyphony for complex chords and melodies.
 - GBA-style sound – low sample rate (13,379 Hz) for authentic lo-fi character.

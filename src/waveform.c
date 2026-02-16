@@ -38,6 +38,10 @@ f64 poly_triangle(void){
     return 0.0;
 }
 
+f64 tremolo(f64 trate, f64 depth, f64 phase){
+    return 1.0 + depth * sin(2.0 * PI * trate * phase);
+}
+
 f64 adsr(i32 *state, f64 *envelope, const f64 *release, i32 samplerate){
     f64 mutated = *envelope;
     switch(*state){
@@ -154,20 +158,20 @@ void vc_set_waveform(struct voice_control *vc, i32 wfid){
 }
 
 f64 map_velocity(i32 second){
-    f64 base_amp = 1.0, scale = 0.01;
-    const i32 high_threshold = 85;
+    f64 base_amp = 1.0, low_scale = 0.0125, high_scale = 0.075;
+    const i32 high_threshold = 80;
     const i32 low_threshold = 50;
     
     if(second > high_threshold){
-        base_amp += (second - high_threshold) * scale;
+        base_amp += (second - high_threshold) * high_scale;
     } else if (second < low_threshold){
-        base_amp -= (low_threshold - second) * scale;
+        base_amp -= (low_threshold - second) * low_scale;
     }
 
     if(base_amp < 0.25){
         base_amp = 0.25;
     } else if (base_amp > 2.5){
-        base_amp = 2.5;
+        base_amp = 3.0;
     }
 
     return base_amp;
