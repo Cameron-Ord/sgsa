@@ -131,7 +131,7 @@ f64 sine(f64 amp, f64 phase);
 f64 polyblep(f64 dt, f64 phase);
 f64 poly_square(f64 amp, f64 dt, f64 phase, f64 duty);
 f64 poly_saw(f64 amp, f64 dt, f64 phase);
-f64 poly_triangle(f64 amp, f64 dt, f64 phase, f64 freq, f64 *integrator, f64 *x, f64 *y, f64 block);
+f64 poly_triangle(f64 amp, f64 dt, f64 phase, f64 *integrator, f64 *x, f64 *y, f64 block);
 
 // Unused additive methods
 f64 fourier_pulse(f64 phase, f64 duty);

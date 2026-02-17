@@ -13,8 +13,9 @@ f64 rand_range_f64(f64 x, f64 y){
 }
 
 f64 quantize(f64 x, i32 depth){
-    const i32 step = (i32)round(x * depth);
-    return (f64)step / depth;
+    const i32 level = (1 << depth);
+    const i32 step = (i32)round(x * (level - 1));
+    return (f64)step / (level - 1);
 }
 //polybleppers
 f64 polyblep(f64 dt, f64 phase){
@@ -37,7 +38,7 @@ f64 poly_square(f64 amp, f64 dt, f64 phase, f64 duty){
 
 // I am really starting to hate triangles
 // https://pbat.ch/sndkit/blep/
-f64 poly_triangle(f64 amp, f64 dt, f64 phase, f64 freq, f64 *integrator, f64 *x, f64 *y, f64 block){
+f64 poly_triangle(f64 amp, f64 dt, f64 phase, f64 *integrator, f64 *x, f64 *y, f64 block){
     f64 sqr = poly_square(1.0, dt, phase, 0.5);
     sqr *= dt;
     *integrator += sqr;

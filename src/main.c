@@ -69,6 +69,9 @@ int main(int argc, char **argv){
             make_oscilator(PULSE_RAW, make_wave_spec(1.0, 0.25, 1.0, 0.0))
         ),
         make_layer(1,
+            make_oscilator(PULSE_RAW, make_wave_spec(1.0, 0.5, 1.0, 0.0))
+        ),
+        make_layer(1,
             make_oscilator(TRIANGLE_RAW, make_wave_spec(1.0, 0.0, 1.0, 0.0))
         ),
     };

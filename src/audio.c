@@ -38,8 +38,7 @@ static f64 loop_oscilators(f64 amp, struct layer *l, i32 samplerate, f64 dcblock
             }break;
             case TRIANGLE_POLY:{
                 generated = poly_triangle(
-                    amp, dt, osc->phase, freq,
-                    &osc->integrator, &osc->dcx, 
+                    amp, dt, osc->phase,&osc->integrator, &osc->dcx, 
                     &osc->dcy, dcblock
                 ) * osc->spec.volume;
             }break;
@@ -49,19 +48,19 @@ static f64 loop_oscilators(f64 amp, struct layer *l, i32 samplerate, f64 dcblock
                 ) * osc->spec.volume;
             }break;
             case SAW_RAW:{
-                generated = sawtooth(
+                generated = quantize(sawtooth(
                     amp, osc->phase
-                ) * osc->spec.volume;
+                ), 8) * osc->spec.volume;
             }break;
             case TRIANGLE_RAW:{
-                generated = triangle(
+                generated = quantize(triangle(
                     amp, osc->phase
-                ) * osc->spec.volume;
+                ), 8) * osc->spec.volume;
             }break;
             case PULSE_RAW:{
-                generated = square(
+                generated = quantize(square(
                     amp, osc->phase, osc->spec.coefficient
-                ) * osc->spec.volume;
+                ), 8) * osc->spec.volume;
             }break;
         }
 
