@@ -1,5 +1,7 @@
 #include "../include/audio.h"
 #include "../include/waveform.h"
+#include "../include/effect.h"
+
 #include <SDL3/SDL_audio.h>
 #include <stdio.h>
 #include <math.h>
@@ -8,14 +10,25 @@ const f64 VIBRATO_ON = 0.18;
 const f32 VOLUME = 1.0f;
 const i32 SAMPLE_PER_CALLBACK = 128;
 const f32 MASTER_GAIN = 1.5f;
+const f32 DELAY_GAIN = 1.25f;
 const f64 VRATE = 6.25;
 const f64 EFFECT_DEPTH = 5.25;
 const i32 BIT_DEPTH = 8;
+const f32 FEEDBACK = 0.5f;
 
 //const f64 alpha = 1.0 / SAMPLE_RATE;
 
 bool stream_feed(SDL_AudioStream *stream, const f32 samples[], i32 len){
     return SDL_PutAudioStreamData(stream, samples, len);
+}
+
+static void loop_delay(size_t nsamples, f32 *samples, struct voice_control *vc){
+    for(size_t i = 0; i < nsamples; i++){
+        const f32 delayed = delay_line_read(vc->dl) * FEEDBACK;
+        const f32 mixed = samples[i] + (0.5f * delayed);
+        samples[i] = tanhf(mixed * DELAY_GAIN);
+        delay_line_write(samples[i], vc->dl);
+    }
 }
 
 static f64 loop_oscilators(f64 amp, struct layer *l, i32 samplerate, f64 dcblock){
@@ -64,6 +77,8 @@ static f64 loop_oscilators(f64 amp, struct layer *l, i32 samplerate, f64 dcblock
             }break;
         }
 
+        if(generated == 0.0) continue;
+
         osc->phase += dt;
         if(osc->phase >= 1.0) {
             osc->phase -= 1.0;
@@ -86,6 +101,8 @@ static f32 loop_voicings(struct voice voices[VOICE_MAX], f64 wave_samples[VOICE_
             const f64 envelope = adsr(&v->env.state, &v->env.envelope, &v->env.release_increment, samplerate);
             wave_samples[i] *= envelope;
         }
+        if(wave_samples[i] == 0.0) continue;
+
         sample += (f32)tanh(wave_samples[i] * (f64)MASTER_GAIN / VOICE_MAX) * VOLUME;
     }
     return sample;
@@ -109,9 +126,10 @@ void stream_callback(void *data, SDL_AudioStream *stream, i32 add, i32 total){
     size_t sample_count = (u32)add / sizeof(f32);
     while(sample_count > 0){
         f32 samples[SAMPLE_PER_CALLBACK];
-        memset(samples, 0, sizeof(samples));
+        memset(samples, 0, sizeof(f32) * SAMPLE_PER_CALLBACK);
         const size_t valid_samples = SDL_min(sample_count, SDL_arraysize(samples));
         loop_samples(valid_samples, samples, vc);
+        loop_delay(valid_samples, samples, vc);
         stream_feed(stream, samples, (i32)valid_samples * (i32)sizeof(f32));
         sample_count -= valid_samples;
     }

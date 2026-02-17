@@ -4,9 +4,11 @@
 #include <stdbool.h>
 #include <stdarg.h>
 
+struct delay_line;
+
 #define PI 3.1415926535897932384626433832795
-#define VOICE_MAX 4
-#define OSCILATOR_MAX 2
+#define VOICE_MAX 8
+#define OSCILATOR_MAX 8
 #define MONO 1
 #define STEREO 2
 
@@ -21,10 +23,11 @@ enum ENVELOPE_STATES {
     ENVELOPE_OFF,
 };
 
-#define ATTACK_TIME 0.0
-#define DECAY_TIME 0.1
-#define SUSTAIN_LEVEL 0.1
-#define RELEASE_TIME 0.1
+//Make these variables at some point
+#define ATTACK_TIME 0.15
+#define DECAY_TIME 0.3
+#define SUSTAIN_LEVEL 0.6
+#define RELEASE_TIME 0.15
 //  0 -> 1  0 -> 1 
 // (VALUE - VALUE) / SAMPLES
 #define ATTACK_INCREMENT(samplerate) (1.0 - 0.0) / (ATTACK_TIME * (samplerate))
@@ -85,13 +88,13 @@ struct voice {
 };
 
 struct voice_control {
+    struct delay_line *dl;
     struct internal_format fmt;
     struct voice voices[VOICE_MAX];
     f64 dcblock;
 };
 
-f64 rand_range_f64(f64 x, f64 y);
-f64 rand_f64(void);
+void vc_assign_delay(struct voice_control *vc, struct delay_line *dl);
 
 f64 quantize(f64 x, i32 depth);
 f64 adsr(i32 *state, f64 *envelope, const f64 *release, i32 samplerate);

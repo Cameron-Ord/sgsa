@@ -6,6 +6,8 @@
 #include "../include/controller.h"
 #include "../include/waveform.h"
 #include "../include/audio.h"
+#include "../include/effect.h"
+#include "../include/util.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -21,7 +23,7 @@
 // how something might sound im not constantly changing the src and recompiling.
 
 //https://github-wiki-see.page/m/pret/pokeemerald/wiki/Implementing-ipatix%27s-High-Quality-Audio-Mixer
-const i32 INTERNAL_SAMPLE_RATE = 13379;
+const i32 INTERNAL_SAMPLE_RATE = 48000;
 
 static bool initialize_sdl(void);
 
@@ -63,16 +65,19 @@ int main(int argc, char **argv){
 
     const struct layer layers[] = {
         make_layer(1,
-            make_oscilator(PULSE_RAW, make_wave_spec(1.0, 0.125, 1.0, 0.0))
+            make_oscilator(PULSE_POLY, make_wave_spec(1.0, 0.125, 1.0, 0.0))
         ),
         make_layer(1,
-            make_oscilator(PULSE_RAW, make_wave_spec(1.0, 0.25, 1.0, 0.0))
+            make_oscilator(PULSE_POLY, make_wave_spec(1.0, 0.25, 1.0, 0.0))
         ),
         make_layer(1,
-            make_oscilator(PULSE_RAW, make_wave_spec(1.0, 0.5, 1.0, 0.0))
+            make_oscilator(PULSE_POLY, make_wave_spec(1.0, 0.5, 1.0, 0.0))
         ),
         make_layer(1,
-            make_oscilator(TRIANGLE_RAW, make_wave_spec(1.0, 0.0, 1.0, 0.0))
+            make_oscilator(TRIANGLE_POLY, make_wave_spec(1.0, 0.0, 1.0, 0.0))
+        ),
+        make_layer(1,
+            make_oscilator(SAW_POLY, make_wave_spec(1.0, 0.0, 1.0, 0.0))
         ),
     };
     u32 current_layer = 0;
@@ -85,6 +90,8 @@ int main(int argc, char **argv){
         layers[current_layer], 
         make_env(ENVELOPE_OFF, 0.0, 0.0)
     );
+    struct delay_line dl = create_delay_line(MS_BUFSIZE(INTERNAL_SAMPLE_RATE, 0.5));
+    vc_assign_delay(&vc, &dl);
 
     SDL_AudioSpec internal_spec = make_audio_spec(vc.fmt.CHANNELS, vc.fmt.SAMPLE_RATE, vc.fmt.FORMAT);
     struct playback_device pbdev = open_audio_device();

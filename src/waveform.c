@@ -1,16 +1,10 @@
 #include "../include/waveform.h"
+#include "../include/util.h"
+#include "../include/effect.h"
+
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <stdlib.h>
-
-f64 rand_f64(void){
-    return (f64)rand() / (f64)RAND_MAX;
-}
-
-f64 rand_range_f64(f64 x, f64 y){
-    return x + (y - x) * rand_f64();
-}
 
 f64 quantize(f64 x, i32 depth){
     const i32 level = (1 << depth);
@@ -35,7 +29,6 @@ f64 poly_square(f64 amp, f64 dt, f64 phase, f64 duty){
     sqr -= polyblep(dt, fmod(phase + duty, 1.0));
     return amp * sqr;
 } 
-
 // I am really starting to hate triangles
 // https://pbat.ch/sndkit/blep/
 f64 poly_triangle(f64 amp, f64 dt, f64 phase, f64 *integrator, f64 *x, f64 *y, f64 block){
@@ -123,6 +116,16 @@ f64 adsr(i32 *state, f64 *envelope, const f64 *release, i32 samplerate){
 static char *wfid_to_str(i32 wfid){
     switch(wfid){
         default: return "Unknown ID";
+        case SAW_POLY:{
+            return "Polyblep Sawtooth";
+        }break;
+        case PULSE_POLY:{
+            return "Polyblep Square";
+        }break;
+        case TRIANGLE_POLY:{
+            return "Polyblep Triangle";
+        }break;
+
         case SAW_RAW:{
             return "Sawtooth";
         }break;
@@ -230,6 +233,10 @@ struct layer set_layer_freq(struct layer l, f64 freq){
     return l;
 }
 
+void vc_assign_delay(struct voice_control *vc, struct delay_line *dl){
+    vc->dl = dl;
+}
+
 void vc_set_fmt(struct voice_control *v, struct internal_format fmt){
     v->fmt.CHANNELS = fmt.CHANNELS;
     v->fmt.FORMAT = fmt.FORMAT;
@@ -248,7 +255,7 @@ void vc_initialize(struct voice_control *vc, struct internal_format fmt, struct 
     vc->fmt = fmt;
     voices_initialize(vc->voices, l, env);
     vc->dcblock = exp(-1.0/(0.0025 * fmt.SAMPLE_RATE));
-    printf("%.3f\n", vc->dcblock);
+    vc->dl = NULL;
 }
 
 void voices_initialize(struct voice voices[VOICE_MAX], struct layer l, struct envelope env){
