@@ -8,8 +8,8 @@ const f64 VIBRATO_ON = 0.18;
 const f32 VOLUME = 1.0f;
 const i32 SAMPLE_PER_CALLBACK = 128;
 const f32 MASTER_GAIN = 1.5f;
-const f64 VRATE = 4.0;
-const f64 EFFECT_DEPTH = 2.25;
+const f64 VRATE = 6.25;
+const f64 EFFECT_DEPTH = 5.25;
 const i32 BIT_DEPTH = 8;
 
 //const f64 alpha = 1.0 / SAMPLE_RATE;
@@ -18,7 +18,7 @@ bool stream_feed(SDL_AudioStream *stream, const f32 samples[], i32 len){
     return SDL_PutAudioStreamData(stream, samples, len);
 }
 
-static f64 loop_oscilators(f64 amp, struct layer *l, i32 samplerate){
+static f64 loop_oscilators(f64 amp, struct layer *l, i32 samplerate, f64 dcblock){
     f64 sum = 0.0;
     for(u32 i = 0; i < l->oscilators; i++){
         f64 generated = 0.0;
@@ -31,15 +31,36 @@ static f64 loop_oscilators(f64 amp, struct layer *l, i32 samplerate){
 
         switch(osc->waveform_id){
             default: break;
-            case PULSE_RAW:{
+            case PULSE_POLY:{
                 generated = poly_square(
                     amp, osc->phase, dt, osc->spec.coefficient
                 ) * osc->spec.volume;
             }break;
-
-            case SAW_RAW:{
+            case TRIANGLE_POLY:{
+                generated = poly_triangle(
+                    amp, dt, osc->phase, freq,
+                    &osc->integrator, &osc->dcx, 
+                    &osc->dcy, dcblock
+                ) * osc->spec.volume;
+            }break;
+            case SAW_POLY:{
                 generated = poly_saw(
                     amp, dt, osc->phase
+                ) * osc->spec.volume;
+            }break;
+            case SAW_RAW:{
+                generated = sawtooth(
+                    amp, osc->phase
+                ) * osc->spec.volume;
+            }break;
+            case TRIANGLE_RAW:{
+                generated = triangle(
+                    amp, osc->phase
+                ) * osc->spec.volume;
+            }break;
+            case PULSE_RAW:{
+                generated = square(
+                    amp, osc->phase, osc->spec.coefficient
                 ) * osc->spec.volume;
             }break;
         }
@@ -54,7 +75,7 @@ static f64 loop_oscilators(f64 amp, struct layer *l, i32 samplerate){
     return sum;
 }
 
-static f32 loop_voicings(struct voice voices[VOICE_MAX], f64 wave_samples[VOICE_MAX], i32 samplerate){
+static f32 loop_voicings(struct voice voices[VOICE_MAX], f64 wave_samples[VOICE_MAX], i32 samplerate, f64 dcblock){
     f32 sample = 0.0;
     for(u32 i = 0; i < VOICE_MAX; i++){
         struct voice *v = &voices[i];
@@ -62,7 +83,7 @@ static f32 loop_voicings(struct voice voices[VOICE_MAX], f64 wave_samples[VOICE_
         const bool cond = (v->active && v->env.state != ENVELOPE_OFF) 
             || (!v->active && v->env.state == ENVELOPE_RELEASE);
         if(cond){
-            wave_samples[i] = loop_oscilators(v->amplitude,&v->l, samplerate);
+            wave_samples[i] = loop_oscilators(v->amplitude,&v->l, samplerate, dcblock);
             const f64 envelope = adsr(&v->env.state, &v->env.envelope, &v->env.release_increment, samplerate);
             wave_samples[i] *= envelope;
         }
@@ -76,7 +97,8 @@ static void loop_samples(size_t count, f32 *samplebuffer, struct voice_control *
         f64 wave_samples[VOICE_MAX];
         samplebuffer[n] = loop_voicings(vc
             ->voices, wave_samples, 
-            vc->fmt.SAMPLE_RATE
+            vc->fmt.SAMPLE_RATE,
+            vc->dcblock
         ) * VOLUME;
     }
 }

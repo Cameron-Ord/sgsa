@@ -13,8 +13,15 @@
 
 #include <SDL3/SDL.h>
 
+//TODO: 
+// I want this thing to be versatile
+// So probably want to build some sort of UI with SDL
+// That will allow me to change things like the ADSR values in app
+// Or maybe even the samplerate, etc. So that every time I wanna hear 
+// how something might sound im not constantly changing the src and recompiling.
+
 //https://github-wiki-see.page/m/pret/pokeemerald/wiki/Implementing-ipatix%27s-High-Quality-Audio-Mixer
-const i32 INTERNAL_SAMPLE_RATE = 48000;
+const i32 INTERNAL_SAMPLE_RATE = 13379;
 
 static bool initialize_sdl(void);
 
@@ -55,27 +62,15 @@ int main(int argc, char **argv){
     printf("Init start timer: %zums\n", init_start);
 
     const struct layer layers[] = {
-        make_layer(1, 
+        make_layer(1,
             make_oscilator(PULSE_RAW, make_wave_spec(1.0, 0.125, 1.0, 0.0))
-        ), 
-        make_layer(1, 
+        ),
+        make_layer(1,
             make_oscilator(PULSE_RAW, make_wave_spec(1.0, 0.25, 1.0, 0.0))
         ),
-        make_layer(2, 
-            make_oscilator(PULSE_RAW, make_wave_spec(1.0, 0.5, 1.0, 0.0)),
-            make_oscilator(PULSE_RAW, make_wave_spec(1.0, 0.5, 1.0, rand_range_f64(-0.004, 0.004)))
+        make_layer(1,
+            make_oscilator(TRIANGLE_RAW, make_wave_spec(1.0, 0.0, 1.0, 0.0))
         ),
-        make_layer(1, 
-            make_oscilator(PULSE_RAW, make_wave_spec(1.0, 0.5, 1.0, 0.0))
-        ),
-        make_layer(2,
-            make_oscilator(SAW_RAW, make_wave_spec(2.0, 1.0, 1.0, 0.0)),
-            make_oscilator(SAW_RAW, make_wave_spec(1.0, 1.0, 0.5, 0.0))
-        ), 
-        make_layer(2,
-            make_oscilator(SAW_RAW, make_wave_spec(1.0, 1.0, 1.0, 0.0)),
-            make_oscilator(SAW_RAW, make_wave_spec(1.0, 1.0, 0.5, rand_range_f64(-0.004, 0.004)))
-        ), 
     };
     u32 current_layer = 0;
     const u32 layer_count = sizeof(layers) / sizeof(layers[0]);

@@ -6,7 +6,7 @@
 
 #define PI 3.1415926535897932384626433832795
 #define VOICE_MAX 4
-#define OSCILATOR_MAX 8
+#define OSCILATOR_MAX 2
 #define MONO 1
 #define STEREO 2
 
@@ -21,10 +21,10 @@ enum ENVELOPE_STATES {
     ENVELOPE_OFF,
 };
 
-#define ATTACK_TIME 0.1
-#define DECAY_TIME 0.2
-#define SUSTAIN_LEVEL 0.6
-#define RELEASE_TIME 0.3
+#define ATTACK_TIME 0.0
+#define DECAY_TIME 0.1
+#define SUSTAIN_LEVEL 0.1
+#define RELEASE_TIME 0.1
 //  0 -> 1  0 -> 1 
 // (VALUE - VALUE) / SAMPLES
 #define ATTACK_INCREMENT(samplerate) (1.0 - 0.0) / (ATTACK_TIME * (samplerate))
@@ -36,6 +36,9 @@ enum WAVEFORM_IDS {
     PULSE_RAW,
     SAW_RAW,
     TRIANGLE_RAW,
+    PULSE_POLY,
+    SAW_POLY,
+    TRIANGLE_POLY,
     WAVE_FORM_END,
 };
 
@@ -60,6 +63,8 @@ struct internal_format {
 
 struct oscilator {
     f64 phase;
+    f64 integrator;
+    f64 dcx, dcy;
     f64 time;
     i32 waveform_id;
     struct wave_spec spec;
@@ -82,6 +87,7 @@ struct voice {
 struct voice_control {
     struct internal_format fmt;
     struct voice voices[VOICE_MAX];
+    f64 dcblock;
 };
 
 f64 rand_range_f64(f64 x, f64 y);
@@ -125,7 +131,7 @@ f64 sine(f64 amp, f64 phase);
 f64 polyblep(f64 dt, f64 phase);
 f64 poly_square(f64 amp, f64 dt, f64 phase, f64 duty);
 f64 poly_saw(f64 amp, f64 dt, f64 phase);
-f64 poly_triangle(void);
+f64 poly_triangle(f64 amp, f64 dt, f64 phase, f64 freq, f64 *integrator, f64 *x, f64 *y, f64 block);
 
 // Unused additive methods
 f64 fourier_pulse(f64 phase, f64 duty);

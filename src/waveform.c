@@ -33,7 +33,18 @@ f64 poly_square(f64 amp, f64 dt, f64 phase, f64 duty){
     sqr += polyblep(dt, phase);
     sqr -= polyblep(dt, fmod(phase + duty, 1.0));
     return amp * sqr;
-}   
+} 
+
+// I am really starting to hate triangles
+// https://pbat.ch/sndkit/blep/
+f64 poly_triangle(f64 amp, f64 dt, f64 phase, f64 freq, f64 *integrator, f64 *x, f64 *y, f64 block){
+    f64 sqr = poly_square(1.0, dt, phase, 0.5);
+    sqr *= dt;
+    *integrator += sqr;
+    *y = (*integrator * 4.0) - *x + block * *y;
+    *x = (*integrator * 4.0);
+    return *y * amp;
+}
 
 f64 poly_saw(f64 amp, f64 dt, f64 phase){
     f64 saw = sawtooth(1.0, phase);
@@ -198,7 +209,15 @@ struct envelope make_env(i32 state, f64 env, f64 release){
 }
 
 struct oscilator make_oscilator(i32 wfid, struct wave_spec spec){
-    return (struct oscilator){ rand_range_f64(0.0, 1.0), 0.0, wfid, spec };
+    return (struct oscilator){ 
+        .phase = rand_range_f64(0.0, 1.0), 
+        .integrator = 0.0, 
+        .dcx = 0.0, 
+        .dcy = 0.0, 
+        .time = 0.0, 
+        .waveform_id = wfid, 
+        .spec = spec
+    };
 }
 
 struct internal_format make_format(u8 channels, i32 samplerate, u32 format){
@@ -227,6 +246,8 @@ void voice_set_env(struct voice *v, struct envelope env){
 void vc_initialize(struct voice_control *vc, struct internal_format fmt, struct layer l, struct envelope env){
     vc->fmt = fmt;
     voices_initialize(vc->voices, l, env);
+    vc->dcblock = exp(-1.0/(0.0025 * fmt.SAMPLE_RATE));
+    printf("%.3f\n", vc->dcblock);
 }
 
 void voices_initialize(struct voice voices[VOICE_MAX], struct layer l, struct envelope env){
