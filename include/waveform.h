@@ -72,6 +72,7 @@ struct layer {
 };
 
 struct voice {
+    bool active;
     i32 midi_key;
     f64 amplitude;
     struct layer l;

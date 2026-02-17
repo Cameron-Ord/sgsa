@@ -23,7 +23,7 @@ static f64 loop_oscilators(f64 amp, struct layer *l, i32 samplerate){
     for(u32 i = 0; i < l->oscilators; i++){
         f64 generated = 0.0;
         struct oscilator *osc = &l->osc[i];
-        f64 freq = l->base_freq * osc->spec.octave_increment;// * osc->spec.detune;
+        f64 freq = l->base_freq * osc->spec.octave_increment * osc->spec.detune;
         if(osc->time > VIBRATO_ON){
             freq = vibrato(VRATE, EFFECT_DEPTH, freq, samplerate);
         }
@@ -59,7 +59,9 @@ static f32 loop_voicings(struct voice voices[VOICE_MAX], f64 wave_samples[VOICE_
     for(u32 i = 0; i < VOICE_MAX; i++){
         struct voice *v = &voices[i];
         wave_samples[i] = 0.0;
-        if(v->env.state != ENVELOPE_OFF){
+        const bool cond = (v->active && v->env.state != ENVELOPE_OFF) 
+            || (!v->active && v->env.state == ENVELOPE_RELEASE);
+        if(cond){
             wave_samples[i] = loop_oscilators(v->amplitude,&v->l, samplerate);
             const f64 envelope = adsr(&v->env.state, &v->env.envelope, &v->env.release_increment, samplerate);
             wave_samples[i] *= envelope;

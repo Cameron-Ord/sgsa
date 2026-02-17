@@ -235,6 +235,7 @@ void voices_initialize(struct voice voices[VOICE_MAX], struct layer l, struct en
         struct voice *v = &voices[i];
         v->midi_key = -1;
         v->amplitude = 1.0;
+        v->active = false;
         voice_set_layer(v, l);
         voice_set_env(v, env);
     }
@@ -243,11 +244,12 @@ void voices_initialize(struct voice voices[VOICE_MAX], struct layer l, struct en
 void voice_set_iterate(struct voice voices[VOICE_MAX], f64 amp, i32 midi_key, struct layer l, struct envelope env){
     for(i32 i = 0; i < VOICE_MAX; i++){
         struct voice *v = &voices[i];
-        if(v->env.state == ENVELOPE_OFF){
+        if(v->env.state == ENVELOPE_OFF && !v->active){
             v->midi_key = midi_key;
             v->amplitude = amp;
             voice_set_layer(v, l);
             voice_set_env(v, env);
+            v->active = true;
             return;
         }
     }
@@ -256,11 +258,14 @@ void voice_set_iterate(struct voice voices[VOICE_MAX], f64 amp, i32 midi_key, st
 void voice_release_iterate(struct voice voices[VOICE_MAX], i32 midi_key, i32 samplerate){
     for(i32 i = 0; i < VOICE_MAX; i++){
         struct voice *v = &voices[i];
-        if(v->env.state != ENVELOPE_OFF && v->midi_key == midi_key){
-            voice_set_env(v, 
-                make_env(ENVELOPE_RELEASE, v->env.envelope, RELEASE_INCREMENT(v->env.envelope, samplerate))
-            );
-            return;
+        if(v->active && v->midi_key == midi_key){
+            if(v->env.state != ENVELOPE_OFF){
+                voice_set_env(v, 
+                    make_env(ENVELOPE_RELEASE, v->env.envelope, RELEASE_INCREMENT(v->env.envelope, samplerate))
+                );
+                v->active = false;
+                return;
+            }
         }
     }
 }
