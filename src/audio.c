@@ -53,7 +53,7 @@ static f64 loop_oscilators(f64 amp, struct layer *l, i32 samplerate, f64 dcblock
             default: break;
             case PULSE_POLY:{
                 generated = poly_square(
-                    amp, osc->phase, dt, osc->spec.coefficient
+                    amp, dt, osc->phase, osc->spec.coefficient
                 ) * osc->spec.volume;
             }break;
             case TRIANGLE_POLY:{

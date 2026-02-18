@@ -109,6 +109,9 @@ int main(int argc, char **argv){
         make_layer(1,
             make_oscilator(SAW_POLY, make_wave_spec(1.0, 0.0, 1.0, 0.0))
         ),
+        make_layer(1,
+            make_oscilator(PULSE_POLY, make_wave_spec(1.0, 0.5, 1.0, 0.0))
+        ),
     };
     u32 current_layer = 0;
     const u32 layer_count = sizeof(layers) / sizeof(layers[0]);
