@@ -1,4 +1,6 @@
 #include "../include/configs.h"
+#include "../include/waveform.h"
+#include "../include/util.h"
 
 #include <stdio.h>
 
@@ -15,17 +17,12 @@ const f64 DEFAULT_VIBRATION_RATE = 2.5;
 const f64 DEFAULT_VIBRATION_DEPTH = 2.25;
 const f64 DEFAULT_VIBRATO_ON = 0.33;
 
-const f64 DEFAULT_ENV_ATTACK = 0.125;
-const f64 DEFAULT_ENV_DECAY = 0.225;
-const f64 DEFAULT_ENV_SUSTAIN = 0.675;
-const f64 DEFAULT_ENV_RELEASE = 0.175;
 
 void print_config(struct configs config){
     printf("CONFIG = {\n");
     printf("    SAMPLERATE: (%d), CHANNELS: (%d),\n", config.samplerate, config.channels);
     printf("    VOLUME: (%.3f), SAMPLE GAIN: (%.3f), DELAY GAIN: (%.3f), DELAY FEEDBACK: (%.3f),\n", (f64)config.volume, (f64)config.sample_gain, (f64)config.delay_gain, (f64)config.delay_feedback);
     printf("    VRATE: (%.3f), VDEPTH: (%.3f), VIBRATO ON: (%.3f), QDEPTH: (%d),\n", config.vibration_rate, config.vibration_depth, config.vibrato_on, config.quantize_depth);
-    printf("    ATTACK: (%.3f), DECAY: (%.3f), SUSTAIN: (%.3f), RELEASE: (%.3f),\n", config.envelope_attack, config.envelope_decay, config.envelope_sustain, config.envelope_release);
     printf("}\n");
 }
 
@@ -41,9 +38,5 @@ struct configs make_default_config(void){
         DEFAULT_VIBRATION_DEPTH,
         DEFAULT_VIBRATO_ON,
         DEFAULT_QUANTIZE_DEPTH,
-        DEFAULT_ENV_ATTACK,
-        DEFAULT_ENV_DECAY,
-        DEFAULT_ENV_SUSTAIN,
-        DEFAULT_ENV_RELEASE,
     };
 }

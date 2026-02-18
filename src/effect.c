@@ -10,7 +10,7 @@ struct delay_line create_delay_line(size_t nmemb){
         return (struct delay_line){false, 0, 0, NULL, 0, 0};
     }
     memset(buffer, 0, sizeof(f32) * nmemb);
-    return (struct delay_line){false, 0, nmemb, buffer, 0, 0};
+    return (struct delay_line){true, 0, nmemb, buffer, 0, 0};
 }
 
 void print_delay_line(struct delay_line dl){

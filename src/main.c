@@ -123,18 +123,14 @@ int main(int argc, char **argv){
 
     const struct layer layers[] = {
         make_layer(1,
-            make_oscilator(SAW_POLY, make_wave_spec(1.0, 0.0, 1.0, 0.0))
+            make_poly_saw()
         ),
     };
     u32 current_layer = 0;
     const u32 layer_count = sizeof(layers) / sizeof(layers[0]);
 
     struct voice_control vc;
-    vc_initialize(
-        &vc,
-        layers[current_layer], 
-        make_env(ENVELOPE_OFF, 0.0, 0.0)
-    );
+    vc_initialize(&vc, layers[current_layer]);
     vc_assign_render_buffer(&vc, rc.buffer, RENDER_RESOLUTION);
     print_config(vc.cfg);
 
@@ -173,19 +169,16 @@ int main(int argc, char **argv){
                 voice_set_iterate(
                     vc.voices, 
                     map_velocity(in.second), 
-                    in.first, 
-                    set_layer_freq(layers[current_layer], midi_to_base_freq(in.first)), 
-                    make_env(ENVELOPE_ATTACK, 0.0, 0.0)
+                    in.first
                 );
             }break;
 
             case NOTE_OFF:{
                 voice_release_iterate(
                     vc.voices, 
-                    in.first,
-                    &vc.cfg
+                    in.first
                 );
-            }break;
+            }break; 
         }
 
         SDL_Event event;

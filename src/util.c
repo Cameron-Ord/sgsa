@@ -1,6 +1,11 @@
 #include "../include/util.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
+
+const i32 A4 = 69;
+const f64 A4f = 440.0;
+const f64 NOTES = 12.0;
 
 f64 rand_f64(void){
     return (f64)rand() / (f64)RAND_MAX;
@@ -28,4 +33,8 @@ void sgsa_free(void *ptr){
     if(!ptr) return;
     free(ptr);
     ptr = NULL;
+}
+
+f64 midi_to_base_freq(i32 n){
+    return A4f * pow(2.0, (n - A4) / NOTES);
 }

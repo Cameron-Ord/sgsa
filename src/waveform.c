@@ -77,40 +77,37 @@ f64 tremolo(f64 trate, f64 depth, f64 phase){
     return 1.0 + depth * sin(2.0 * PI * trate * phase);
 }
 
-f64 adsr(i32 *state, f64 *envelope, const f64 *release, const struct configs *cfg){
-    f64 mutated = *envelope;
-    switch(*state){
+void adsr(struct envelope *env, i32 samplerate){
+    switch(env->state){
         default:break;
         case ENVELOPE_ATTACK:{
-            mutated += ATTACK_INCREMENT(cfg->samplerate, cfg->envelope_attack);
-            if(mutated >= 1.0){
-                mutated = 1.0;
-                *state = ENVELOPE_DECAY;
+            env->envelope += ATTACK_INCREMENT(samplerate, env->attack);
+            if(env->envelope >= 1.0){
+                env->envelope = 1.0;
+                env->state = ENVELOPE_DECAY;
             }
         }break;
     
         case ENVELOPE_SUSTAIN: break;
 
         case ENVELOPE_DECAY: {
-            mutated -= DECAY_INCREMENT(cfg->samplerate, cfg->envelope_decay, cfg->envelope_sustain);
-            if(mutated <= cfg->envelope_sustain){
-                mutated = cfg->envelope_sustain;
-                *state = ENVELOPE_SUSTAIN;
+            env->envelope -= DECAY_INCREMENT(samplerate, env->decay, env->sustain);
+            if(env->envelope <= env->sustain){
+                env->envelope = env->sustain;
+                env->state = ENVELOPE_SUSTAIN;
             }
         }break;
 
         case ENVELOPE_RELEASE:{
-            mutated -= *release;
-            if(mutated <= 0.0){
-                mutated = 0.0;
-                *state = ENVELOPE_OFF;
+            env->envelope -= RELEASE_INCREMENT(env->envelope, samplerate, env->release);
+            if(env->envelope <= 0.0){
+                env->envelope = 0.0;
+                env->state = ENVELOPE_OFF;
             }
         }break;
 
         case ENVELOPE_OFF: break;
     }
-    *envelope = mutated;
-    return mutated;
 }
 
 
@@ -191,103 +188,51 @@ f64 map_velocity(i32 second){
     return base_amp;
 }
 
-struct wave_spec make_wave_spec(f64 octave_increment, f64 coefficient, f64 volume, f64 detune){
-    return (struct wave_spec) { octave_increment, coefficient, volume, 1.0 + detune };
-}
-
-struct layer make_layer(u32 count, ...){
-    struct layer l = {0};
-    l.oscilators = count;
-    l.base_freq = 0.0;
-    va_list args;
-    va_start(args, count);
-    for(u32 i = 0; i < count; i++){
-        l.osc[i] = va_arg(args, struct oscilator);
-    }
-    va_end(args);
-    return l;
-}
-
-struct envelope make_env(i32 state, f64 env, f64 release){
-    return (struct envelope){state, env, release};
-}
-
-struct oscilator make_oscilator(i32 wfid, struct wave_spec spec){
-    return (struct oscilator){ 
-        .phase = rand_range_f64(0.0, 1.0), 
-        .integrator = 0.0, 
-        .dcx = 0.0, 
-        .dcy = 0.0, 
-        .time = 0.0, 
-        .waveform_id = wfid, 
-        .spec = spec
-    };
-}
-
-struct layer set_layer_freq(struct layer l, f64 freq){
-    l.base_freq = freq;
-    return l;
-}
-
-void voice_set_layer(struct voice *v, struct layer l){
-    v->l = l;
-}
-
-void voice_set_env(struct voice *v, struct envelope env){
-    v->env = env;
-}
-
-void vc_initialize(struct voice_control *vc, struct layer l, struct envelope env){
+void vc_initialize(struct voice_control *vc, struct layer l){
     vc->render_buffer = NULL;
     vc->rbuflen = 0;
     vc->cfg = make_default_config();
     vc->dl = create_delay_line(MS_BUFSIZE(vc->cfg.samplerate, 0.5));
 
-    voices_initialize(vc->voices, l, env);
+    voices_initialize(vc->voices, l);
     vc->dcblock = exp(-1.0/(0.0025 * vc->cfg.samplerate));
 }
 
-void voices_initialize(struct voice voices[VOICE_MAX], struct layer l, struct envelope env){
+void voices_initialize(struct voice voices[VOICE_MAX], struct layer l){
     for(i32 i = 0; i < VOICE_MAX; i++){
         struct voice *v = &voices[i];
         v->midi_key = -1;
         v->amplitude = 1.0;
         v->active = false;
-        voice_set_layer(v, l);
-        voice_set_env(v, env);
+        v->l = l;
     }
 }
 
-void voice_set_iterate(struct voice voices[VOICE_MAX], f64 amp, i32 midi_key, struct layer l, struct envelope env){
+void voice_set_iterate(struct voice voices[VOICE_MAX], f64 amp, i32 midi_key){
     for(i32 i = 0; i < VOICE_MAX; i++){
         struct voice *v = &voices[i];
-        if(v->env.state == ENVELOPE_OFF && !v->active){
+        if(!v->active){
             v->midi_key = midi_key;
             v->amplitude = amp;
-            voice_set_layer(v, l);
-            voice_set_env(v, env);
             v->active = true;
+            v->l.base_freq = midi_to_base_freq(midi_key);
+            for(size_t k = 0; k < v->l.oscilators; k++){
+                v->l.osc[k].env.state = ENVELOPE_ATTACK;
+            }
             return;
         }
     }
 }
 
-void voice_release_iterate(struct voice voices[VOICE_MAX], i32 midi_key, const struct configs *cfg){
+void voice_release_iterate(struct voice voices[VOICE_MAX], i32 midi_key){
     for(i32 i = 0; i < VOICE_MAX; i++){
         struct voice *v = &voices[i];
         if(v->active && v->midi_key == midi_key){
-            if(v->env.state != ENVELOPE_OFF){
-                voice_set_env(v, 
-                    make_env(
-                        ENVELOPE_RELEASE, 
-                        v->env.envelope, 
-                        RELEASE_INCREMENT(
-                            v->env.envelope, cfg->samplerate, cfg->envelope_release
-                        ))
-                );
-                v->active = false;
-                return;
+            for(size_t k = 0; k < v->l.oscilators; k++){
+                v->l.osc[k].env.state = ENVELOPE_RELEASE;
             }
+            v->active = false;
+            return;
         }
     }
 }

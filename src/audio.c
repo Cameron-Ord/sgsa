@@ -32,6 +32,15 @@ static void loop_delay(size_t nsamples, f32 *samples, struct voice_control *vc){
 static f64 loop_oscilators(struct voice *v, const struct configs *cfg, f64 dcblock){
     f64 sum = 0.0;
     for(u32 i = 0; i < v->l.oscilators; i++){
+        struct envelope *env = &v->l.osc[i].env;
+        const bool first = v->active && env->state != ENVELOPE_OFF;
+        const bool second = !v->active && env->state == ENVELOPE_RELEASE;
+
+        const bool cond = first || second;
+        if(!cond) {
+            continue;
+        }
+
         f64 generated = 0.0;
         struct oscilator *osc = &v->l.osc[i];
         f64 freq = v->l.base_freq * osc->spec.octave_increment * osc->spec.detune;
@@ -75,7 +84,11 @@ static f64 loop_oscilators(struct voice *v, const struct configs *cfg, f64 dcblo
             }break;
         }
 
-        if(generated == 0.0) continue;
+        if(generated == 0.0) {
+            continue;
+        }
+        adsr(env, cfg->samplerate);
+        generated *= env->envelope;
 
         osc->phase += dt;
         if(osc->phase >= 1.0) {
@@ -90,22 +103,11 @@ static f64 loop_oscilators(struct voice *v, const struct configs *cfg, f64 dcblo
 static f32 loop_voicings(struct voice_control *vc, f64 wave_samples[VOICE_MAX]){
     f32 sample = 0.0;
     for(u32 i = 0; i < VOICE_MAX; i++){
-        struct voice *v = &vc->voices[i];
         wave_samples[i] = 0.0;
-
-        const bool cond1 = (v->active && v->env.state != ENVELOPE_OFF);
-        const bool cond2 = (!v->active && v->env.state == ENVELOPE_RELEASE);
-        if(cond1 || cond2){
-            wave_samples[i] = loop_oscilators(v, &vc->cfg, vc->dcblock);
-            wave_samples[i] *= adsr(
-                &v->env.state, 
-                &v->env.envelope, 
-                &v->env.release_increment, 
-                &vc->cfg
-            );
+        wave_samples[i] = loop_oscilators(&vc->voices[i], &vc->cfg, vc->dcblock);
+        if(wave_samples[i] == 0.0){
+            continue;
         }
-
-        if(wave_samples[i] == 0.0) continue;
         sample += (f32)tanh(wave_samples[i] * (f64)vc->cfg.sample_gain / VOICE_MAX) * vc->cfg.volume;
     }
     return sample;

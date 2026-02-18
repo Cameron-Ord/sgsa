@@ -7,10 +7,6 @@
 
 #include <portmidi.h>
 
-const i32 A4 = 69;
-const f64 A4f = 440.0;
-const f64 NOTES = 12.0;
-
 void list_available_controllers(void){
     const i32 dcount = Pm_CountDevices();
     if(dcount < 1) {
@@ -23,10 +19,6 @@ void list_available_controllers(void){
             printf("%d: %s [%s] %s\n",i, info->name, info->interf, info->input ? "input" : "output");
         }
     }
-}
-
-f64 midi_to_base_freq(i32 n){
-    return A4f * pow(2.0, (n - A4) / NOTES);
 }
 
 i32 terminate_controller(void){
