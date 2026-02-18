@@ -53,7 +53,6 @@ static SDL_Window *create_window(const char *title, i32 width, i32 height, u32 f
     return w;
 }
 
-
 static u32 change_layer(i32 msg1, u32 layer_count, u32 current_layer){
     switch(msg1){
         default:break;
@@ -78,6 +77,23 @@ int main(int argc, char **argv){
     }
     assert(devname != NULL);
     srand((u32)time(NULL));
+
+    if(initialize_controller() < 0){
+        return 0;
+    }
+    list_available_controllers();
+
+    struct device_data device = get_input_controller(devname);
+    if(!device.valid){
+        terminate_controller();
+        return 0;
+    }
+    print_controller(&device);
+
+    if(midi_open_stream(&device.stream, device.id, 512) < 0){
+        terminate_controller();
+        return 0;
+    }    
 
     if(!initialize_sdl()){
         return 1;
@@ -109,9 +125,6 @@ int main(int argc, char **argv){
         make_layer(1,
             make_oscilator(SAW_POLY, make_wave_spec(1.0, 0.0, 1.0, 0.0))
         ),
-        make_layer(1,
-            make_oscilator(PULSE_POLY, make_wave_spec(1.0, 0.5, 1.0, 0.0))
-        ),
     };
     u32 current_layer = 0;
     const u32 layer_count = sizeof(layers) / sizeof(layers[0]);
@@ -119,38 +132,20 @@ int main(int argc, char **argv){
     struct voice_control vc;
     vc_initialize(
         &vc,
-        make_format(MONO, INTERNAL_SAMPLE_RATE, SDL_AUDIO_F32),
         layers[current_layer], 
         make_env(ENVELOPE_OFF, 0.0, 0.0)
     );
-    struct delay_line dl = create_delay_line(MS_BUFSIZE(INTERNAL_SAMPLE_RATE, 0.5));
-    vc_assign_delay(&vc, &dl);
     vc_assign_render_buffer(&vc, rc.buffer, RENDER_RESOLUTION);
+    print_config(vc.cfg);
 
-    SDL_AudioSpec internal_spec = make_audio_spec(vc.fmt.CHANNELS, vc.fmt.SAMPLE_RATE, vc.fmt.FORMAT);
+    SDL_AudioSpec internal_spec = make_audio_spec(vc.cfg.channels, vc.cfg.samplerate);
     struct playback_device pbdev = open_audio_device();
-    pbdev.stream = audio_stream_create(internal_spec, pbdev.output_spec);
+    pbdev.stream = audio_stream_create(&internal_spec, &pbdev.output_spec);
     
     pause_audio(pbdev.id);
     set_audio_callback(pbdev.stream, &vc);
     audio_stream_bind(pbdev.stream, pbdev.id);
     resume_audio(pbdev.id);
-
-    if(initialize_controller() < 0){
-        return 0;
-    }
-
-    struct device_data device = get_input_controller(devname);
-    if(!device.valid){
-        terminate_controller();
-        return 0;
-    }
-    print_controller(&device);
-
-    if(midi_open_stream(&device.stream, device.id, 512) < 0){
-        terminate_controller();
-        return 0;
-    }    
 
     const u32 FPS = 60;
     const u32 FG = 1000 / FPS;
@@ -160,7 +155,7 @@ int main(int argc, char **argv){
     SDL_ShowWindow(window);
     while(RUNNING){
         const u64 START = SDL_GetTicks();
-        set_colour(rc.renderer, 255, 255, 255, 255);
+        set_colour(rc.renderer, 40, 42, 54, 255);
         clear(rc.renderer);
         struct midi_input in = midi_read_input(device.stream, 1);
         switch(in.status){
@@ -170,7 +165,6 @@ int main(int argc, char **argv){
                     default: break;
                     case CONTROL_ON:{
                         current_layer = change_layer(in.first, layer_count, current_layer);
-                        print_layer("Changed layer",layers[current_layer]);
                     }break;
                 }
             }break;
@@ -189,7 +183,7 @@ int main(int argc, char **argv){
                 voice_release_iterate(
                     vc.voices, 
                     in.first,
-                    vc.fmt.SAMPLE_RATE
+                    &vc.cfg
                 );
             }break;
         }
@@ -204,7 +198,7 @@ int main(int argc, char **argv){
             }
         }
 
-        set_colour(rc.renderer, 0, 0, 0, 255);
+        set_colour(rc.renderer, 80, 250, 123, 255);
         draw_waveform(&rc);
         present(rc.renderer);
         const u64 FT = SDL_GetTicks() - START;

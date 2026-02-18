@@ -1,6 +1,10 @@
 #ifndef WAVE_H
 #define WAVE_H
 #include "typedef.h"
+
+#include "effect.h"
+#include "configs.h"
+
 #include <stdbool.h>
 #include <stdarg.h>
 
@@ -23,16 +27,11 @@ enum ENVELOPE_STATES {
     ENVELOPE_OFF,
 };
 
-//Make these variables at some point
-#define ATTACK_TIME 0.15
-#define DECAY_TIME 0.3
-#define SUSTAIN_LEVEL 0.6
-#define RELEASE_TIME 0.15
 //  0 -> 1  0 -> 1 
 // (VALUE - VALUE) / SAMPLES
-#define ATTACK_INCREMENT(samplerate) (1.0 - 0.0) / (ATTACK_TIME * (samplerate))
-#define DECAY_INCREMENT(samplerate) (1.0 - SUSTAIN_LEVEL) / (DECAY_TIME * (samplerate))
-#define RELEASE_INCREMENT(envelope, samplerate) (envelope) / (RELEASE_TIME * (samplerate))
+#define ATTACK_INCREMENT(samplerate, ATK) (1.0 - 0.0) / (ATK * (samplerate))
+#define DECAY_INCREMENT(samplerate, DEC, SUS) (1.0 - SUS) / (DEC * (samplerate))
+#define RELEASE_INCREMENT(envelope, samplerate, REL) (envelope) / (REL * (samplerate))
 
 enum WAVEFORM_IDS {
     WAVE_FORM_BEGIN = 0,
@@ -56,12 +55,6 @@ struct envelope {
     i32 state;
     f64 envelope;
     f64 release_increment;
-};
-
-struct internal_format {
-    u8 CHANNELS;
-    i32 SAMPLE_RATE;
-    u32 FORMAT;
 };
 
 struct oscilator {
@@ -88,18 +81,19 @@ struct voice {
 };
 
 struct voice_control {
-    struct delay_line *dl;
-    struct internal_format fmt;
-    struct voice voices[VOICE_MAX];
+    // What it doesn't own (Must be assgined with vc_assign() funcs)
+    // All initialized to 0.
     f32 *render_buffer;
     size_t rbuflen;
+    // What it owns.
+    struct configs cfg;
+    struct delay_line dl;
+    struct voice voices[VOICE_MAX];
     f64 dcblock;
 };
 
-void vc_assign_delay(struct voice_control *vc, struct delay_line *dl);
-
 f64 quantize(f64 x, i32 depth);
-f64 adsr(i32 *state, f64 *envelope, const f64 *release, i32 samplerate);
+f64 adsr(i32 *state, f64 *envelope, const f64 *release, const struct configs *cfg);
 f64 vibrato(f64 vrate, f64 depth, f64 freq, f64 samplerate);
 f64 tremolo(f64 trate, f64 depth, f64 time);
 
@@ -113,18 +107,16 @@ struct layer set_layer_freq(struct layer, f64 freq);
 struct layer make_layer(u32 count, ...);
 struct envelope make_env(i32 state, f64 env, f64 release);
 struct oscilator make_oscilator(i32 wfid, struct wave_spec spec);
-struct internal_format make_format(u8 channels, i32 samplerate, u32 format);
 
 void voice_set_layer(struct voice *v, struct layer l);
 void voice_set_env(struct voice *v, struct envelope env);
 
 void voice_set_iterate(struct voice voices[VOICE_MAX], f64 amp, i32 midi_key, struct layer l, struct envelope env);
-void voice_release_iterate(struct voice voices[VOICE_MAX], i32 midi_key, i32 samplerate);
+void voice_release_iterate(struct voice voices[VOICE_MAX], i32 midi_key, const struct configs *cfg);
 
 void voices_initialize(struct voice voices[VOICE_MAX], struct layer l, struct envelope env);
 void vc_assign_render_buffer(struct voice_control *vc, f32 *buffer, size_t len);
-void vc_initialize(struct voice_control *vc, struct internal_format fmt, struct layer l, struct envelope env);
-void vc_set_fmt(struct voice_control *vc, struct internal_format fmt);
+void vc_initialize(struct voice_control *vc, struct layer l, struct envelope env);
 
 // Raw waves
 f64 sawtooth(f64 amp, f64 phase); 

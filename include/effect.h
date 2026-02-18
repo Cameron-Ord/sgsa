@@ -2,8 +2,10 @@
 #define EFFECT_H
 #include "typedef.h"
 #include <stddef.h>
+#include <stdbool.h>
 
 struct delay_line { 
+    bool active;
     size_t start, end;
     f32 *buffer;  
     size_t read, write;

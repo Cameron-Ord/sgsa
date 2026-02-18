@@ -33,6 +33,7 @@ struct midi_input {
     bool valid;
 };
 
+void list_available_controllers(void);
 i32 initialize_controller(void);
 i32 terminate_controller(void);
 i32 midi_open_stream(void **stream, i32 id, i32 bufsize);

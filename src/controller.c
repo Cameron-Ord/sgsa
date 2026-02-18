@@ -11,6 +11,20 @@ const i32 A4 = 69;
 const f64 A4f = 440.0;
 const f64 NOTES = 12.0;
 
+void list_available_controllers(void){
+    const i32 dcount = Pm_CountDevices();
+    if(dcount < 1) {
+        printf("No devices found\n");
+        return;
+    }
+    for(i32 i = 0; i < dcount; i++){
+        const PmDeviceInfo *info = Pm_GetDeviceInfo(i);
+        if(info){
+            printf("%d: %s [%s] %s\n",i, info->name, info->interf, info->input ? "input" : "output");
+        }
+    }
+}
+
 f64 midi_to_base_freq(i32 n){
     return A4f * pow(2.0, (n - A4) / NOTES);
 }
@@ -59,8 +73,7 @@ struct device_data get_input_controller(const char *name){
     const i32 dcount = Pm_CountDevices();
     for(i32 i = 0; i < dcount; i++){
         const PmDeviceInfo *info = Pm_GetDeviceInfo(i);
-        printf("%d: %s [%s] %s\n",i, info->name, info->interf, info->input ? "input" : "output");
-        if(info->input && strcmp(info->name, name) == 0){
+        if((info && info->input) && strcmp(info->name, name) == 0){
             return make_device_data(i, info->name, info->interf, info->input);
         }
     }

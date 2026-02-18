@@ -1,5 +1,7 @@
 #include "../include/video.h"
+#include "../include/util.h"
 #include <stdio.h>
+
 void draw_waveform(const struct render_context *rc){
     SDL_Rect viewport = { 0, 0, rc->win_width, rc->win_height  / 2 };
     SDL_SetRenderViewport(rc->renderer, &viewport);

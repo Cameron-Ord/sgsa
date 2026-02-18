@@ -1,5 +1,6 @@
 #include "../include/waveform.h"
 #include "../include/util.h"
+#include "../include/configs.h"
 #include "../include/effect.h"
 
 #include <math.h>
@@ -76,12 +77,12 @@ f64 tremolo(f64 trate, f64 depth, f64 phase){
     return 1.0 + depth * sin(2.0 * PI * trate * phase);
 }
 
-f64 adsr(i32 *state, f64 *envelope, const f64 *release, i32 samplerate){
+f64 adsr(i32 *state, f64 *envelope, const f64 *release, const struct configs *cfg){
     f64 mutated = *envelope;
     switch(*state){
         default:break;
         case ENVELOPE_ATTACK:{
-            mutated += ATTACK_INCREMENT(samplerate);
+            mutated += ATTACK_INCREMENT(cfg->samplerate, cfg->envelope_attack);
             if(mutated >= 1.0){
                 mutated = 1.0;
                 *state = ENVELOPE_DECAY;
@@ -91,9 +92,9 @@ f64 adsr(i32 *state, f64 *envelope, const f64 *release, i32 samplerate){
         case ENVELOPE_SUSTAIN: break;
 
         case ENVELOPE_DECAY: {
-            mutated -= DECAY_INCREMENT(samplerate);
-            if(mutated <= SUSTAIN_LEVEL){
-                mutated = SUSTAIN_LEVEL;
+            mutated -= DECAY_INCREMENT(cfg->samplerate, cfg->envelope_decay, cfg->envelope_sustain);
+            if(mutated <= cfg->envelope_sustain){
+                mutated = cfg->envelope_sustain;
                 *state = ENVELOPE_SUSTAIN;
             }
         }break;
@@ -204,7 +205,6 @@ struct layer make_layer(u32 count, ...){
         l.osc[i] = va_arg(args, struct oscilator);
     }
     va_end(args);
-    print_layer("Created layer", l);
     return l;
 }
 
@@ -224,23 +224,9 @@ struct oscilator make_oscilator(i32 wfid, struct wave_spec spec){
     };
 }
 
-struct internal_format make_format(u8 channels, i32 samplerate, u32 format){
-    return (struct internal_format){ channels, samplerate, format };
-}
-
 struct layer set_layer_freq(struct layer l, f64 freq){
     l.base_freq = freq;
     return l;
-}
-
-void vc_assign_delay(struct voice_control *vc, struct delay_line *dl){
-    vc->dl = dl;
-}
-
-void vc_set_fmt(struct voice_control *v, struct internal_format fmt){
-    v->fmt.CHANNELS = fmt.CHANNELS;
-    v->fmt.FORMAT = fmt.FORMAT;
-    v->fmt.SAMPLE_RATE = fmt.SAMPLE_RATE;
 }
 
 void voice_set_layer(struct voice *v, struct layer l){
@@ -251,15 +237,17 @@ void voice_set_env(struct voice *v, struct envelope env){
     v->env = env;
 }
 
-void vc_initialize(struct voice_control *vc, struct internal_format fmt, struct layer l, struct envelope env){
-    vc->fmt = fmt;
+void vc_initialize(struct voice_control *vc, struct layer l, struct envelope env){
+    vc->render_buffer = NULL;
+    vc->rbuflen = 0;
+    vc->cfg = make_default_config();
+    vc->dl = create_delay_line(MS_BUFSIZE(vc->cfg.samplerate, 0.5));
+
     voices_initialize(vc->voices, l, env);
-    vc->dcblock = exp(-1.0/(0.0025 * fmt.SAMPLE_RATE));
-    vc->dl = NULL;
+    vc->dcblock = exp(-1.0/(0.0025 * vc->cfg.samplerate));
 }
 
 void voices_initialize(struct voice voices[VOICE_MAX], struct layer l, struct envelope env){
-    print_layer("Initializing voices with layer", l);
     for(i32 i = 0; i < VOICE_MAX; i++){
         struct voice *v = &voices[i];
         v->midi_key = -1;
@@ -284,13 +272,18 @@ void voice_set_iterate(struct voice voices[VOICE_MAX], f64 amp, i32 midi_key, st
     }
 }
 
-void voice_release_iterate(struct voice voices[VOICE_MAX], i32 midi_key, i32 samplerate){
+void voice_release_iterate(struct voice voices[VOICE_MAX], i32 midi_key, const struct configs *cfg){
     for(i32 i = 0; i < VOICE_MAX; i++){
         struct voice *v = &voices[i];
         if(v->active && v->midi_key == midi_key){
             if(v->env.state != ENVELOPE_OFF){
                 voice_set_env(v, 
-                    make_env(ENVELOPE_RELEASE, v->env.envelope, RELEASE_INCREMENT(v->env.envelope, samplerate))
+                    make_env(
+                        ENVELOPE_RELEASE, 
+                        v->env.envelope, 
+                        RELEASE_INCREMENT(
+                            v->env.envelope, cfg->samplerate, cfg->envelope_release
+                        ))
                 );
                 v->active = false;
                 return;

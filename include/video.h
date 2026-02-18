@@ -4,7 +4,7 @@
 #include <SDL3/SDL_render.h>
 #include "typedef.h"
 
-#define RENDER_RESOLUTION 1024
+#define RENDER_RESOLUTION (1 << 12)
 #define WINDOW_HEIGHT 768
 #define WINDOW_WIDTH 1024
 
