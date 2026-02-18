@@ -123,7 +123,6 @@ static void loop_samples(size_t count, f32 *samplebuffer, struct voice_control *
             vc->fmt.SAMPLE_RATE,
             vc->dcblock
         ) * VOLUME;
-        printf("AS SAMPLE:%f\n", samplebuffer[n]);
     }
 }
 
