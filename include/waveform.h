@@ -40,13 +40,13 @@ u32 prev_layer(u32 current, u32 last);
 
 void voice_set_iterate(struct voice voices[VOICE_MAX], f64 amp, i32 midi_key);
 void voice_release_iterate(struct voice voices[VOICE_MAX], i32 midi_key);
-void voices_initialize(struct voice voices[VOICE_MAX], struct layer l);
+void voices_initialize(struct voice voices[VOICE_MAX]);
 
 void vc_assign_render_buffer(struct voice_control *vc, f32 *buffer, size_t len);
-void vc_initialize(struct voice_control *vc, struct layer l);
+void vc_initialize(struct voice_control *vc);
 
 void print_layer(const char *msg, struct layer l);
-
+void layers_set_adsr(struct voice voices[VOICE_MAX], f64 atk, f64 dec, f64 sus, f64 rel);
 // Raw waves
 f64 sawtooth(f64 amp, f64 phase); 
 f64 square(f64 amp, f64 phase, f64 duty);

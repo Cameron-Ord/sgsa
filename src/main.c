@@ -53,20 +53,6 @@ static SDL_Window *create_window(const char *title, i32 width, i32 height, u32 f
     return w;
 }
 
-static u32 change_layer(i32 msg1, u32 layer_count, u32 current_layer){
-    switch(msg1){
-        default:break;
-        case WAVE_LEFT:{
-            return prev_layer(current_layer, layer_count);
-        }break;
-        
-        case WAVE_RIGHT:{
-            return next_layer(current_layer, layer_count);
-        }break;
-    }
-    return current_layer;
-}
-
 int main(int argc, char **argv){
     const char *devname = NULL;
     if(argc > 1 && argc < 3){
@@ -121,16 +107,8 @@ int main(int argc, char **argv){
         .opts_viewport = {0}
     };
 
-    const struct layer layers[] = {
-        make_layer(1,
-            make_poly_saw()
-        ),
-    };
-    u32 current_layer = 0;
-    const u32 layer_count = sizeof(layers) / sizeof(layers[0]);
-
     struct voice_control vc;
-    vc_initialize(&vc, layers[current_layer]);
+    vc_initialize(&vc);
     vc_assign_render_buffer(&vc, rc.buffer, RENDER_RESOLUTION);
     print_config(vc.cfg);
 
@@ -148,6 +126,7 @@ int main(int argc, char **argv){
     bool RUNNING = true;
     printf("Init end timer: %zums : %zums\n", SDL_GetTicks(), SDL_GetTicks() - init_start);
 
+    layers_set_adsr(vc.voices, 0.375, 0.275, 0.8, 0.325);
     SDL_ShowWindow(window);
     while(RUNNING){
         const u64 START = SDL_GetTicks();
@@ -156,14 +135,6 @@ int main(int argc, char **argv){
         struct midi_input in = midi_read_input(device.stream, 1);
         switch(in.status){
             default: break;
-            case CONTROL:{
-                switch(in.second){
-                    default: break;
-                    case CONTROL_ON:{
-                        current_layer = change_layer(in.first, layer_count, current_layer);
-                    }break;
-                }
-            }break;
 
             case NOTE_ON:{
                 voice_set_iterate(

@@ -13,6 +13,17 @@ const f64 DEFAULT_OCTAVE_SKIP = 1.0;
 const f64 DEFAULT_CONTRIBUTION_VOLUME = 1.0;
 const f64 DEFAULT_DETUNE = 1.0;
 
+void osc_set_detune(struct oscilator *osc, f64 detune){
+    osc->spec.detune = detune;
+}
+
+void osc_set_env(struct oscilator *osc, f64 atk, f64 dec, f64 sus, f64 rel){
+    osc->env.attack = atk;
+    osc->env.decay = dec;
+    osc->env.sustain = sus;
+    osc->env.release = rel;
+}
+
 struct oscilator make_saw(void){
     return make_oscilator(SAW_RAW);
 }

@@ -188,23 +188,35 @@ f64 map_velocity(i32 second){
     return base_amp;
 }
 
-void vc_initialize(struct voice_control *vc, struct layer l){
+void vc_initialize(struct voice_control *vc){
     vc->render_buffer = NULL;
     vc->rbuflen = 0;
     vc->cfg = make_default_config();
     vc->dl = create_delay_line(MS_BUFSIZE(vc->cfg.samplerate, 0.5));
 
-    voices_initialize(vc->voices, l);
+    voices_initialize(vc->voices);
     vc->dcblock = exp(-1.0/(0.0025 * vc->cfg.samplerate));
 }
 
-void voices_initialize(struct voice voices[VOICE_MAX], struct layer l){
+void voices_initialize(struct voice voices[VOICE_MAX]){
     for(i32 i = 0; i < VOICE_MAX; i++){
         struct voice *v = &voices[i];
         v->midi_key = -1;
         v->amplitude = 1.0;
         v->active = false;
-        v->l = l;
+        v->l = make_layer(1, make_poly_saw());
+    }
+}
+
+void layers_set_adsr(struct voice voices[VOICE_MAX], f64 atk, f64 dec, f64 sus, f64 rel){
+    for(i32 i = 0; i < VOICE_MAX; i++){
+        struct voice *v = &voices[i];
+        for(size_t k = 0; k < v->l.oscilators; k++){
+            v->l.osc[k].env.attack = atk;
+            v->l.osc[k].env.decay = dec;
+            v->l.osc[k].env.sustain = sus;
+            v->l.osc[k].env.release = rel;
+        }
     }
 }
 

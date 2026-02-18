@@ -32,6 +32,9 @@ struct layer {
     struct oscilator osc[OSCILATOR_MAX];
 };
 
+void osc_set_env(struct oscilator *osc, f64 atk, f64 dec, f64 sus, f64 rel);
+void osc_set_detune(struct oscilator *osc, f64 detune);
+
 struct wave_spec make_spec(void);
 struct layer make_layer(u32 count, ...);
 struct envelope make_env(void);
