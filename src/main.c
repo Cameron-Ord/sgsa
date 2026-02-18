@@ -1,5 +1,6 @@
 
 #include <SDL3/SDL_events.h>
+#include <SDL3/SDL_video.h>
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -8,6 +9,7 @@
 #include "../include/audio.h"
 #include "../include/effect.h"
 #include "../include/util.h"
+#include "../include/video.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -26,10 +28,31 @@
 const i32 INTERNAL_SAMPLE_RATE = 48000;
 
 static bool initialize_sdl(void);
+static SDL_Renderer *create_renderer(SDL_Window *window);
+static SDL_Window *create_window(const char *title, i32 width, i32 height, u32 flags);
 
 static bool initialize_sdl(void){
     return SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS);
 }
+
+static SDL_Renderer *create_renderer(SDL_Window *window){
+    SDL_Renderer *r = SDL_CreateRenderer(window, NULL);
+    if(!r){
+        printf("Failed to create renderer: %s\n", SDL_GetError());
+        return NULL;
+    }    
+    return r;
+}
+
+static SDL_Window *create_window(const char *title, i32 width, i32 height, u32 flags){
+    SDL_Window *w = SDL_CreateWindow(title, width, height, flags);
+    if(!w){
+        printf("Failed to create window: %s\n", SDL_GetError());
+        return NULL;
+    }
+    return w;
+}
+
 
 static u32 change_layer(i32 msg1, u32 layer_count, u32 current_layer){
     switch(msg1){
@@ -57,25 +80,32 @@ int main(int argc, char **argv){
     srand((u32)time(NULL));
 
     if(!initialize_sdl()){
-        return 0;
+        return 1;
     }
-
     u64 init_start = SDL_GetTicks();
     printf("Init start timer: %zums\n", init_start);
 
+    SDL_Window *window = create_window("sgsa", WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_HIDDEN);
+    if(!window){
+        return 1;
+    }
+
+    SDL_Renderer *renderer = create_renderer(window);
+    if(!renderer){
+        return 1;
+    }
+
+    struct render_context rc = {
+        .window = window,
+        .renderer = renderer,
+        .window_flags_at_creation = SDL_WINDOW_HIDDEN,
+        .win_width = WINDOW_WIDTH,
+        .win_height = WINDOW_HEIGHT,
+        .waveform_viewport = {0},
+        .opts_viewport = {0}
+    };
+
     const struct layer layers[] = {
-        make_layer(1,
-            make_oscilator(PULSE_POLY, make_wave_spec(1.0, 0.125, 1.0, 0.0))
-        ),
-        make_layer(1,
-            make_oscilator(PULSE_POLY, make_wave_spec(1.0, 0.25, 1.0, 0.0))
-        ),
-        make_layer(1,
-            make_oscilator(PULSE_POLY, make_wave_spec(1.0, 0.5, 1.0, 0.0))
-        ),
-        make_layer(1,
-            make_oscilator(TRIANGLE_POLY, make_wave_spec(1.0, 0.0, 1.0, 0.0))
-        ),
         make_layer(1,
             make_oscilator(SAW_POLY, make_wave_spec(1.0, 0.0, 1.0, 0.0))
         ),
@@ -92,6 +122,7 @@ int main(int argc, char **argv){
     );
     struct delay_line dl = create_delay_line(MS_BUFSIZE(INTERNAL_SAMPLE_RATE, 0.5));
     vc_assign_delay(&vc, &dl);
+    vc_assign_render_buffer(&vc, rc.buffer, RENDER_RESOLUTION);
 
     SDL_AudioSpec internal_spec = make_audio_spec(vc.fmt.CHANNELS, vc.fmt.SAMPLE_RATE, vc.fmt.FORMAT);
     struct playback_device pbdev = open_audio_device();
@@ -123,8 +154,11 @@ int main(int argc, char **argv){
     bool RUNNING = true;
     printf("Init end timer: %zums : %zums\n", SDL_GetTicks(), SDL_GetTicks() - init_start);
 
+    SDL_ShowWindow(window);
     while(RUNNING){
         const u64 START = SDL_GetTicks();
+        set_colour(rc.renderer, 255, 255, 255, 255);
+        clear(rc.renderer);
         struct midi_input in = midi_read_input(device.stream, 1);
         switch(in.status){
             default: break;
@@ -167,6 +201,9 @@ int main(int argc, char **argv){
             }
         }
 
+        set_colour(rc.renderer, 0, 0, 0, 255);
+        draw_waveform(&rc);
+        present(rc.renderer);
         const u64 FT = SDL_GetTicks() - START;
         if(FT < FG){
             const u32 DELAY = (u32)(FG - FT);

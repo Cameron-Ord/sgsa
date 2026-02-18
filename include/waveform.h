@@ -91,6 +91,8 @@ struct voice_control {
     struct delay_line *dl;
     struct internal_format fmt;
     struct voice voices[VOICE_MAX];
+    f32 *render_buffer;
+    size_t rbuflen;
     f64 dcblock;
 };
 
@@ -120,7 +122,7 @@ void voice_set_iterate(struct voice voices[VOICE_MAX], f64 amp, i32 midi_key, st
 void voice_release_iterate(struct voice voices[VOICE_MAX], i32 midi_key, i32 samplerate);
 
 void voices_initialize(struct voice voices[VOICE_MAX], struct layer l, struct envelope env);
-
+void vc_assign_render_buffer(struct voice_control *vc, f32 *buffer, size_t len);
 void vc_initialize(struct voice_control *vc, struct internal_format fmt, struct layer l, struct envelope env);
 void vc_set_fmt(struct voice_control *vc, struct internal_format fmt);
 

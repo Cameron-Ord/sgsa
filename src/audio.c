@@ -10,13 +10,20 @@ const f64 VIBRATO_ON = 0.18;
 const f32 VOLUME = 1.0f;
 const i32 SAMPLE_PER_CALLBACK = 128;
 const f32 MASTER_GAIN = 1.5f;
-const f32 DELAY_GAIN = 1.25f;
+const f32 DELAY_GAIN = 1.5f;
 const f64 VRATE = 6.25;
 const f64 EFFECT_DEPTH = 5.25;
 const i32 BIT_DEPTH = 8;
 const f32 FEEDBACK = 0.5f;
 
 //const f64 alpha = 1.0 / SAMPLE_RATE;
+
+static void render_push(f32* samples, size_t nsamples, f32 *buffer, size_t buflen){
+    if (nsamples > 0 && samples) {
+        memmove(buffer, buffer + nsamples, (buflen - nsamples) * sizeof(f32));
+        memcpy(buffer + (buflen - nsamples), samples, nsamples * sizeof(f32));
+    } 
+}
 
 bool stream_feed(SDL_AudioStream *stream, const f32 samples[], i32 len){
     return SDL_PutAudioStreamData(stream, samples, len);
@@ -116,6 +123,7 @@ static void loop_samples(size_t count, f32 *samplebuffer, struct voice_control *
             vc->fmt.SAMPLE_RATE,
             vc->dcblock
         ) * VOLUME;
+        printf("AS SAMPLE:%f\n", samplebuffer[n]);
     }
 }
 
@@ -131,6 +139,7 @@ void stream_callback(void *data, SDL_AudioStream *stream, i32 add, i32 total){
         loop_samples(valid_samples, samples, vc);
         loop_delay(valid_samples, samples, vc);
         stream_feed(stream, samples, (i32)valid_samples * (i32)sizeof(f32));
+        render_push(samples, valid_samples, vc->render_buffer, vc->rbuflen);
         sample_count -= valid_samples;
     }
 }

@@ -48,11 +48,11 @@ f64 poly_saw(f64 amp, f64 dt, f64 phase){
 
 // https://en.wikipedia.org/wiki/Sawtooth_wave
 f64 sawtooth(f64 amp, f64 phase){
-    return amp * (2.0 * (phase - 1.0));
+    return amp * (2.0 * phase - 1.0);
 }
 
 f64 square(f64 amp, f64 phase, f64 duty){
-    return amp * phase < duty ? 1.0 : -1.0;
+    return amp * ((phase < duty) ? 1.0 : -1.0);
 }
 
 f64 triangle(f64 amp, f64 phase){
@@ -297,4 +297,9 @@ void voice_release_iterate(struct voice voices[VOICE_MAX], i32 midi_key, i32 sam
             }
         }
     }
+}
+
+void vc_assign_render_buffer(struct voice_control *vc, f32 *buffer, size_t len){
+    vc->render_buffer = buffer;
+    vc->rbuflen = len;
 }
