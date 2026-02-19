@@ -13,8 +13,8 @@ const f32 DEFAULT_SAMPLE_GAIN = 1.0f;
 const f32 DEFAULT_DELAY_GAIN = 1.0f;
 const f32 DEFAULT_DELAY_FEEDBACK = 1.0f;
 
-const f64 DEFAULT_VIBRATION_RATE = 2.5;
-const f64 DEFAULT_VIBRATION_DEPTH = 2.25;
+const f64 DEFAULT_VIBRATION_RATE = 5.0;
+const f64 DEFAULT_VIBRATION_DEPTH = 3.75;
 const f64 DEFAULT_VIBRATO_ON = 0.33;
 
 
@@ -28,15 +28,15 @@ void print_config(struct configs config){
 
 struct configs make_default_config(void){
     return (struct configs) {
-        DEFAULT_SAMPLERATE,
-        DEFAULT_CHANNELS,
-        DEFAULT_VOLUME,
-        DEFAULT_SAMPLE_GAIN,
-        DEFAULT_DELAY_GAIN,
-        DEFAULT_DELAY_FEEDBACK,
-        DEFAULT_VIBRATION_RATE,
-        DEFAULT_VIBRATION_DEPTH,
-        DEFAULT_VIBRATO_ON,
-        DEFAULT_QUANTIZE_DEPTH,
+        .samplerate = DEFAULT_SAMPLERATE,
+        .channels = DEFAULT_CHANNELS,
+        .volume = DEFAULT_VOLUME,
+        .sample_gain = DEFAULT_SAMPLE_GAIN,
+        .delay_gain = DEFAULT_DELAY_GAIN,
+        .delay_feedback = DEFAULT_DELAY_FEEDBACK,
+        .vibration_rate = DEFAULT_VIBRATION_RATE,
+        .vibration_depth = DEFAULT_VIBRATION_DEPTH,
+        .vibrato_on = DEFAULT_VIBRATO_ON,
+        .quantize_depth = DEFAULT_QUANTIZE_DEPTH,
     };
 }

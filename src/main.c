@@ -25,7 +25,7 @@
 // how something might sound im not constantly changing the src and recompiling.
 
 //https://github-wiki-see.page/m/pret/pokeemerald/wiki/Implementing-ipatix%27s-High-Quality-Audio-Mixer
-const i32 INTERNAL_SAMPLE_RATE = 48000;
+const i32 INTERNAL_SAMPLE_RATE = 13379;
 
 static bool initialize_sdl(void);
 static SDL_Renderer *create_renderer(SDL_Window *window);
@@ -126,7 +126,7 @@ int main(int argc, char **argv){
     bool RUNNING = true;
     printf("Init end timer: %zums : %zums\n", SDL_GetTicks(), SDL_GetTicks() - init_start);
 
-    layers_set_adsr(vc.voices, 0.375, 0.275, 0.8, 0.325);
+    layers_set_adsr(vc.voices, 0.0, 0.1, 0.1, 0.0);
     SDL_ShowWindow(window);
     while(RUNNING){
         const u64 START = SDL_GetTicks();

@@ -6,12 +6,6 @@
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
-
-f64 quantize(f64 x, i32 depth){
-    const i32 level = (1 << depth);
-    const i32 step = (i32)round(x * (level - 1));
-    return (f64)step / (level - 1);
-}
 //polybleppers
 f64 polyblep(f64 dt, f64 phase){
     if(phase < dt){
@@ -204,7 +198,7 @@ void voices_initialize(struct voice voices[VOICE_MAX]){
         v->midi_key = -1;
         v->amplitude = 1.0;
         v->active = false;
-        v->l = make_layer(1, make_poly_saw());
+        v->l = make_layer(1, make_square());
     }
 }
 

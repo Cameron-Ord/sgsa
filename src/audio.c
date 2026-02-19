@@ -68,19 +68,19 @@ static f64 loop_oscilators(struct voice *v, const struct configs *cfg, f64 dcblo
                 ) * osc->spec.volume;
             }break;
             case SAW_RAW:{
-                generated = quantize(sawtooth(
+                generated = sawtooth(
                     v->amplitude, osc->phase
-                ), cfg->quantize_depth) * osc->spec.volume;
+                ) * osc->spec.volume;
             }break;
             case TRIANGLE_RAW:{
-                generated = quantize(triangle(
+                generated = triangle(
                     v->amplitude, osc->phase
-                ), cfg->quantize_depth) * osc->spec.volume;
+                )* osc->spec.volume;
             }break;
             case PULSE_RAW:{
-                generated = quantize(square(
+                generated = square(
                     v->amplitude, osc->phase, osc->spec.coefficient
-                ), cfg->quantize_depth) * osc->spec.volume;
+                ) * osc->spec.volume;
             }break;
         }
 

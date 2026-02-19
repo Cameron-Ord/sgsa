@@ -12,6 +12,7 @@ const f64 DEFAULT_ENV_RELEASE = 0.175;
 const f64 DEFAULT_OCTAVE_SKIP = 1.0;
 const f64 DEFAULT_CONTRIBUTION_VOLUME = 1.0;
 const f64 DEFAULT_DETUNE = 1.0;
+const f64 DEFAULT_COEFF = 0.125;
 
 void osc_set_detune(struct oscilator *osc, f64 detune){
     osc->spec.detune = detune;
@@ -74,10 +75,10 @@ struct oscilator make_oscilator(i32 wfid){
 
 struct wave_spec make_spec(void){
     return (struct wave_spec) { 
-        DEFAULT_OCTAVE_SKIP, 
-        0.0, 
-        DEFAULT_CONTRIBUTION_VOLUME, 
-        DEFAULT_DETUNE 
+        .octave_increment = DEFAULT_OCTAVE_SKIP, 
+        .coefficient = DEFAULT_COEFF, 
+        .volume = DEFAULT_CONTRIBUTION_VOLUME, 
+        .detune = DEFAULT_DETUNE 
     };
 }
 
