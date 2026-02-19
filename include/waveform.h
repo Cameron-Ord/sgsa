@@ -29,7 +29,6 @@ struct voice_control {
     f64 dcblock;
 };
 
-f64 quantize(f64 x, i32 depth);
 void adsr(struct envelope *env, i32 samplerate);
 f64 vibrato(f64 vrate, f64 depth, f64 freq, f64 samplerate);
 f64 tremolo(f64 trate, f64 depth, f64 time);
@@ -54,10 +53,10 @@ f64 triangle(f64 amp, f64 phase);
 f64 sine(f64 amp, f64 phase);
 
 // Polynomial blep methods
-f64 polyblep(f64 dt, f64 phase);
-f64 poly_square(f64 amp, f64 dt, f64 phase, f64 duty);
-f64 poly_saw(f64 amp, f64 dt, f64 phase);
-f64 poly_triangle(f64 amp, f64 dt, f64 phase, f64 *integrator, f64 *x, f64 *y, f64 block);
+f64 polyblep(f64 inc, f64 phase);
+f64 poly_square(f64 amp, f64 inc, f64 phase, f64 duty);
+f64 poly_saw(f64 amp, f64 inc, f64 phase);
+f64 poly_triangle(f64 amp, f64 inc, f64 phase, f64 *integrator, f64 *x, f64 *y, f64 block);
 
 // Unused additive methods
 f64 fourier_pulse(f64 phase, f64 duty);

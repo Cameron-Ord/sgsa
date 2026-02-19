@@ -10,8 +10,13 @@
 #define MIDI_VELOCITY_MAX 127
 #define MIDI_NOTE_MAX 127
 
+#define NYQUIST(samplerate) ((samplerate) * 0.5)
+#define HZ_TO_RAD(freq) (2.0 * PI * (freq))
+#define CUTOFF_TO_SEC(radians) (1.0 / (radians))
+
 enum WAVEFORM_IDS {
     WAVE_FORM_BEGIN = 0,
+    SINE,
     PULSE_RAW,
     SAW_RAW,
     TRIANGLE_RAW,

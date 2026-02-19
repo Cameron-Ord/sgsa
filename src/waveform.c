@@ -7,37 +7,37 @@
 #include <stdarg.h>
 #include <stdio.h>
 //polybleppers
-f64 polyblep(f64 dt, f64 phase){
-    if(phase < dt){
-        phase /= dt;
+f64 polyblep(f64 inc, f64 phase){
+    if(phase < inc){
+        phase /= inc;
         return phase + phase - phase * phase - 1.0;
-    } else if (phase > 1.0 - dt){
-        phase = (phase - 1.0) / dt;
+    } else if (phase > 1.0 - inc){
+        phase = (phase - 1.0) / inc;
         return phase * phase + phase + phase + 1.0;
     }
     return 0.0;
 }
 
-f64 poly_square(f64 amp, f64 dt, f64 phase, f64 duty){
+f64 poly_square(f64 amp, f64 inc, f64 phase, f64 duty){
     f64 sqr = square(1.0, phase, duty);
-    sqr += polyblep(dt, phase);
-    sqr -= polyblep(dt, fmod(phase + duty, 1.0));
+    sqr += polyblep(inc, phase);
+    sqr -= polyblep(inc, fmod(phase + duty, 1.0));
     return amp * sqr;
 } 
 // I am really starting to hate triangles
 // https://pbat.ch/sndkit/blep/
-f64 poly_triangle(f64 amp, f64 dt, f64 phase, f64 *integrator, f64 *x, f64 *y, f64 block){
-    f64 sqr = poly_square(1.0, dt, phase, 0.5);
-    sqr *= dt;
+f64 poly_triangle(f64 amp, f64 inc, f64 phase, f64 *integrator, f64 *x, f64 *y, f64 block){
+    f64 sqr = poly_square(1.0, inc, phase, 0.5);
+    sqr *= inc;
     *integrator += sqr;
     *y = (*integrator * 4.0) - *x + block * *y;
     *x = (*integrator * 4.0);
     return *y * amp;
 }
 
-f64 poly_saw(f64 amp, f64 dt, f64 phase){
+f64 poly_saw(f64 amp, f64 inc, f64 phase){
     f64 saw = sawtooth(1.0, phase);
-    saw -= polyblep(dt, phase);
+    saw -= polyblep(inc, phase);
     return amp * saw;
 }
 
@@ -186,7 +186,7 @@ void vc_initialize(struct voice_control *vc){
     vc->render_buffer = NULL;
     vc->rbuflen = 0;
     vc->cfg = make_default_config();
-    vc->dl = create_delay_line(MS_BUFSIZE(vc->cfg.samplerate, 0.5));
+    vc->dl = create_delay_line(MS_BUFSIZE(vc->cfg.samplerate, 0.25));
 
     voices_initialize(vc->voices);
     vc->dcblock = exp(-1.0/(0.0025 * vc->cfg.samplerate));
@@ -198,7 +198,9 @@ void voices_initialize(struct voice voices[VOICE_MAX]){
         v->midi_key = -1;
         v->amplitude = 1.0;
         v->active = false;
-        v->l = make_layer(1, make_square());
+        v->l = make_layer(1, 
+            make_default_oscilator(SAW_POLY)
+        );
     }
 }
 
@@ -223,6 +225,9 @@ void voice_set_iterate(struct voice voices[VOICE_MAX], f64 amp, i32 midi_key){
             v->active = true;
             v->l.base_freq = midi_to_base_freq(midi_key);
             for(size_t k = 0; k < v->l.oscilators; k++){
+                v->l.osc[k].generated = 0.0;
+                v->l.osc[k].filtered = 0.0;
+                v->l.osc[k].phase = rand_range_f64(0.0, 1.0);
                 v->l.osc[k].env.state = ENVELOPE_ATTACK;
             }
             return;

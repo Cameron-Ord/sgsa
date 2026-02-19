@@ -17,16 +17,6 @@
 
 #include <SDL3/SDL.h>
 
-//TODO: 
-// I want this thing to be versatile
-// So probably want to build some sort of UI with SDL
-// That will allow me to change things like the ADSR values in app
-// Or maybe even the samplerate, etc. So that every time I wanna hear 
-// how something might sound im not constantly changing the src and recompiling.
-
-//https://github-wiki-see.page/m/pret/pokeemerald/wiki/Implementing-ipatix%27s-High-Quality-Audio-Mixer
-const i32 INTERNAL_SAMPLE_RATE = 13379;
-
 static bool initialize_sdl(void);
 static SDL_Renderer *create_renderer(SDL_Window *window);
 static SDL_Window *create_window(const char *title, i32 width, i32 height, u32 flags);
@@ -125,8 +115,6 @@ int main(int argc, char **argv){
     const u32 FG = 1000 / FPS;
     bool RUNNING = true;
     printf("Init end timer: %zums : %zums\n", SDL_GetTicks(), SDL_GetTicks() - init_start);
-
-    layers_set_adsr(vc.voices, 0.0, 0.1, 0.1, 0.0);
     SDL_ShowWindow(window);
     while(RUNNING){
         const u64 START = SDL_GetTicks();

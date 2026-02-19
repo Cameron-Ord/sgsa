@@ -4,18 +4,28 @@
 
 #include <stdio.h>
 
-const i32 DEFAULT_SAMPLERATE = 44100;
+//TODO: 
+// I want this thing to be versatile
+// So probably want to build some sort of UI with SDL
+// That will allow me to change things like the ADSR values in app
+// Or maybe even the samplerate, etc. So that every time I wanna hear 
+// how something might sound im not constantly changing the src and recompiling.
+
+//https://github-wiki-see.page/m/pret/pokeemerald/wiki/Implementing-ipatix%27s-High-Quality-Audio-Mixer
+
+const i32 DEFAULT_SAMPLERATE = 48000;
 const i32 DEFAULT_CHANNELS = 1;
 const i32 DEFAULT_QUANTIZE_DEPTH = 8;
 
 const f32 DEFAULT_VOLUME = 1.0f;
-const f32 DEFAULT_SAMPLE_GAIN = 1.0f;
-const f32 DEFAULT_DELAY_GAIN = 1.0f;
-const f32 DEFAULT_DELAY_FEEDBACK = 1.0f;
+// Don't set gain too high unless you like feedback hell
+const f32 DEFAULT_SAMPLE_GAIN = 5.0f;
+const f32 DEFAULT_DELAY_GAIN = 0.75f;
+const f32 DEFAULT_DELAY_FEEDBACK = 0.5f;
 
-const f64 DEFAULT_VIBRATION_RATE = 5.0;
-const f64 DEFAULT_VIBRATION_DEPTH = 3.75;
-const f64 DEFAULT_VIBRATO_ON = 0.33;
+const f64 DEFAULT_VIBRATION_RATE = 3.0;
+const f64 DEFAULT_VIBRATION_DEPTH = 2.0;
+const f64 DEFAULT_VIBRATO_ON = 0.18;
 
 
 void print_config(struct configs config){

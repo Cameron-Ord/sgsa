@@ -1,6 +1,7 @@
 #include "../include/audio.h"
 #include "../include/waveform.h"
 #include "../include/effect.h"
+#include "../include/util.h"
 
 #include <SDL3/SDL_audio.h>
 #include <SDL3/SDL_error.h>
@@ -23,8 +24,8 @@ bool stream_feed(SDL_AudioStream *stream, const f32 samples[], i32 len){
 static void loop_delay(size_t nsamples, f32 *samples, struct voice_control *vc){
     for(size_t i = 0; i < nsamples; i++){
         const f32 delayed = delay_line_read(&vc->dl) * vc->cfg.delay_feedback;
-        const f32 mixed = samples[i] + (0.5f * delayed);
-        samples[i] = tanhf(mixed * vc->cfg.delay_gain);
+        const f32 mixed = samples[i] + tanhf(0.5f * delayed * vc->cfg.delay_gain);
+        samples[i] = mixed;
         delay_line_write(samples[i], &vc->dl);
     }
 }
@@ -33,71 +34,80 @@ static f64 loop_oscilators(struct voice *v, const struct configs *cfg, f64 dcblo
     f64 sum = 0.0;
     for(u32 i = 0; i < v->l.oscilators; i++){
         struct envelope *env = &v->l.osc[i].env;
+        struct oscilator *osc = &v->l.osc[i];
+        osc->generated = 0.0;
+        
         const bool first = v->active && env->state != ENVELOPE_OFF;
         const bool second = !v->active && env->state == ENVELOPE_RELEASE;
-
         const bool cond = first || second;
         if(!cond) {
             continue;
         }
 
-        f64 generated = 0.0;
-        struct oscilator *osc = &v->l.osc[i];
         f64 freq = v->l.base_freq * osc->spec.octave_increment * osc->spec.detune;
         if(osc->time > cfg->vibrato_on){
             freq = vibrato(cfg->vibration_rate, cfg->vibration_depth, freq, cfg->samplerate);
         }
-        const f64 dt = freq / cfg->samplerate;
+        const f64 inc = freq / cfg->samplerate;
+        const f64 dt = 1.0 / cfg->samplerate;
 
         switch(osc->waveform_id){
             default: break;
+            case SINE:{
+                osc->generated = sine(v->amplitude, osc->phase) * osc->spec.volume;
+            }break;
             case PULSE_POLY:{
-                generated = poly_square(
-                    v->amplitude, dt, osc->phase, osc->spec.coefficient
+                osc->generated = poly_square(
+                    v->amplitude, inc, osc->phase, osc->spec.coefficient
                 ) * osc->spec.volume;
             }break;
             case TRIANGLE_POLY:{
-                generated = poly_triangle(
-                    v->amplitude, dt, osc->phase,&osc->integrator, &osc->dcx, 
+                osc->generated = poly_triangle(
+                    v->amplitude, inc, osc->phase,&osc->integrator, &osc->dcx, 
                     &osc->dcy, dcblock
                 ) * osc->spec.volume;
             }break;
             case SAW_POLY:{
-                generated = poly_saw(
-                    v->amplitude, dt, osc->phase
+                osc->generated = poly_saw(
+                    v->amplitude, inc, osc->phase
                 ) * osc->spec.volume;
             }break;
             case SAW_RAW:{
-                generated = sawtooth(
+                osc->generated = sawtooth(
                     v->amplitude, osc->phase
                 ) * osc->spec.volume;
             }break;
             case TRIANGLE_RAW:{
-                generated = triangle(
+                osc->generated = triangle(
                     v->amplitude, osc->phase
                 )* osc->spec.volume;
             }break;
             case PULSE_RAW:{
-                generated = square(
+                osc->generated = square(
                     v->amplitude, osc->phase, osc->spec.coefficient
                 ) * osc->spec.volume;
             }break;
         }
 
-        if(generated == 0.0) {
+        if(osc->generated == 0.0) {
             continue;
         }
         adsr(env, cfg->samplerate);
-        generated *= env->envelope;
+        osc->generated *= env->envelope;
 
-        osc->phase += dt;
+        // inc (ie: phase increment in seconds) / (cutoff_in_seconds + inc)
+        const f64 alpha = (dt) / (CUTOFF_TO_SEC(HZ_TO_RAD(NYQUIST((f64)cfg->samplerate))) + dt);
+        // Basic interpolation using a cutoff alpha
+        osc->filtered += linear_interpolate(osc->generated, osc->filtered, alpha);
+
+        osc->phase += inc;
         if(osc->phase >= 1.0) {
             osc->phase -= 1.0;
         }
         osc->time += 1.0 / cfg->samplerate;
-        sum += generated / v->l.oscilators;
+        sum += osc->filtered / v->l.oscilators;
     }
-    return sum;
+    return tanh(sum * (f64)cfg->sample_gain);
 }
 
 static f32 loop_voicings(struct voice_control *vc, f64 wave_samples[VOICE_MAX]){
@@ -108,7 +118,7 @@ static f32 loop_voicings(struct voice_control *vc, f64 wave_samples[VOICE_MAX]){
         if(wave_samples[i] == 0.0){
             continue;
         }
-        sample += (f32)tanh(wave_samples[i] * (f64)vc->cfg.sample_gain / VOICE_MAX) * vc->cfg.volume;
+        sample += (f32)(wave_samples[i] / VOICE_MAX) * vc->cfg.volume;
     }
     return sample;
 }
