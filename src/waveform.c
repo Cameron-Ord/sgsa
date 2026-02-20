@@ -186,8 +186,7 @@ void vc_initialize(struct voice_control *vc){
     vc->render_buffer = NULL;
     vc->rbuflen = 0;
     vc->cfg = make_default_config();
-    vc->dl = create_delay_line(MS_BUFSIZE(vc->cfg.samplerate, 0.25));
-
+    vc->dl = create_delay_line(MS_BUFSIZE(vc->cfg.samplerate, 0.6));
     voices_initialize(vc->voices);
     vc->dcblock = exp(-1.0/(0.0025 * vc->cfg.samplerate));
 }
@@ -198,8 +197,10 @@ void voices_initialize(struct voice voices[VOICE_MAX]){
         v->midi_key = -1;
         v->amplitude = 1.0;
         v->active = false;
-        v->l = make_layer(1, 
-            make_default_oscilator(SAW_POLY)
+        v->l = make_layer(3, 
+            make_custom_oscilator(SAW_POLY, 0.2, 0.2, 0.6, 0.2, 1.5, 0.0, 0.3, true),
+            make_custom_oscilator(PULSE_POLY, 0.01, 0.2, 0.8, 0.03, 1.0, 0.24, 1.0, false),
+            make_custom_oscilator(SINE, 0.2, 0.2, 0.6, 0.2, 0.5, 0.32, 0.75, false)
         );
     }
 }
@@ -225,9 +226,14 @@ void voice_set_iterate(struct voice voices[VOICE_MAX], f64 amp, i32 midi_key){
             v->active = true;
             v->l.base_freq = midi_to_base_freq(midi_key);
             for(size_t k = 0; k < v->l.oscilators; k++){
-                v->l.osc[k].generated = 0.0;
-                v->l.osc[k].filtered = 0.0;
-                v->l.osc[k].phase = rand_range_f64(0.0, 1.0);
+                for(i32 c = 0; c < CHANNEL_MAX; c++){
+                    v->l.osc[k].generated[c] = 0.0;
+                    v->l.osc[k].filtered_high[c] = 0.0;
+                    v->l.osc[k].filtered_low[c] = 0.0;
+                }
+
+                v->l.osc[k].spec.detune = 1.0 + rand_range_f64(-0.003, 0.003);
+                v->l.osc[k].phase = rand_range_f64(0.0, 0.75);
                 v->l.osc[k].env.state = ENVELOPE_ATTACK;
             }
             return;

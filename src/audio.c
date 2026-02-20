@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <math.h>
 
+#include <assert.h>
 const size_t SAMPLE_PER_CALLBACK = 128;
 
 static void render_push(f32* samples, size_t nsamples, f32 *buffer, size_t buflen){
@@ -30,13 +31,15 @@ static void loop_delay(size_t nsamples, f32 *samples, struct voice_control *vc){
     }
 }
 
-static f64 loop_oscilators(struct voice *v, const struct configs *cfg, f64 dcblock){
-    f64 sum = 0.0;
+static void loop_oscilators(struct voice *v, f64 sum[],const struct configs *cfg, f64 dcblock){
+    for(i32 c = 0; c < cfg->channels; c++){
+        sum[c] = 0.0;
+    }
+
     for(u32 i = 0; i < v->l.oscilators; i++){
         struct envelope *env = &v->l.osc[i].env;
         struct oscilator *osc = &v->l.osc[i];
-        osc->generated = 0.0;
-        
+
         const bool first = v->active && env->state != ENVELOPE_OFF;
         const bool second = !v->active && env->state == ENVELOPE_RELEASE;
         const bool cond = first || second;
@@ -44,7 +47,18 @@ static f64 loop_oscilators(struct voice *v, const struct configs *cfg, f64 dcblo
             continue;
         }
 
-        f64 freq = v->l.base_freq * osc->spec.octave_increment * osc->spec.detune;
+        f64 freq = 0.0;
+        switch((u8)osc->spec.detuned){
+            default: break;
+            case 0: {
+                freq = v->l.base_freq * osc->spec.octave_increment;
+            }break;
+
+            case 1:{
+                freq = v->l.base_freq * osc->spec.octave_increment * osc->spec.detune;
+            }break;
+        }
+
         if(osc->time > cfg->vibrato_on){
             freq = vibrato(cfg->vibration_rate, cfg->vibration_depth, freq, cfg->samplerate);
         }
@@ -54,81 +68,104 @@ static f64 loop_oscilators(struct voice *v, const struct configs *cfg, f64 dcblo
         switch(osc->waveform_id){
             default: break;
             case SINE:{
-                osc->generated = sine(v->amplitude, osc->phase) * osc->spec.volume;
+                for(i32 c = 0; c < cfg->channels; c++){
+                    osc->generated[c] = sine(v->amplitude, osc->phase) * osc->spec.volume;
+                }
             }break;
             case PULSE_POLY:{
-                osc->generated = poly_square(
-                    v->amplitude, inc, osc->phase, osc->spec.coefficient
-                ) * osc->spec.volume;
+                for(i32 c = 0; c < cfg->channels; c++){
+                    osc->generated[c] = poly_square(v->amplitude, inc, osc->phase, osc->spec.coefficient) * osc->spec.volume;
+                }
             }break;
             case TRIANGLE_POLY:{
-                osc->generated = poly_triangle(
-                    v->amplitude, inc, osc->phase,&osc->integrator, &osc->dcx, 
-                    &osc->dcy, dcblock
-                ) * osc->spec.volume;
+                for(i32 c = 0; c < cfg->channels; c++){
+                    osc->generated[c] = poly_triangle(v->amplitude, inc, osc->phase,&osc->integrator, &osc->dcx, &osc->dcy, dcblock) * osc->spec.volume;
+                }
             }break;
             case SAW_POLY:{
-                osc->generated = poly_saw(
-                    v->amplitude, inc, osc->phase
-                ) * osc->spec.volume;
+                for(i32 c = 0; c < cfg->channels; c++){
+                    osc->generated[c] = poly_saw(v->amplitude, inc, osc->phase) * osc->spec.volume;
+                }
             }break;
             case SAW_RAW:{
-                osc->generated = sawtooth(
-                    v->amplitude, osc->phase
-                ) * osc->spec.volume;
+                for(i32 c = 0; c < cfg->channels; c++){
+                    osc->generated[c] = sawtooth(v->amplitude, osc->phase) * osc->spec.volume;
+                }
             }break;
             case TRIANGLE_RAW:{
-                osc->generated = triangle(
-                    v->amplitude, osc->phase
-                )* osc->spec.volume;
+                for(i32 c = 0; c < cfg->channels; c++){
+                    osc->generated[c] = triangle(v->amplitude, osc->phase)* osc->spec.volume;
+                }
             }break;
             case PULSE_RAW:{
-                osc->generated = square(
-                    v->amplitude, osc->phase, osc->spec.coefficient
-                ) * osc->spec.volume;
+                for(i32 c = 0; c < cfg->channels; c++){
+                    osc->generated[c] = square(v->amplitude, osc->phase, osc->spec.coefficient) * osc->spec.volume;
+                }
             }break;
         }
-
-        if(osc->generated == 0.0) {
-            continue;
-        }
-        adsr(env, cfg->samplerate);
-        osc->generated *= env->envelope;
-
         // inc (ie: phase increment in seconds) / (cutoff_in_seconds + inc)
-        const f64 alpha = (dt) / (CUTOFF_TO_SEC(HZ_TO_RAD(NYQUIST((f64)cfg->samplerate))) + dt);
+        const f64 alpha_high = (dt) / (CUTOFF_TO_SEC(HZ_TO_RAD(15000.0)) + dt);
+        const f64 alpha_low = (dt) / (CUTOFF_TO_SEC(HZ_TO_RAD(80.0)) + dt);
         // Basic interpolation using a cutoff alpha
-        osc->filtered += linear_interpolate(osc->generated, osc->filtered, alpha);
-
+        adsr(env, cfg->samplerate);
+        for(i32 c = 0; c < cfg->channels; c++){
+            //adsr and compress per osc
+            osc->generated[c] *= env->envelope;
+            osc->generated[c] = tanh(osc->generated[c] * (f64)cfg->osc_gain);
+            //filter
+            osc->filtered_high[c] += linear_interpolate(osc->generated[c], osc->filtered_high[c], alpha_high);
+            osc->filtered_low[c] += linear_interpolate(osc->generated[c], osc->filtered_low[c], alpha_low);
+            //mix and sum
+            osc->generated[c] = osc->filtered_high[c] - osc->filtered_low[c];
+            sum[c] += osc->generated[c] / v->l.oscilators;
+        }
+        //const f64 out = 0.7 * osc->filtered_low + 0.3 * osc->filtered_high;
         osc->phase += inc;
         if(osc->phase >= 1.0) {
             osc->phase -= 1.0;
         }
         osc->time += 1.0 / cfg->samplerate;
-        sum += osc->filtered / v->l.oscilators;
     }
-    return tanh(sum * (f64)cfg->sample_gain);
+    //compress sum
+    for(i32 c = 0; c < cfg->channels; c++){
+        sum[c] = tanh(sum[c] * (f64)cfg->sample_gain);
+    }
 }
 
-static f32 loop_voicings(struct voice_control *vc, f64 wave_samples[VOICE_MAX]){
-    f32 sample = 0.0;
-    for(u32 i = 0; i < VOICE_MAX; i++){
-        wave_samples[i] = 0.0;
-        wave_samples[i] = loop_oscilators(&vc->voices[i], &vc->cfg, vc->dcblock);
-        if(wave_samples[i] == 0.0){
-            continue;
-        }
-        sample += (f32)(wave_samples[i] / VOICE_MAX) * vc->cfg.volume;
+static void loop_voicings(struct voice_control *vc, f64 wave_samples[CHANNEL_MAX]){
+    for(i32 c = 0; c < CHANNEL_MAX; c++){
+        wave_samples[c] = 0.0;
     }
-    return sample;
+    for(u32 v = 0; v < VOICE_MAX; v++){
+        switch(vc->cfg.channels){
+            default: break;
+            case MONO:{
+                f64 sum[vc->cfg.channels];
+                loop_oscilators(&vc->voices[v], sum,&vc->cfg, vc->dcblock);
+                wave_samples[0] += (sum[0] / VOICE_MAX) * (f64)vc->cfg.volume;
+            }break;
+
+            case STEREO:{
+                f64 angle = (0.5 * (PI / 2.0));
+                f64 left = cos(angle);
+                f64 right = sin(angle);
+
+                f64 sum[vc->cfg.channels];
+                loop_oscilators(&vc->voices[v], sum,&vc->cfg, vc->dcblock);
+                wave_samples[0] += ((sum[0] * left) / VOICE_MAX) * (f64)vc->cfg.volume;
+                wave_samples[1] += ((sum[1] * right) / VOICE_MAX) * (f64)vc->cfg.volume;
+            }break;
+        }
+    }
 }
 
 static void loop_samples(size_t count, f32 *samplebuffer, struct voice_control *vc){
-    for(size_t n = 0; n < count; n++){
-        f64 wave_samples[VOICE_MAX];
-        samplebuffer[n] = loop_voicings(
-            vc, wave_samples
-        ) * vc->cfg.volume;
+    for(size_t n = 0; n < count / (size_t)vc->cfg.channels; n++){
+        f64 wave_samples[CHANNEL_MAX];
+        loop_voicings(vc, wave_samples);
+        for(i32 c = 0; c < vc->cfg.channels; c++){
+            samplebuffer[n * (size_t)vc->cfg.channels + (size_t)c] = (f32)wave_samples[c] * vc->cfg.volume;
+        }
     }
 }
 
@@ -232,6 +269,9 @@ SDL_AudioStream *audio_stream_create(const SDL_AudioSpec *internal, const SDL_Au
     if(!stream){
         printf("%s\n", SDL_GetError());
         return NULL;
+    }
+    if(internal){
+        printf("Created stream with internal spec: (%d %d %d)\n", internal->channels, internal->freq, internal->format);
     }
     return stream;
 }

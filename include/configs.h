@@ -9,6 +9,7 @@ struct configs {
     f32 volume;
     f32 sample_gain;
     f32 delay_gain;
+    f32 osc_gain;
     f32 delay_feedback;
 
     f64 vibration_rate;

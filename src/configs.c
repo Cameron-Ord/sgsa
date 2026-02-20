@@ -14,13 +14,14 @@
 //https://github-wiki-see.page/m/pret/pokeemerald/wiki/Implementing-ipatix%27s-High-Quality-Audio-Mixer
 
 const i32 DEFAULT_SAMPLERATE = 48000;
-const i32 DEFAULT_CHANNELS = 1;
+const i32 DEFAULT_CHANNELS = 2;
 const i32 DEFAULT_QUANTIZE_DEPTH = 8;
 
 const f32 DEFAULT_VOLUME = 1.0f;
 // Don't set gain too high unless you like feedback hell
-const f32 DEFAULT_SAMPLE_GAIN = 5.0f;
-const f32 DEFAULT_DELAY_GAIN = 0.75f;
+const f32 DEFAULT_VOICE_GAIN = 4.0f;
+const f32 DEFAULT_OSC_GAIN = 6.0f;
+const f32 DEFAULT_DELAY_GAIN = 1.0f;
 const f32 DEFAULT_DELAY_FEEDBACK = 0.5f;
 
 const f64 DEFAULT_VIBRATION_RATE = 3.0;
@@ -41,8 +42,9 @@ struct configs make_default_config(void){
         .samplerate = DEFAULT_SAMPLERATE,
         .channels = DEFAULT_CHANNELS,
         .volume = DEFAULT_VOLUME,
-        .sample_gain = DEFAULT_SAMPLE_GAIN,
+        .sample_gain = DEFAULT_OSC_GAIN,
         .delay_gain = DEFAULT_DELAY_GAIN,
+        .osc_gain = DEFAULT_OSC_GAIN,
         .delay_feedback = DEFAULT_DELAY_FEEDBACK,
         .vibration_rate = DEFAULT_VIBRATION_RATE,
         .vibration_depth = DEFAULT_VIBRATION_DEPTH,
