@@ -11,6 +11,7 @@ typedef uint64_t u64;
 typedef double f64;
 typedef float f32;
 typedef uint8_t u8;
+typedef int8_t i8;
 
 #define NULLCHAR '\0'
 

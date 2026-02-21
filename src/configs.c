@@ -4,13 +4,6 @@
 
 #include <stdio.h>
 
-//TODO: 
-// I want this thing to be versatile
-// So probably want to build some sort of UI with SDL
-// That will allow me to change things like the ADSR values in app
-// Or maybe even the samplerate, etc. So that every time I wanna hear 
-// how something might sound im not constantly changing the src and recompiling.
-
 //https://github-wiki-see.page/m/pret/pokeemerald/wiki/Implementing-ipatix%27s-High-Quality-Audio-Mixer
 
 const i32 DEFAULT_SAMPLERATE = 48000;
@@ -19,13 +12,13 @@ const i32 DEFAULT_QUANTIZE_DEPTH = 8;
 
 const f32 DEFAULT_VOLUME = 1.0f;
 // Don't set gain too high unless you like feedback hell
-const f32 DEFAULT_VOICE_GAIN = 4.0f;
-const f32 DEFAULT_OSC_GAIN = 6.0f;
-const f32 DEFAULT_DELAY_GAIN = 1.0f;
+const f32 DEFAULT_VOICE_GAIN = 16.0f;
+const f32 DEFAULT_OSC_GAIN = 8.0f;
+const f32 DEFAULT_DELAY_GAIN = 1.5f;
 const f32 DEFAULT_DELAY_FEEDBACK = 0.5f;
 
-const f64 DEFAULT_VIBRATION_RATE = 3.0;
-const f64 DEFAULT_VIBRATION_DEPTH = 2.0;
+const f64 DEFAULT_VIBRATION_RATE = 6.0;
+const f64 DEFAULT_VIBRATION_DEPTH = 5.0;
 const f64 DEFAULT_VIBRATO_ON = 0.18;
 
 
@@ -42,7 +35,7 @@ struct configs make_default_config(void){
         .samplerate = DEFAULT_SAMPLERATE,
         .channels = DEFAULT_CHANNELS,
         .volume = DEFAULT_VOLUME,
-        .sample_gain = DEFAULT_OSC_GAIN,
+        .sample_gain = DEFAULT_VOICE_GAIN,
         .delay_gain = DEFAULT_DELAY_GAIN,
         .osc_gain = DEFAULT_OSC_GAIN,
         .delay_feedback = DEFAULT_DELAY_FEEDBACK,

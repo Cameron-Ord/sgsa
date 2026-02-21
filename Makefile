@@ -9,6 +9,7 @@ SRCS += src/util.c
 SRCS += src/video.c
 SRCS += src/configs.c
 SRCS += src/oscilators.c
+SRCS += src/glyph.c
 
 CC = gcc
 LFLAGS = -lm -lSDL3 -lSDL3_ttf -lportmidi

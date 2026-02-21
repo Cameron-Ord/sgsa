@@ -9,6 +9,7 @@
 #include "../include/audio.h"
 #include "../include/effect.h"
 #include "../include/util.h"
+#include "../include/glyph.h"
 #include "../include/video.h"
 
 #include <assert.h>
@@ -20,6 +21,10 @@
 static bool initialize_sdl(void);
 static SDL_Renderer *create_renderer(SDL_Window *window);
 static SDL_Window *create_window(const char *title, i32 width, i32 height, u32 flags);
+
+static bool initialize_ttf(void){
+    return TTF_Init();
+}
 
 static bool initialize_sdl(void){
     return SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS);
@@ -74,6 +79,10 @@ int main(int argc, char **argv){
     if(!initialize_sdl()){
         return 1;
     }
+
+    if(!initialize_ttf()){
+        return 1;
+    }
     u64 init_start = SDL_GetTicks();
     printf("Init start timer: %zums\n", init_start);
 
@@ -110,6 +119,14 @@ int main(int argc, char **argv){
     set_audio_callback(pbdev.stream, &vc);
     audio_stream_bind(pbdev.stream, pbdev.id);
     resume_audio(pbdev.id);
+
+    struct font f = create_font("assets/font.ttf", 16);
+    if(!f.font){
+        return 1;
+    }
+
+    struct glyph glyphs[ASCII_SIZE];
+    create_glyph_textures(rc.renderer, f.font, glyphs);
 
     const u32 FPS = 60;
     const u32 FG = 1000 / FPS;

@@ -29,10 +29,11 @@ void *sgsa_malloc(size_t nmemb, size_t membsize){
     return ptr;
 }
 
-void sgsa_free(void *ptr){
-    if(!ptr) return;
+void* sgsa_free(void *ptr){
+    if(!ptr) return NULL;
     free(ptr);
     ptr = NULL;
+    return NULL;
 }
 
 f64 midi_to_base_freq(i32 n){

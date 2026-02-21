@@ -46,18 +46,7 @@ static void loop_oscilators(struct voice *v, f64 sum[],const struct configs *cfg
         if(!cond) {
             continue;
         }
-
-        f64 freq = 0.0;
-        switch((u8)osc->spec.detuned){
-            default: break;
-            case 0: {
-                freq = v->l.base_freq * osc->spec.octave_increment;
-            }break;
-
-            case 1:{
-                freq = v->l.base_freq * osc->spec.octave_increment * osc->spec.detune;
-            }break;
-        }
+        f64 freq = v->l.base_freq * osc->spec.octave_increment * osc->spec.detune;
 
         if(osc->time > cfg->vibrato_on){
             freq = vibrato(cfg->vibration_rate, cfg->vibration_depth, freq, cfg->samplerate);
@@ -104,19 +93,19 @@ static void loop_oscilators(struct voice *v, f64 sum[],const struct configs *cfg
             }break;
         }
         // inc (ie: phase increment in seconds) / (cutoff_in_seconds + inc)
-        const f64 alpha_high = (dt) / (CUTOFF_TO_SEC(HZ_TO_RAD(15000.0)) + dt);
-        const f64 alpha_low = (dt) / (CUTOFF_TO_SEC(HZ_TO_RAD(80.0)) + dt);
+        const f64 alpha_high = (dt) / (CUTOFF_IN_SEC(HZ_TO_RAD_PER_SEC(14000.0)) + dt);
+        const f64 alpha_low = (dt) / (CUTOFF_IN_SEC(HZ_TO_RAD_PER_SEC(80.0)) + dt);
         // Basic interpolation using a cutoff alpha
         adsr(env, cfg->samplerate);
         for(i32 c = 0; c < cfg->channels; c++){
             //adsr and compress per osc
             osc->generated[c] *= env->envelope;
-            osc->generated[c] = tanh(osc->generated[c] * (f64)cfg->osc_gain);
             //filter
             osc->filtered_high[c] += linear_interpolate(osc->generated[c], osc->filtered_high[c], alpha_high);
             osc->filtered_low[c] += linear_interpolate(osc->generated[c], osc->filtered_low[c], alpha_low);
             //mix and sum
             osc->generated[c] = osc->filtered_high[c] - osc->filtered_low[c];
+            osc->generated[c] = tanh(osc->generated[c] * (f64)cfg->osc_gain);
             sum[c] += osc->generated[c] / v->l.oscilators;
         }
         //const f64 out = 0.7 * osc->filtered_low + 0.3 * osc->filtered_high;

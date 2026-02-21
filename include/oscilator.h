@@ -8,7 +8,6 @@ struct wave_spec {
     f64 coefficient;
     f64 volume;
     f64 detune;
-    bool detuned;
 };
 
 struct envelope {
@@ -36,15 +35,15 @@ struct layer {
     struct oscilator osc[OSCILATOR_MAX];
 };
 
-struct wave_spec make_spec(f64 oct, f64 coeff, f64 vol, bool detuned);
+struct wave_spec make_spec(f64 oct, f64 coeff, f64 vol, f64 detune);
 struct layer make_layer(u32 count, ...);
 struct envelope make_env(f64 atk, f64 dec, f64 sus, f64 rel);
 
 struct oscilator make_default_oscilator(i32 wfid);
-struct oscilator make_custom_oscilator(i32 wfid, f64 atk, f64 dec, f64 sus, f64 rel, f64 octpos, f64 coeff, f64 vol, bool detuned);
+struct oscilator make_custom_oscilator(i32 wfid, f64 atk, f64 dec, f64 sus, f64 rel, f64 octpos, f64 coeff, f64 vol, f64 detune);
 
 void osc_change_id(struct oscilator *osc, i32 wfid);
-void osc_update_spec(struct oscilator *osc,  f64 oct, f64 coeff, f64 vol, bool detuned);
+void osc_update_spec(struct oscilator *osc,  f64 oct, f64 coeff, f64 vol, f64 detune);
 void osc_update_envelope(struct oscilator *osc, f64 atk, f64 dec, f64 sus, f64 rel);
 
 

@@ -23,8 +23,8 @@ void osc_change_id(struct oscilator *osc, i32 wfid){
     osc->waveform_id = wfid;
 }
 
-void osc_update_spec(struct oscilator *osc,  f64 oct, f64 coeff, f64 vol, bool detuned){
-    osc->spec = make_spec(oct, coeff, vol, detuned);
+void osc_update_spec(struct oscilator *osc,  f64 oct, f64 coeff, f64 vol, f64 detune){
+    osc->spec = make_spec(oct, coeff, vol, detune);
 }
 
 void osc_update_envelope(struct oscilator *osc, f64 atk, f64 dec, f64 sus, f64 rel){
@@ -42,7 +42,7 @@ struct envelope make_env(f64 atk, f64 dec, f64 sus, f64 rel){
     };
 }
 
-struct oscilator make_custom_oscilator(i32 wfid, f64 atk, f64 dec, f64 sus, f64 rel, f64 octpos, f64 coeff, f64 vol, bool detuned){
+struct oscilator make_custom_oscilator(i32 wfid, f64 atk, f64 dec, f64 sus, f64 rel, f64 octpos, f64 coeff, f64 vol, f64 detune){
     return (struct oscilator){ 
         .generated = { ZEROED, ZEROED },
         .filtered_high = { ZEROED, ZEROED },
@@ -53,7 +53,7 @@ struct oscilator make_custom_oscilator(i32 wfid, f64 atk, f64 dec, f64 sus, f64 
         .dcy = ZEROED, 
         .time = ZEROED, 
         .waveform_id = wfid, 
-        .spec = make_spec(octpos, coeff, vol, detuned),
+        .spec = make_spec(octpos, coeff, vol, detune),
         .env = make_env(atk, dec, sus, rel)
     };
 }
@@ -84,12 +84,12 @@ struct oscilator make_default_oscilator(i32 wfid){
     };
 }
 
-struct wave_spec make_spec(f64 oct, f64 coeff, f64 vol, bool detuned){
+struct wave_spec make_spec(f64 oct, f64 coeff, f64 vol, f64 detune){
     return (struct wave_spec) { 
         .octave_increment = oct, 
         .coefficient = coeff, 
         .volume = vol, 
-        .detune = detuned
+        .detune = detune
     };
 }
 
