@@ -36,7 +36,7 @@ f32 poly_triangle(f32 amp, f32 inc, f32 phase, f32* integrator, f32* x, f32* y, 
 }
 
 f32 poly_saw(f32 amp, f32 inc, f32 phase) {
-    f32 saw = sawtooth(1.0, phase);
+    f32 saw = sawtooth(1.0f, phase);
     saw -= polyblep(inc, phase);
     return amp * saw;
 }
@@ -167,7 +167,7 @@ void vc_initialize(struct voice_control* vc) {
     vc->render_buffer = NULL;
     vc->rbuflen = 0;
     vc->cfg = make_default_config();
-    vc->dl = create_delay_line(MS_BUFSIZE(vc->cfg.entries[SAMPLE_RATE].value, 1.5f));
+    vc->dl = create_delay_line(MS_BUFSIZE(vc->cfg.entries[SAMPLE_RATE].value, 0.5f));
     voices_initialize(vc->voices);
     vc->dcblock = expf(-1.0f / (0.0025f * vc->cfg.entries[SAMPLE_RATE].value));
 }
@@ -178,10 +178,10 @@ void voices_initialize(struct voice voices[VOICE_MAX]) {
         v->midi_key = -1;
         v->amplitude = 1.0f;
         v->active = false;
-        v->l = make_layer(4, make_custom_oscilator(SAW_POLY, 0.1f, 0.1f, 0.2f, 0.2f, 1.0f, 0.5f, 1.0f, 1.0f),
-                          make_custom_oscilator(SAW_POLY, 0.1f, 0.1f, 0.2f, 0.2f, 1.5f, 0.5f, 1.0f, 1.0f),
-                          make_custom_oscilator(SAW_POLY, 0.1f, 0.1f, 0.2f, 0.2f, 1.0f, 0.5f, 0.8f, 0.996f),
-                          make_custom_oscilator(SINE, 0.1f, 0.1f, 0.2f, 0.2f, 0.5f, 0.5f, 0.6f, 1.0f));
+        v->l = make_layer(4, make_custom_oscilator(SAW_POLY, 0.0f, 0.1f, 0.7f, 0.0, 1.0f, 0.5f, 1.0f, 1.0f),
+                          make_custom_oscilator(SAW_POLY, 0.0f, 0.1f, 0.7f, 0.0f, 1.0f, 0.5f, 0.8f, 1.004f),
+                          make_custom_oscilator(SAW_POLY, 0.0f, 0.1f, 0.7f, 0.0f, 1.0f, 0.5f, 0.8f, 0.996f),
+                          make_custom_oscilator(SINE, 0.0f, 0.1f, 0.7f, 0.0f, 1.0f, 0.5f, 0.4f, 1.0f));
     }
 }
 
@@ -211,7 +211,7 @@ void voice_set_iterate(struct voice voices[VOICE_MAX], f32 amp, i32 midi_key) {
                     v->l.osc[k].gen.filtered_high[c] = 0.0f;
                     v->l.osc[k].gen.filtered_low[c] = 0.0f;
                 }
-                v->l.osc[k].state.entries[PHASE] = rand_range_f32(0.0f, 0.75f);
+                v->l.osc[k].state.entries[PHASE] = rand_range_f32(0.0f, 0.5f);
                 v->l.osc[k].env.entries[STATE].value = (f32)ENVELOPE_ATTACK;
             }
             return;

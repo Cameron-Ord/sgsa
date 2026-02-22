@@ -11,6 +11,13 @@
 #include <assert.h>
 const size_t SAMPLE_PER_CALLBACK = 128;
 
+//make these variables at some point
+const f32 DELAY_MIX = 0.3f;
+const f32 SAMPLE_MIX = 0.7f;
+
+const f32 HIGH_MIX = 0.3f;
+const f32 LOW_MIX = 0.7f;
+
 static void render_push(f32* samples, size_t nsamples, f32* buffer, size_t buflen) {
     if (nsamples > 0 && samples) {
         memmove(buffer, buffer + nsamples, (buflen - nsamples) * sizeof(f32));
@@ -25,8 +32,8 @@ bool stream_feed(SDL_AudioStream* stream, const f32 samples[], i32 len) {
 static void loop_delay(size_t nsamples, f32* samples, struct voice_control* vc) {
     for (size_t i = 0; i < nsamples; i++) {
         const f32 delayed = delay_line_read(&vc->dl) * vc->cfg.entries[DELAY_FEEDBACK].value;
-        const f32 mixed = samples[i] + tanhf(0.5f * delayed * vc->cfg.entries[DELAY_GAIN].value);
-        samples[i] = mixed;
+        const f32 added = tanhf(samples[i] + delayed * vc->cfg.entries[DELAY_GAIN].value);
+        samples[i] = SAMPLE_MIX * samples[i] + DELAY_MIX * added;
         delay_line_write(samples[i], &vc->dl);
     }
 }
@@ -103,7 +110,7 @@ static void loop_oscilators(struct voice* v, f32 sum[], const struct configs* cf
             }
         } break;
         }
-        // inc (ie: phase increment in seconds) / (cutoff_in_seconds + inc)
+        // inc (ie: time interval per sample) / (cutoff_in_seconds + time interval)
         const f32 alpha_high = (dt) / (CUTOFF_IN_SEC(HZ_TO_RAD_PER_SEC(14000.0f)) + dt);
         const f32 alpha_low = (dt) / (CUTOFF_IN_SEC(HZ_TO_RAD_PER_SEC(80.0f)) + dt);
         // Basic interpolation using a cutoff alpha
@@ -123,7 +130,7 @@ static void loop_oscilators(struct voice* v, f32 sum[], const struct configs* cf
             osc->gen.filtered_high[c] += linear_interpolate(osc->gen.generated[c], osc->gen.filtered_high[c], alpha_high);
             osc->gen.filtered_low[c] += linear_interpolate(osc->gen.generated[c], osc->gen.filtered_low[c], alpha_low);
             // mix and sum
-            osc->gen.generated[c] = osc->gen.filtered_high[c] - osc->gen.filtered_low[c];
+            osc->gen.generated[c] = HIGH_MIX * osc->gen.filtered_high[c] + LOW_MIX * osc->gen.filtered_low[c];
             osc->gen.generated[c] = tanhf(osc->gen.generated[c] * (f32)cfg->entries[OSC_GAIN].value);
             sum[c] += osc->gen.generated[c] / (f32)v->l.oscilators;
         }

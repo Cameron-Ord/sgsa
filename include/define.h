@@ -2,8 +2,8 @@
 #define DEFINE_H
 
 #define PI 3.1415926535897932384626433832795f
-#define VOICE_MAX 12
-#define OSCILATOR_MAX 6
+#define VOICE_MAX 8
+#define OSCILATOR_MAX 4
 
 #define MONO 1
 #define STEREO 2
