@@ -1,7 +1,7 @@
 #ifndef OSCILATOR_H
 #define OSCILATOR_H
-#include "typedef.h"
 #include "../include/define.h"
+#include "typedef.h"
 
 enum env_locations {
     STATE,
@@ -31,7 +31,7 @@ enum state_locations {
 };
 
 struct osc_entry {
-    const char *name;
+    const char* name;
     size_t name_len;
     f32 value;
 };
@@ -74,11 +74,11 @@ struct layer make_layer(u32 count, ...);
 struct envelope make_env(f32 atk, f32 dec, f32 sus, f32 rel);
 
 struct oscilator make_default_oscilator(i32 wfid);
-struct oscilator make_custom_oscilator(i32 wfid, f32 atk, f32 dec, f32 sus, f32 rel, f32 octpos, f32 coeff, f32 vol, f32 detune);
+struct oscilator make_custom_oscilator(i32 wfid, f32 atk, f32 dec, f32 sus, f32 rel, f32 octpos, f32 coeff, f32 vol,
+                                       f32 detune);
 
-void osc_change_id(struct oscilator *osc, i32 wfid);
-void osc_update_spec(struct oscilator *osc,  f32 oct, f32 coeff, f32 vol, f32 detune);
-void osc_update_envelope(struct oscilator *osc, f32 atk, f32 dec, f32 sus, f32 rel);
-
+void osc_change_id(struct oscilator* osc, i32 wfid);
+void osc_update_spec(struct oscilator* osc, f32 oct, f32 coeff, f32 vol, f32 detune);
+void osc_update_envelope(struct oscilator* osc, f32 atk, f32 dec, f32 sus, f32 rel);
 
 #endif

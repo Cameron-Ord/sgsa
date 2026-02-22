@@ -17,7 +17,7 @@ enum config_locations {
 };
 
 struct config_entry {
-    const char *name;
+    const char* name;
     size_t name_len;
     f32 value;
 };
@@ -28,6 +28,5 @@ struct configs {
 
 void print_config(struct configs config);
 struct configs make_default_config(void);
-
 
 #endif

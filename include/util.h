@@ -9,7 +9,7 @@
 f32 rand_range_f32(f32 x, f32 y);
 f32 rand_f32(void);
 f32 linear_interpolate(f32 target, f32 current, f32 alpha);
-void* sgsa_free(void *mem);
+void* sgsa_free(void* mem);
 f32 midi_to_base_freq(i32 n);
-void *sgsa_malloc(size_t nmemb, size_t membsize);
+void* sgsa_malloc(size_t nmemb, size_t membsize);
 #endif
