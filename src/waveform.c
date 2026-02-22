@@ -183,8 +183,27 @@ void voices_initialize(struct voice voices[VOICE_MAX]){
         v->midi_key = -1;
         v->amplitude = 1.0f;
         v->active = false;
-        v->l = make_layer(1,
-            make_default_oscilator(SAW_POLY)
+        v->l = make_layer(4,
+            make_custom_oscilator(
+                SAW_POLY,
+                0.1f, 0.1f, 0.2f, 0.2f,
+                1.0f, 0.5f, 1.0f, 1.0f
+            ),
+            make_custom_oscilator(
+                SAW_POLY,
+                0.1f, 0.1f, 0.2f, 0.2f,
+                1.5f, 0.5f, 1.0f, 1.0f
+            ),
+            make_custom_oscilator(
+                SAW_POLY,
+                0.1f, 0.1f, 0.2f, 0.2f,
+                1.0f, 0.5f, 0.8f, 0.996f
+            ),
+            make_custom_oscilator(
+                SINE,
+                0.1f, 0.1f, 0.2f, 0.2f,
+                0.5f, 0.5f, 0.6f, 1.0f
+            )
         );
     }
 }

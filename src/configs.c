@@ -13,8 +13,8 @@ const f32 DEFAULT_CHANNELS = 2.0f;
 const f32 DEFAULT_VOLUME = 1.0f;
 // Don't set gain too high unless you like feedback hell
 const f32 DEFAULT_VOICE_GAIN = 2.0f;
-const f32 DEFAULT_OSC_GAIN = 2.0f;
-const f32 DEFAULT_DELAY_GAIN = 1.0f;
+const f32 DEFAULT_OSC_GAIN = 8.0f;
+const f32 DEFAULT_DELAY_GAIN = 1.5f;
 const f32 DEFAULT_DELAY_FEEDBACK = 0.5f;
 
 const f32 DEFAULT_VIBRATO_RATE = 6.0f;
