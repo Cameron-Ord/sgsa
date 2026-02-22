@@ -1,8 +1,12 @@
 
+#include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_video.h>
+#include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 #include "../include/audio.h"
 #include "../include/controller.h"
@@ -12,22 +16,19 @@
 #include "../include/video.h"
 #include "../include/waveform.h"
 
-#include <assert.h>
-#include <stdlib.h>
-#include <time.h>
-
-#include <SDL3/SDL.h>
-
 static bool initialize_sdl(void);
-static SDL_Renderer* create_renderer(SDL_Window* window);
-static SDL_Window* create_window(const char* title, i32 width, i32 height, u32 flags);
+static SDL_Renderer *create_renderer(SDL_Window *window);
+static SDL_Window *create_window(const char *title, i32 width, i32 height,
+                                 u32 flags);
 
 static bool initialize_ttf(void) { return TTF_Init(); }
 
-static bool initialize_sdl(void) { return SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS); }
+static bool initialize_sdl(void) {
+    return SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS);
+}
 
-static SDL_Renderer* create_renderer(SDL_Window* window) {
-    SDL_Renderer* r = SDL_CreateRenderer(window, NULL);
+static SDL_Renderer *create_renderer(SDL_Window *window) {
+    SDL_Renderer *r = SDL_CreateRenderer(window, NULL);
     if (!r) {
         printf("Failed to create renderer: %s\n", SDL_GetError());
         return NULL;
@@ -35,8 +36,9 @@ static SDL_Renderer* create_renderer(SDL_Window* window) {
     return r;
 }
 
-static SDL_Window* create_window(const char* title, i32 width, i32 height, u32 flags) {
-    SDL_Window* w = SDL_CreateWindow(title, width, height, flags);
+static SDL_Window *create_window(const char *title, i32 width, i32 height,
+                                 u32 flags) {
+    SDL_Window *w = SDL_CreateWindow(title, width, height, flags);
     if (!w) {
         printf("Failed to create window: %s\n", SDL_GetError());
         return NULL;
@@ -44,8 +46,8 @@ static SDL_Window* create_window(const char* title, i32 width, i32 height, u32 f
     return w;
 }
 
-int main(int argc, char** argv) {
-    const char* devname = NULL;
+int main(int argc, char **argv) {
+    const char *devname = NULL;
     if (argc > 1 && argc < 3) {
         devname = argv[1];
     } else {
@@ -82,24 +84,28 @@ int main(int argc, char** argv) {
     u64 init_start = SDL_GetTicks();
     printf("Init start timer: %zums\n", init_start);
 
-    SDL_Window* window = create_window("sgsa", WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_HIDDEN);
+    SDL_Window *window =
+        create_window("sgsa", WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_HIDDEN);
     if (!window) {
         return 1;
     }
 
-    SDL_Renderer* renderer = create_renderer(window);
+    SDL_Renderer *renderer = create_renderer(window);
     if (!renderer) {
         return 1;
     }
 
-    struct render_context rc = {.window = window,
-                                .renderer = renderer,
-                                .window_flags_at_creation = SDL_WINDOW_HIDDEN,
-                                .win_width = WINDOW_WIDTH,
-                                .win_height = WINDOW_HEIGHT,
-                                .waveform_viewport = make_rect(0, 0, WINDOW_WIDTH, (i32)(WINDOW_HEIGHT * 0.25f)),
-                                .opts_viewport =
-                                    make_rect(0, (i32)(WINDOW_HEIGHT * 0.25f), WINDOW_WIDTH, (i32)(WINDOW_HEIGHT * 0.75f))};
+    struct render_context rc = {
+        .window = window,
+        .renderer = renderer,
+        .window_flags_at_creation = SDL_WINDOW_HIDDEN,
+        .win_width = WINDOW_WIDTH,
+        .win_height = WINDOW_HEIGHT,
+        .waveform_viewport =
+            make_rect(0, 0, WINDOW_WIDTH, (i32)(WINDOW_HEIGHT * 0.25f)),
+        .opts_viewport = make_rect(0, (i32)(WINDOW_HEIGHT * 0.25f), WINDOW_WIDTH,
+                                   (i32)(WINDOW_HEIGHT * 0.75f))
+    };
 
     struct voice_control vc;
     vc_initialize(&vc);
@@ -107,7 +113,8 @@ int main(int argc, char** argv) {
     print_config(vc.cfg);
 
     SDL_AudioSpec internal_spec =
-        make_audio_spec((i32)vc.cfg.entries[CHANNELS].value, (i32)vc.cfg.entries[SAMPLE_RATE].value);
+        make_audio_spec((i32)vc.cfg.entries[CHANNELS_VAL].value,
+                        (i32)vc.cfg.entries[SAMPLE_RATE_VAL].value);
     struct playback_device pbdev = open_audio_device();
     pbdev.stream = audio_stream_create(&internal_spec, &pbdev.output_spec);
 
@@ -127,7 +134,8 @@ int main(int argc, char** argv) {
     const u32 FPS = 60;
     const u32 FG = 1000 / FPS;
     bool RUNNING = true;
-    printf("Init end timer: %zums : %zums\n", SDL_GetTicks(), SDL_GetTicks() - init_start);
+    printf("Init end timer: %zums : %zums\n", SDL_GetTicks(),
+           SDL_GetTicks() - init_start);
     SDL_ShowWindow(window);
     while (RUNNING) {
         const u64 START = SDL_GetTicks();

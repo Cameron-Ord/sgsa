@@ -3,21 +3,21 @@
 #include "typedef.h"
 
 enum config_locations {
-    SAMPLE_RATE,
-    CHANNELS,
-    MAIN_VOLUME,
-    SAMPLE_GAIN,
-    DELAY_GAIN,
-    OSC_GAIN,
-    DELAY_FEEDBACK,
-    VIBRATO_RATE,
-    VIBRATO_DEPTH,
-    VIBRATO_ONSET,
+    SAMPLE_RATE_VAL,
+    CHANNELS_VAL,
+    MAIN_VOLUME_VAL,
+    SAMPLE_GAIN_VAL,
+    DELAY_GAIN_VAL,
+    OSC_GAIN_VAL,
+    DELAY_FEEDBACK_VAL,
+    VIBRATO_RATE_VAL,
+    VIBRATO_DEPTH_VAL,
+    VIBRATO_ONSET_VAL,
     CONFIG_END
 };
 
 struct config_entry {
-    const char* name;
+    const char *name;
     size_t name_len;
     f32 value;
 };
