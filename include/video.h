@@ -20,6 +20,7 @@ struct render_context {
 
 struct glyph;
 
+SDL_Rect make_rect(i32 x, i32 y, i32 w, i32 h);
 void update_window_dims(struct render_context *rc);
 void clear(SDL_Renderer *rend);
 void set_colour(SDL_Renderer *rend, u8 r, u8 g, u8 b, u8 a);

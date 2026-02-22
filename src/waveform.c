@@ -7,96 +7,96 @@
 #include <stdarg.h>
 #include <stdio.h>
 //polybleppers
-f64 polyblep(f64 inc, f64 phase){
+f32 polyblep(f32 inc, f32 phase){
     if(phase < inc){
         phase /= inc;
-        return phase + phase - phase * phase - 1.0;
-    } else if (phase > 1.0 - inc){
-        phase = (phase - 1.0) / inc;
-        return phase * phase + phase + phase + 1.0;
+        return phase + phase - phase * phase - 1.0f;
+    } else if (phase > 1.0f - inc){
+        phase = (phase - 1.0f) / inc;
+        return phase * phase + phase + phase + 1.0f;
     }
     return 0.0;
 }
 
-f64 poly_square(f64 amp, f64 inc, f64 phase, f64 duty){
-    f64 sqr = square(1.0, phase, duty);
+f32 poly_square(f32 amp, f32 inc, f32 phase, f32 duty){
+    f32 sqr = square(1.0f, phase, duty);
     sqr += polyblep(inc, phase);
-    sqr -= polyblep(inc, fmod(phase + duty, 1.0));
+    sqr -= polyblep(inc, fmodf(phase + duty, 1.0f));
     return amp * sqr;
 } 
 // I am really starting to hate triangles
 // https://pbat.ch/sndkit/blep/
-f64 poly_triangle(f64 amp, f64 inc, f64 phase, f64 *integrator, f64 *x, f64 *y, f64 block){
-    f64 sqr = poly_square(1.0, inc, phase, 0.5);
+f32 poly_triangle(f32 amp, f32 inc, f32 phase, f32 *integrator, f32 *x, f32 *y, f32 block){
+    f32 sqr = poly_square(1.0f, inc, phase, 0.5f);
     sqr *= inc;
     *integrator += sqr;
-    *y = (*integrator * 4.0) - *x + block * *y;
-    *x = (*integrator * 4.0);
+    *y = (*integrator * 4.0f) - *x + block * *y;
+    *x = (*integrator * 4.0f);
     return *y * amp;
 }
 
-f64 poly_saw(f64 amp, f64 inc, f64 phase){
-    f64 saw = sawtooth(1.0, phase);
+f32 poly_saw(f32 amp, f32 inc, f32 phase){
+    f32 saw = sawtooth(1.0, phase);
     saw -= polyblep(inc, phase);
     return amp * saw;
 }
 
 // https://en.wikipedia.org/wiki/Sawtooth_wave
-f64 sawtooth(f64 amp, f64 phase){
-    return amp * (2.0 * phase - 1.0);
+f32 sawtooth(f32 amp, f32 phase){
+    return amp * (2.0f * phase - 1.0f);
 }
 
-f64 square(f64 amp, f64 phase, f64 duty){
-    return amp * ((phase < duty) ? 1.0 : -1.0);
+f32 square(f32 amp, f32 phase, f32 duty){
+    return amp * ((phase < duty) ? 1.0f : -1.0f);
 }
 
-f64 triangle(f64 amp, f64 phase){
-    return amp * (2.0 * fabs(2.0 * (phase - 0.5)) - 1.0);
+f32 triangle(f32 amp, f32 phase){
+    return amp * (2.0f * fabsf(2.0f * (phase - 0.5f)) - 1.0f);
 }
 
-f64 sine(f64 amp, f64 phase){
-    return amp * (1.0 * sin(2.0 * PI * phase));
+f32 sine(f32 amp, f32 phase){
+    return amp * (1.0f * sinf(2.0f * PI * phase));
 }
 
-f64 vibrato(f64 vrate, f64 depth, f64 freq, f64 samplerate){
-    static f64 phase;
+f32 vibrato(f32 vrate, f32 depth, f32 freq, f32 samplerate){
+    static f32 phase;
     phase += vrate / samplerate; 
-    if(phase >= 1.0) phase -= 1.0;
+    if(phase >= 1.0f) phase -= 1.0f;
 
-    const f64 mod = sin(2.0 * PI * phase);
+    const f32 mod = sinf(2.0f * PI * phase);
     return freq + mod * depth;
 }
 
-f64 tremolo(f64 trate, f64 depth, f64 phase){
-    return 1.0 + depth * sin(2.0 * PI * trate * phase);
+f32 tremolo(f32 trate, f32 depth, f32 phase){
+    return 1.0f + depth * sinf(2.0f * PI * trate * phase);
 }
 
-void adsr(struct envelope *env, i32 samplerate){
-    switch(env->state){
+void adsr(f32 *envelope, f32 *state, const f32 *attack, const f32 *decay, const f32 *sustain, const f32 *release, i32 samplerate){
+    switch((i32)*state){
         default:break;
         case ENVELOPE_ATTACK:{
-            env->envelope += ATTACK_INCREMENT(samplerate, env->attack);
-            if(env->envelope >= 1.0){
-                env->envelope = 1.0;
-                env->state = ENVELOPE_DECAY;
+            *envelope += ATTACK_INCREMENT((f32)samplerate, *attack);
+            if(*envelope >= 1.0f){
+                *envelope = 1.0f;
+                *state = ENVELOPE_DECAY;
             }
         }break;
     
         case ENVELOPE_SUSTAIN: break;
 
         case ENVELOPE_DECAY: {
-            env->envelope -= DECAY_INCREMENT(samplerate, env->decay, env->sustain);
-            if(env->envelope <= env->sustain){
-                env->envelope = env->sustain;
-                env->state = ENVELOPE_SUSTAIN;
+            *envelope -= DECAY_INCREMENT((f32)samplerate, *decay, *sustain);
+            if(*envelope <= *sustain){
+                *envelope = *sustain;
+                *state = ENVELOPE_SUSTAIN;
             }
         }break;
 
         case ENVELOPE_RELEASE:{
-            env->envelope -= RELEASE_INCREMENT(env->envelope, samplerate, env->release);
-            if(env->envelope <= 0.0){
-                env->envelope = 0.0;
-                env->state = ENVELOPE_OFF;
+            *envelope -= RELEASE_INCREMENT(*envelope, (f32)samplerate, *release);
+            if(*envelope <= 0.0f){
+                *envelope = 0.0f;
+                *state = ENVELOPE_OFF;
             }
         }break;
 
@@ -130,20 +130,6 @@ static char *wfid_to_str(i32 wfid){
     }
 }
 
-void print_layer(const char *msg, struct layer l){
-    printf("=======\n");
-    for(u32 i = 0; i < l.oscilators; i++){
-        struct wave_spec s = l.osc[i].spec;
-        printf("%s->%d: %s {OCTAVE: %.3f, COEFF: %.3f, VOLUME: %.3f DETUNE: %.3f}\n", 
-            msg,
-            i + 1, 
-            wfid_to_str(l.osc[i].waveform_id), 
-            s.octave_increment, s.coefficient, s.volume, s.detune
-        );
-    }
-    printf("=======\n");
-}
-
 u32 prev_layer(u32 current, u32 last){
     i32 scurrent = (i32)current;
     const i32 slast = (i32)last; 
@@ -162,21 +148,21 @@ u32 next_layer(u32 current, u32 last){
     return next;
 }
 
-f64 map_velocity(i32 second){
-    f64 base_amp = 1.0, low_scale = 0.0125, high_scale = 0.0225;
+f32 map_velocity(i32 second){
+    f32 base_amp = 1.0f, low_scale = 0.0125f, high_scale = 0.0225f;
     const i32 high_threshold = 75;
     const i32 low_threshold = 45;
     
     if(second > high_threshold){
-        base_amp += (second - high_threshold) * high_scale;
+        base_amp += (f32)(second - high_threshold) * high_scale;
     } else if (second < low_threshold){
-        base_amp -= (low_threshold - second) * low_scale;
+        base_amp -= (f32)(low_threshold - second) * low_scale;
     }
 
-    if(base_amp < 0.25){
-        base_amp = 0.125;
-    } else if (base_amp > 2.25){
-        base_amp = 2.25;
+    if(base_amp < 0.25f){
+        base_amp = 0.125f;
+    } else if (base_amp > 2.25f){
+        base_amp = 2.25f;
     }
 
     return base_amp;
@@ -186,41 +172,36 @@ void vc_initialize(struct voice_control *vc){
     vc->render_buffer = NULL;
     vc->rbuflen = 0;
     vc->cfg = make_default_config();
-    vc->dl = create_delay_line(MS_BUFSIZE(vc->cfg.samplerate, 0.5));
+    vc->dl = create_delay_line(MS_BUFSIZE(vc->cfg.entries[SAMPLE_RATE].value, 0.5f));
     voices_initialize(vc->voices);
-    vc->dcblock = exp(-1.0/(0.0025 * vc->cfg.samplerate));
+    vc->dcblock = expf(-1.0f/(0.0025f * vc->cfg.entries[SAMPLE_RATE].value));
 }
 
 void voices_initialize(struct voice voices[VOICE_MAX]){
     for(i32 i = 0; i < VOICE_MAX; i++){
         struct voice *v = &voices[i];
         v->midi_key = -1;
-        v->amplitude = 1.0;
+        v->amplitude = 1.0f;
         v->active = false;
-        v->l = make_layer(6,
-            make_custom_oscilator(SAW_POLY, 0.01, 0.2, 0.1, 0.05, 1.0, 0.0, 0.9, 1.0),
-            make_custom_oscilator(SAW_POLY, 0.01, 0.2, 0.1, 0.05, 1.0, 0.0, 0.75, 0.996),
-            make_custom_oscilator(SAW_POLY, 0.01, 0.2, 0.1, 0.05, 1.0, 0.0, 0.75, 1.004),
-            make_custom_oscilator(SAW_POLY, 0.01, 0.2, 0.1, 0.05, 1.0, 0.0, 0.75, 1.002),
-            make_custom_oscilator(SAW_POLY, 0.01, 0.2, 0.1, 0.05, 1.0, 0.0, 0.75, 0.998),
-            make_custom_oscilator(SINE, 0.1, 0.1, 0.2, 0.2, 1.0, 0.0, 0.6, 1.0)
+        v->l = make_layer(1,
+            make_default_oscilator(SAW_POLY)
         );
     }
 }
 
-void layers_set_adsr(struct voice voices[VOICE_MAX], f64 atk, f64 dec, f64 sus, f64 rel){
+void layers_set_adsr(struct voice voices[VOICE_MAX], f32 atk, f32 dec, f32 sus, f32 rel){
     for(i32 i = 0; i < VOICE_MAX; i++){
         struct voice *v = &voices[i];
         for(size_t k = 0; k < v->l.oscilators; k++){
-            v->l.osc[k].env.attack = atk;
-            v->l.osc[k].env.decay = dec;
-            v->l.osc[k].env.sustain = sus;
-            v->l.osc[k].env.release = rel;
+            v->l.osc[k].env.entries[ATTACK].value = atk;
+            v->l.osc[k].env.entries[DECAY].value = dec;
+            v->l.osc[k].env.entries[SUSTAIN].value = sus;
+            v->l.osc[k].env.entries[RELEASE].value = rel;
         }
     }
 }
 
-void voice_set_iterate(struct voice voices[VOICE_MAX], f64 amp, i32 midi_key){
+void voice_set_iterate(struct voice voices[VOICE_MAX], f32 amp, i32 midi_key){
     for(i32 i = 0; i < VOICE_MAX; i++){
         struct voice *v = &voices[i];
         if(!v->active){
@@ -230,12 +211,12 @@ void voice_set_iterate(struct voice voices[VOICE_MAX], f64 amp, i32 midi_key){
             v->l.base_freq = midi_to_base_freq(midi_key);
             for(size_t k = 0; k < v->l.oscilators; k++){
                 for(i32 c = 0; c < CHANNEL_MAX; c++){
-                    v->l.osc[k].generated[c] = 0.0;
-                    v->l.osc[k].filtered_high[c] = 0.0;
-                    v->l.osc[k].filtered_low[c] = 0.0;
+                    v->l.osc[k].gen.generated[c] = 0.0f;
+                    v->l.osc[k].gen.filtered_high[c] = 0.0f;
+                    v->l.osc[k].gen.filtered_low[c] = 0.0f;
                 }
-                v->l.osc[k].phase = rand_range_f64(0.0, 0.75);
-                v->l.osc[k].env.state = ENVELOPE_ATTACK;
+                v->l.osc[k].state.entries[PHASE] = rand_range_f32(0.0f, 0.75f);
+                v->l.osc[k].env.entries[STATE].value = (f32)ENVELOPE_ATTACK;
             }
             return;
         }
@@ -247,8 +228,9 @@ void voice_release_iterate(struct voice voices[VOICE_MAX], i32 midi_key){
         struct voice *v = &voices[i];
         if(v->active && v->midi_key == midi_key){
             for(size_t k = 0; k < v->l.oscilators; k++){
-                v->l.osc[k].env.state = ENVELOPE_RELEASE;
+                v->l.osc[k].env.entries[STATE].value = (f32)ENVELOPE_RELEASE;
             }
+
             v->active = false;
             return;
         }

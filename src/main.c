@@ -102,8 +102,8 @@ int main(int argc, char **argv){
         .window_flags_at_creation = SDL_WINDOW_HIDDEN,
         .win_width = WINDOW_WIDTH,
         .win_height = WINDOW_HEIGHT,
-        .waveform_viewport = {0},
-        .opts_viewport = {0}
+        .waveform_viewport = make_rect(0, 0,  WINDOW_WIDTH, (i32)(WINDOW_HEIGHT * 0.25f)),
+        .opts_viewport = make_rect(0, (i32)(WINDOW_HEIGHT * 0.25f), WINDOW_WIDTH, (i32)(WINDOW_HEIGHT * 0.75f))
     };
 
     struct voice_control vc;
@@ -111,7 +111,7 @@ int main(int argc, char **argv){
     vc_assign_render_buffer(&vc, rc.buffer, RENDER_RESOLUTION);
     print_config(vc.cfg);
 
-    SDL_AudioSpec internal_spec = make_audio_spec(vc.cfg.channels, vc.cfg.samplerate);
+    SDL_AudioSpec internal_spec = make_audio_spec((i32)vc.cfg.entries[CHANNELS].value, (i32)vc.cfg.entries[SAMPLE_RATE].value);
     struct playback_device pbdev = open_audio_device();
     pbdev.stream = audio_stream_create(&internal_spec, &pbdev.output_spec);
     

@@ -4,18 +4,18 @@
 #include <math.h>
 
 const i32 A4 = 69;
-const f64 A4f = 440.0;
-const f64 NOTES = 12.0;
+const f32 A4f = 440.0f;
+const f32 NOTES = 12.0f;
 
-f64 rand_f64(void){
-    return (f64)rand() / (f64)RAND_MAX;
+f32 rand_f32(void){
+    return (f32)rand() / (f32)RAND_MAX;
 }
 
-f64 rand_range_f64(f64 x, f64 y){
-    return x + (y - x) * rand_f64();
+f32 rand_range_f32(f32 x, f32 y){
+    return x + (y - x) * rand_f32();
 }
 
-f64 linear_interpolate(f64 target, f64 current, f64 alpha){
+f32 linear_interpolate(f32 target, f32 current, f32 alpha){
     return (target - current) * alpha;
 }
 
@@ -36,6 +36,6 @@ void* sgsa_free(void *ptr){
     return NULL;
 }
 
-f64 midi_to_base_freq(i32 n){
-    return A4f * pow(2.0, (n - A4) / NOTES);
+f32 midi_to_base_freq(i32 n){
+    return A4f * powf(2.0f, (f32)(n - A4) / NOTES);
 }

@@ -2,19 +2,22 @@
 #include "../include/util.h"
 #include <stdio.h>
 
+SDL_Rect make_rect(i32 x, i32 y, i32 w, i32 h){
+    return (SDL_Rect){ x, y, w, h };
+}
+
 void set_viewport(SDL_Renderer *rend, const SDL_Rect *viewport){
     SDL_SetRenderViewport(rend, viewport);
 }
 
 void draw_waveform(const struct render_context *rc){
-    SDL_Rect viewport = { 0, 0, rc->win_width, (i32)(rc->win_height * 0.25) };
-    set_viewport(rc->renderer, &viewport);
+    set_viewport(rc->renderer, &rc->waveform_viewport);
     const f32 cell_width = (f32)rc->win_width / RENDER_RESOLUTION;
 
     for(u32 i = 0; i < RENDER_RESOLUTION; i++){
         const f32 x = (f32)i * cell_width + cell_width / 2;
-        const f32 y = rc->buffer[i] * (f32)viewport.h;
-        SDL_FRect rect = { x, (f32)viewport.h / 2, cell_width, y};
+        const f32 y = rc->buffer[i] * (f32)rc->waveform_viewport.h;
+        SDL_FRect rect = { x, (f32)rc->waveform_viewport.h / 2, cell_width, y};
         fill_rect(rc->renderer, & rect);
     }
 }

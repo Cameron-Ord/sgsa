@@ -24,141 +24,170 @@ bool stream_feed(SDL_AudioStream *stream, const f32 samples[], i32 len){
 
 static void loop_delay(size_t nsamples, f32 *samples, struct voice_control *vc){
     for(size_t i = 0; i < nsamples; i++){
-        const f32 delayed = delay_line_read(&vc->dl) * vc->cfg.delay_feedback;
-        const f32 mixed = samples[i] + tanhf(0.5f * delayed * vc->cfg.delay_gain);
+        const f32 delayed = delay_line_read(&vc->dl) * vc->cfg.entries[DELAY_FEEDBACK].value;
+        const f32 mixed = samples[i] + tanhf(0.5f * delayed * vc->cfg.entries[DELAY_GAIN].value);
         samples[i] = mixed;
         delay_line_write(samples[i], &vc->dl);
     }
 }
 
-static void loop_oscilators(struct voice *v, f64 sum[],const struct configs *cfg, f64 dcblock){
-    for(i32 c = 0; c < cfg->channels; c++){
-        sum[c] = 0.0;
+static void loop_oscilators(struct voice *v, f32 sum[],const struct configs *cfg, f32 dcblock){
+    const i32 channels = (i32)cfg->entries[CHANNELS].value;
+    const i32 samplerate = (i32)cfg->entries[SAMPLE_RATE].value;
+    
+    for(i32 c = 0; c < channels; c++){
+        sum[c] = 0.0f;
     }
 
     for(u32 i = 0; i < v->l.oscilators; i++){
-        struct envelope *env = &v->l.osc[i].env;
         struct oscilator *osc = &v->l.osc[i];
+        
+        struct osc_entry *env = osc->env.entries;
+        struct osc_entry *spec = osc->spec.entries;
+        f32 *state = osc->state.entries;
 
-        const bool first = v->active && env->state != ENVELOPE_OFF;
-        const bool second = !v->active && env->state == ENVELOPE_RELEASE;
+        const bool first = v->active && env[STATE].value != (f32)ENVELOPE_OFF;
+        const bool second = !v->active && env[STATE].value == (f32)ENVELOPE_RELEASE;
         const bool cond = first || second;
         if(!cond) {
             continue;
         }
-        f64 freq = v->l.base_freq * osc->spec.octave_increment * osc->spec.detune;
+        f32 freq = v->l.base_freq * spec[OCTAVE].value * spec[DETUNE].value;
 
-        if(osc->time > cfg->vibrato_on){
-            freq = vibrato(cfg->vibration_rate, cfg->vibration_depth, freq, cfg->samplerate);
+        if(state[TIME] > cfg->entries[VIBRATO_ONSET].value){
+            freq = vibrato(
+                cfg->entries[VIBRATO_RATE].value, 
+                cfg->entries[VIBRATO_DEPTH].value, freq, 
+                cfg->entries[SAMPLE_RATE].value
+            );
         }
-        const f64 inc = freq / cfg->samplerate;
-        const f64 dt = 1.0 / cfg->samplerate;
+        const f32 inc = freq / cfg->entries[SAMPLE_RATE].value;
+        const f32 dt = 1.0f / cfg->entries[SAMPLE_RATE].value;
 
         switch(osc->waveform_id){
             default: break;
             case SINE:{
-                for(i32 c = 0; c < cfg->channels; c++){
-                    osc->generated[c] = sine(v->amplitude, osc->phase) * osc->spec.volume;
+                for(i32 c = 0; c < channels; c++){
+                    osc->gen.generated[c] = sine(
+                        v->amplitude, 
+                        state[PHASE]
+                    ) * spec[OSC_VOLUME].value;
                 }
             }break;
             case PULSE_POLY:{
-                for(i32 c = 0; c < cfg->channels; c++){
-                    osc->generated[c] = poly_square(v->amplitude, inc, osc->phase, osc->spec.coefficient) * osc->spec.volume;
+                for(i32 c = 0; c < channels; c++){
+                    osc->gen.generated[c] = poly_square(
+                        v->amplitude, 
+                        inc, 
+                        state[PHASE], 
+                        spec[COEFF].value
+                    ) * spec[OSC_VOLUME].value;
                 }
             }break;
             case TRIANGLE_POLY:{
-                for(i32 c = 0; c < cfg->channels; c++){
-                    osc->generated[c] = poly_triangle(v->amplitude, inc, osc->phase,&osc->integrator, &osc->dcx, &osc->dcy, dcblock) * osc->spec.volume;
+                for(i32 c = 0; c < channels; c++){
+                    osc->gen.generated[c] = poly_triangle(v->amplitude, inc, state[PHASE],&state[INTEGRATOR], &state[DC_X], &state[DC_Y], dcblock) * spec[OSC_VOLUME].value;
                 }
             }break;
             case SAW_POLY:{
-                for(i32 c = 0; c < cfg->channels; c++){
-                    osc->generated[c] = poly_saw(v->amplitude, inc, osc->phase) * osc->spec.volume;
+                for(i32 c = 0; c < channels; c++){
+                    osc->gen.generated[c] = poly_saw(v->amplitude, inc, state[PHASE]) * spec[OSC_VOLUME].value;
                 }
             }break;
             case SAW_RAW:{
-                for(i32 c = 0; c < cfg->channels; c++){
-                    osc->generated[c] = sawtooth(v->amplitude, osc->phase) * osc->spec.volume;
+                for(i32 c = 0; c < channels; c++){
+                    osc->gen.generated[c] = sawtooth(v->amplitude, state[PHASE]) * spec[OSC_VOLUME].value;
                 }
             }break;
             case TRIANGLE_RAW:{
-                for(i32 c = 0; c < cfg->channels; c++){
-                    osc->generated[c] = triangle(v->amplitude, osc->phase)* osc->spec.volume;
+                for(i32 c = 0; c < channels; c++){
+                    osc->gen.generated[c] = triangle(v->amplitude, state[PHASE])* spec[OSC_VOLUME].value;
                 }
             }break;
             case PULSE_RAW:{
-                for(i32 c = 0; c < cfg->channels; c++){
-                    osc->generated[c] = square(v->amplitude, osc->phase, osc->spec.coefficient) * osc->spec.volume;
+                for(i32 c = 0; c < channels; c++){
+                    osc->gen.generated[c] = square(v->amplitude, state[PHASE], spec[COEFF].value) * spec[OSC_VOLUME].value;
                 }
             }break;
         }
         // inc (ie: phase increment in seconds) / (cutoff_in_seconds + inc)
-        const f64 alpha_high = (dt) / (CUTOFF_IN_SEC(HZ_TO_RAD_PER_SEC(14000.0)) + dt);
-        const f64 alpha_low = (dt) / (CUTOFF_IN_SEC(HZ_TO_RAD_PER_SEC(80.0)) + dt);
+        const f32 alpha_high = (dt) / (CUTOFF_IN_SEC(HZ_TO_RAD_PER_SEC(14000.0f)) + dt);
+        const f32 alpha_low = (dt) / (CUTOFF_IN_SEC(HZ_TO_RAD_PER_SEC(80.0f)) + dt);
         // Basic interpolation using a cutoff alpha
-        adsr(env, cfg->samplerate);
-        for(i32 c = 0; c < cfg->channels; c++){
+        
+        f32 *envelope_state = &env[STATE].value;
+        f32 *envelope = &env[ENVELOPE].value;
+        const f32 *atk = &env[ATTACK].value;
+        const f32 *dec = &env[DECAY].value;
+        const f32 *sus = &env[SUSTAIN].value;
+        const f32 *rel = &env[RELEASE].value;
+
+        adsr(envelope, envelope_state, atk, dec, sus, rel, samplerate);
+        for(i32 c = 0; c < channels; c++){
             //adsr and compress per osc
-            osc->generated[c] *= env->envelope;
+            osc->gen.generated[c] *= *envelope;
             //filter
-            osc->filtered_high[c] += linear_interpolate(osc->generated[c], osc->filtered_high[c], alpha_high);
-            osc->filtered_low[c] += linear_interpolate(osc->generated[c], osc->filtered_low[c], alpha_low);
+            osc->gen.filtered_high[c] += linear_interpolate(osc->gen.generated[c], osc->gen.filtered_high[c], alpha_high);
+            osc->gen.filtered_low[c] += linear_interpolate(osc->gen.generated[c], osc->gen.filtered_low[c], alpha_low);
             //mix and sum
-            osc->generated[c] = osc->filtered_high[c] - osc->filtered_low[c];
-            osc->generated[c] = tanh(osc->generated[c] * (f64)cfg->osc_gain);
-            sum[c] += osc->generated[c] / v->l.oscilators;
+            osc->gen.generated[c] = osc->gen.filtered_high[c] - osc->gen.filtered_low[c];
+            osc->gen.generated[c] = tanhf(osc->gen.generated[c] * (f32)cfg->entries[OSC_GAIN].value);
+            sum[c] += osc->gen.generated[c] / (f32)v->l.oscilators;
         }
-        //const f64 out = 0.7 * osc->filtered_low + 0.3 * osc->filtered_high;
-        osc->phase += inc;
-        if(osc->phase >= 1.0) {
-            osc->phase -= 1.0;
+        //const f32 out = 0.7 * osc->filtered_low + 0.3 * osc->filtered_high;
+        state[PHASE] += inc;
+        if(state[PHASE] >= 1.0f) {
+            state[PHASE] -= 1.0f;
         }
-        osc->time += 1.0 / cfg->samplerate;
+        state[TIME] += 1.0f / (f32)samplerate;
     }
     //compress sum
-    for(i32 c = 0; c < cfg->channels; c++){
-        sum[c] = tanh(sum[c] * (f64)cfg->sample_gain);
+    for(i32 c = 0; c < channels; c++){
+        sum[c] = tanhf(sum[c] * (f32)cfg->entries[SAMPLE_GAIN].value);
     }
 }
 
-static void loop_voicings(struct voice_control *vc, f64 wave_samples[CHANNEL_MAX]){
+static void loop_voicings(struct voice_control *vc, f32 wave_samples[CHANNEL_MAX]){
     for(i32 c = 0; c < CHANNEL_MAX; c++){
         wave_samples[c] = 0.0;
     }
+    const i32 channels = (i32)vc->cfg.entries[CHANNELS].value;
     for(u32 v = 0; v < VOICE_MAX; v++){
-        switch(vc->cfg.channels){
+        switch(channels){
             default: break;
             case MONO:{
-                f64 sum[vc->cfg.channels];
+                f32 sum[channels];
                 loop_oscilators(&vc->voices[v], sum,&vc->cfg, vc->dcblock);
-                wave_samples[0] += (sum[0] / VOICE_MAX) * (f64)vc->cfg.volume;
+                wave_samples[0] += (sum[0] / VOICE_MAX);
             }break;
 
             case STEREO:{
-                f64 angle = (0.5 * (PI / 2.0));
-                f64 left = cos(angle);
-                f64 right = sin(angle);
+                f32 angle = (0.5f * (PI / 2.0f));
+                f32 left = cosf(angle);
+                f32 right = sinf(angle);
 
-                f64 sum[vc->cfg.channels];
+                f32 sum[channels];
                 loop_oscilators(&vc->voices[v], sum,&vc->cfg, vc->dcblock);
-                wave_samples[0] += ((sum[0] * left) / VOICE_MAX) * (f64)vc->cfg.volume;
-                wave_samples[1] += ((sum[1] * right) / VOICE_MAX) * (f64)vc->cfg.volume;
+                wave_samples[0] += ((sum[0] * left) / VOICE_MAX);
+                wave_samples[1] += ((sum[1] * right) / VOICE_MAX);
             }break;
         }
     }
 }
 
 static void loop_samples(size_t count, f32 *samplebuffer, struct voice_control *vc){
-    for(size_t n = 0; n < count / (size_t)vc->cfg.channels; n++){
-        f64 wave_samples[CHANNEL_MAX];
+    const size_t channels = (size_t)vc->cfg.entries[CHANNELS].value;
+    for(size_t n = 0; n < count / channels; n++){
+        f32 wave_samples[CHANNEL_MAX];
         loop_voicings(vc, wave_samples);
-        for(i32 c = 0; c < vc->cfg.channels; c++){
-            samplebuffer[n * (size_t)vc->cfg.channels + (size_t)c] = (f32)wave_samples[c] * vc->cfg.volume;
+        for(size_t c = 0; c < channels; c++){
+            samplebuffer[n * channels + c] = wave_samples[c] * vc->cfg.entries[MAIN_VOLUME].value;
         }
     }
 }
 
 void stream_callback(void *data, SDL_AudioStream *stream, i32 add, i32 total){
+    (void)total;
     struct voice_control *vc = (struct voice_control *)data;
     if(!vc) { return; }
 

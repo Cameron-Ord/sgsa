@@ -22,7 +22,7 @@ void print_delay_line(struct delay_line dl){
         }
     }
 }
-
+ 
 struct delay_line increment_delay_line(size_t read_inc, size_t write_inc, struct delay_line dl){
     const size_t next_read = (dl.read + read_inc) %  dl.end;
     const size_t next_write = (dl.write + write_inc) % dl.end;
