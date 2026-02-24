@@ -37,10 +37,10 @@ enum ENVELOPE_STATES {
 };
 
 // (VALUE - VALUE) / SAMPLES
-#define ATTACK_INCREMENT(samplerate, ATK) (1.0f - 0.0f) / (ATK * (samplerate))
+#define ATTACK_INCREMENT(samplerate, ATK) (1.0f - 0.0f) / ((ATK) * (samplerate))
 #define DECAY_INCREMENT(samplerate, DEC, SUS)                                  \
-  (1.0f - SUS) / (DEC * (samplerate))
+  (1.0f - (SUS)) / ((DEC) * (samplerate))
 #define RELEASE_INCREMENT(envelope, samplerate, REL)                           \
-  (envelope) / (REL * (samplerate))
+  (envelope) / ((REL) * (samplerate))
 
 #endif

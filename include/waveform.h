@@ -52,7 +52,7 @@ struct osc_config {
   struct osc_entry_f32 env[ENV_END];
 };
 
-struct osc_state zeroed_osc_state(void);
+struct osc_state zeroed_osc_state(i32 preset_state, f32 preset_phase);
 struct osc_config default_osc_config(i32 wfid);
 
 struct voice {

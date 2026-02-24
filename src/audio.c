@@ -18,16 +18,6 @@ const f32 SAMPLE_MIX = 0.7f;
 const f32 HIGH_MIX = 0.3f;
 const f32 LOW_MIX = 0.7f;
 
-static i32 get_active_voice_count(const struct layer *l) {
-  i32 count = 0;
-  for (i32 i = 0; i < VOICE_MAX; i++) {
-    if (l->voices[i].active) {
-      count++;
-    }
-  }
-  return count;
-}
-
 static void render_push(f32 *samples, size_t nsamples, f32 *buffer,
                         size_t buflen) {
   if (nsamples > 0 && samples) {
@@ -53,8 +43,8 @@ static void loop_delay(size_t nsamples, f32 *samples, const struct configs *cfg,
 }
 
 static bool oscilator_state_on(const bool *active, const i32 *envelope_state) {
-  const bool first = *active && *envelope_state != ENVELOPE_OFF;
-  const bool second = *active && *envelope_state == ENVELOPE_RELEASE;
+  const bool first = *active && (*envelope_state != ENVELOPE_OFF || *envelope_state != ENVELOPE_RELEASE);
+  const bool second = !*active && *envelope_state == ENVELOPE_RELEASE;
   return first || second;
 }
 
@@ -185,8 +175,6 @@ static void loop_voicings(struct layer *l, f32 wave_samples[CHANNEL_MAX]) {
     wave_samples[c] = 0.0;
   }
   const i32 channels = l->pb_cfg.ivals[CHANNELS_VAL].value;
-  const i32 count = get_active_voice_count(l);
-  if (count > 0) {
     for (u32 v = 0; v < VOICE_MAX; v++) {
       switch (channels) {
       default:
@@ -211,13 +199,12 @@ static void loop_voicings(struct layer *l, f32 wave_samples[CHANNEL_MAX]) {
       } break;
       }
     }
-  }
-  if (count > 0) {
     for (i32 c = 0; c < CHANNEL_MAX; c++) {
-      wave_samples[c] =
-       tanhf(wave_samples[c] * l->pb_cfg.fvals[SAMPLE_GAIN_VAL].value);
+      if(wave_samples[c] > 0.0f){
+        wave_samples[c] =
+        tanhf(wave_samples[c] * l->pb_cfg.fvals[SAMPLE_GAIN_VAL].value);
+      }
     }
-  }
 }
 
 static void loop_samples(size_t count, f32 *samplebuffer, struct layer *l) {
