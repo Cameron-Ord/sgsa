@@ -68,6 +68,7 @@ struct device_data get_input_controller(const char *name) {
       return make_device_data(i, info->name, info->interf, info->input);
     }
   }
+  printf("Failed to find given input device: %s\n", name);
   return make_device_data(-1, NULL, NULL, 0);
 }
 

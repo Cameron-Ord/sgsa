@@ -1,10 +1,9 @@
-8-Voice Polyphonic Synth
-A 8-voice polyphonic synthesizer using PortMidi for MIDI input and SDL3 for audio output.
+A polyphonic synthesizer using PortMidi for MIDI input and SDL3 for audio output.
 
-> This project is not complete and is still in progress. It is not really at a stage that I want it to be yet.
+> This project is not complete and is still in progress. It is not really at a stage that I want it to be yet. alot of the code is basically still experimental
 
 ## Features
-- 8 simultaneous voices – full polyphony for complex chords and melodies.
+- Simultaneous voices – full polyphony for complex chords and melodies.
 - Oscilator layering.
 - MIDI controller – play live with any MIDI keyboard.
 - Cross-platform – built on SDL3 and PortMidi for broad compatibility.
