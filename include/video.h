@@ -8,16 +8,17 @@
 #define WINDOW_HEIGHT 768
 #define WINDOW_WIDTH  1024
 // Too lazy to make these variables atm
-#define WAVEFORM_RECT_HEIGHT_MOD 0.10f
-#define OPT_RECT_HEIGHT_MOD      0.90f
-#define OPT_RECT_WIDTH_MOD       0.50f
-#define DIM_MOD(wh, mod)         (i32)((f32)(wh) * (mod))
 
 enum video_data_indexes {
   WAVEFORM_VIEWPORT_VAL = 0,
   ENV_OPTS_VIEWPORT_VAL = 1,
   SPEC_OPTS_VIEWPORT_VAL = 2,
   VIDEO_RECTS_END = 3,
+
+  DMOD_HEIGHT_VAL = 0,
+  DMOD_WIDTH_VAL = 1,
+  DMOD_WF_HEIGHT_VAL = 2,
+  DMOD_END = 3,
 
   WIN_WIDTH_VAL = 0,
   WIN_HEIGHT_VAL = 1,
@@ -29,6 +30,7 @@ struct render_context {
   SDL_Renderer *renderer;
   u32 window_flags_at_creation;
 
+  f32 float_meta_data[DMOD_END];
   i32 integer_meta_data[VIDEO_INTEGERS_END];
   SDL_Rect rect_meta_data[VIDEO_RECTS_END];
 };
@@ -36,10 +38,11 @@ struct render_context {
 struct glyph;
 struct oscilator;
 
-SDL_Rect make_waveform_view(i32 ww, i32 wh, i32 x, i32 y);
-SDL_Rect make_opt_view(i32 ww, i32 wh, i32 x, i32 y);
+struct render_context make_render_context(u32 wflags, SDL_Window *w, SDL_Renderer *r, i32 ww, i32 wh);
+i32 apply_modifer(i32 val, f32 mod);
 SDL_Rect make_rect(i32 x, i32 y, i32 w, i32 h);
 
+void draw_cfgs(struct render_context *rc, struct glyph *glyphs, i32 lskip, struct osc_config *cfgs);
 void update_window_dims(struct render_context *rc);
 void clear(SDL_Renderer *rend);
 void set_colour(SDL_Renderer *rend, u8 r, u8 g, u8 b, u8 a);

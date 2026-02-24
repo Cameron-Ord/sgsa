@@ -95,23 +95,8 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  struct render_context rc = {
-    .window = window,
-    .renderer = renderer,
-    .window_flags_at_creation = SDL_WINDOW_HIDDEN,
-    .integer_meta_data = { [WIN_WIDTH_VAL] = WINDOW_WIDTH,
-                           [WIN_HEIGHT_VAL] = WINDOW_HEIGHT },
-    .rect_meta_data = { [WAVEFORM_VIEWPORT_VAL] =
-                         make_waveform_view(WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0),
-                        [ENV_OPTS_VIEWPORT_VAL] = make_opt_view(
-                         WINDOW_WIDTH, WINDOW_HEIGHT, 0,
-                         DIM_MOD(WINDOW_HEIGHT, WAVEFORM_RECT_HEIGHT_MOD)),
-                        [SPEC_OPTS_VIEWPORT_VAL] = make_opt_view(
-                         WINDOW_WIDTH, WINDOW_HEIGHT,
-                         DIM_MOD(WINDOW_WIDTH, OPT_RECT_WIDTH_MOD),
-                         DIM_MOD(WINDOW_HEIGHT, WAVEFORM_RECT_HEIGHT_MOD)) }
-  };
-
+  struct render_context rc = make_render_context(
+   SDL_WINDOW_HIDDEN, window, renderer, WINDOW_WIDTH, WINDOW_HEIGHT);
   struct layer l = make_layer(1, true, 0.5f, make_default_config());
 
   SDL_AudioSpec internal_spec = make_audio_spec(
@@ -169,6 +154,7 @@ int main(int argc, char **argv) {
 
     set_colour(rc.renderer, 80, 250, 123, 255);
     draw_waveform(&rc, l.layer_window);
+    draw_cfgs(&rc, glyphs, f.line_skip, &l.osc_cfg);
     present(rc.renderer);
     const u64 FT = SDL_GetTicks() - START;
     if (FT < FG) {

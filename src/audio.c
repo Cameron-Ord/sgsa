@@ -18,7 +18,8 @@ const f32 SAMPLE_MIX = 0.7f;
 const f32 HIGH_MIX = 0.3f;
 const f32 LOW_MIX = 0.7f;
 
-static f32 set_vibrato(f32 mod_phase, const f32 *state, const struct configs *cfg);
+static f32 set_vibrato(f32 mod_phase, const f32 *state,
+                       const struct configs *cfg);
 static bool oscilator_state_on(const bool *active, const i32 *envelope_state);
 static void render_push(f32 *samples, size_t nsamples, f32 *buffer,
                         size_t buflen);
@@ -75,7 +76,8 @@ static bool oscilator_state_on(const bool *active, const i32 *envelope_state) {
   return first || second;
 }
 
-static f32 set_vibrato(f32 mod_phase, const f32 *state, const struct configs *cfg) {
+static f32 set_vibrato(f32 mod_phase, const f32 *state,
+                       const struct configs *cfg) {
   if (state[TIME_VAL] > cfg->fvals[VIBRATO_ONSET_VAL].value) {
     const f32 depth = cfg->fvals[VIBRATO_DEPTH_VAL].value;
     return vibrato(depth, mod_phase);
@@ -83,16 +85,19 @@ static f32 set_vibrato(f32 mod_phase, const f32 *state, const struct configs *cf
   return 0.0f;
 }
 
-static f32 generate(f32 ampl, i32 waveform_id, f32 *state, const struct configs *cfg,
-                    const struct osc_entry_f32 *spec, f32 inc, f32 dc_blocker) {
+static f32 generate(f32 ampl, i32 waveform_id, f32 *state,
+                    const struct configs *cfg, const struct osc_entry_f32 *spec,
+                    f32 inc, f32 dc_blocker) {
 
   const f32 phase = state[PHASE_VAL];
   const f32 mod_phase = state[MOD_PHASE_VAL];
   const f32 vib = set_vibrato(mod_phase, state, cfg);
-  
+
   f32 total = phase + vib;
-  if(total >= 1.0f) total -= 1.0f;
-  if(total < 0.0f) total += 1.0f;
+  if (total >= 1.0f)
+    total -= 1.0f;
+  if (total < 0.0f)
+    total += 1.0f;
 
   const f32 vol = spec[OSC_VOLUME_VAL].value;
   const f32 coeff = spec[COEFF_VAL].value;
@@ -153,9 +158,10 @@ static void loop_oscilators(struct voice *v, f32 sum[],
     const i32 sample_rate = cfg->ivals[SAMPLE_RATE_VAL].value;
     const f32 ampl = v->amplitude;
     const f32 freq = base_freq * octave_inc * detune;
-    
+
     const f32 phase_inc = freq / (f32)sample_rate;
-    const f32 mod_phase_inc = cfg->fvals[VIBRATO_RATE_VAL].value / (f32)sample_rate;
+    const f32 mod_phase_inc =
+     cfg->fvals[VIBRATO_RATE_VAL].value / (f32)sample_rate;
     const f32 dt = 1.0f / (f32)sample_rate;
 
     state->oscilator_states[PHASE_VAL] += phase_inc;
@@ -171,8 +177,8 @@ static void loop_oscilators(struct voice *v, f32 sum[],
     const i32 waveform_id = osc_cfg->waveform_id;
     for (i32 c = 0; c < channels; c++) {
       state->gen[GEN_ARRAY_RAW][c] =
-       generate(ampl, waveform_id, state->oscilator_states, cfg, osc_cfg->spec, phase_inc,
-                dc_blocker);
+       generate(ampl, waveform_id, state->oscilator_states, cfg, osc_cfg->spec,
+                phase_inc, dc_blocker);
     }
     // inc (ie: time interval per sample) /
     // (cutoff_in_seconds + time interval)

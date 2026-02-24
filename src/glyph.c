@@ -90,12 +90,8 @@ void create_glyph_textures(SDL_Renderer *rend, TTF_Font *font,
   }
 }
 
-void draw_ascii_string(SDL_Renderer *rend, const SDL_Rect *viewport,
-                       const char *string, size_t len, struct glyph *glyphs,
-                       f32 x, const f32 y) {
-  if (viewport) {
-    set_viewport(rend, viewport);
-  }
+void draw_ascii_string(SDL_Renderer *rend, const char *string, size_t len,
+                       struct glyph *glyphs, f32 x, const f32 y) {
   for (size_t i = 0; i < len; i++) {
     struct glyph *g = get_glyph_at(glyphs, (u8)string[i]);
     if (g) {

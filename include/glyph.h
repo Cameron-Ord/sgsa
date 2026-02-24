@@ -26,7 +26,7 @@ struct font create_font(const char *fontpath, f32 size);
 void create_glyph_textures(SDL_Renderer *rend, TTF_Font *font,
                            struct glyph glyphs[]);
 struct glyph *get_glyph_at(struct glyph glyphs[], u8 code);
-void draw_ascii_string(SDL_Renderer *rend, const SDL_Rect *viewport,
+void draw_ascii_string(SDL_Renderer *rend, 
                        const char *string, size_t len, struct glyph *glyphs,
                        f32 x, f32 y);
 #endif

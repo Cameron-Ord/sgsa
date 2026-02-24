@@ -39,6 +39,8 @@ struct osc_entry_f32 {
   const char *name;
   size_t name_len;
   f32 value;
+  f32 min_val;
+  f32 max_val;
 };
 
 struct osc_state {

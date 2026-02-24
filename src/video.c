@@ -4,13 +4,74 @@
 #include "../include/waveform.h"
 #include <stdio.h>
 
-SDL_Rect make_waveform_view(i32 ww, i32 wh, i32 x, i32 y) {
-  return make_rect(x, y, ww, DIM_MOD(wh, WAVEFORM_RECT_HEIGHT_MOD));
+void draw_cfgs(struct render_context *rc, struct glyph *glyphs, i32 lskip,
+               struct osc_config *cfgs) {
+  SDL_Rect *vp = &rc->rect_meta_data[ENV_OPTS_VIEWPORT_VAL];
+  set_viewport(rc->renderer, vp);
+  const f32 slider_width = 24.0f, slider_height = 16.0f;
+  const f32 padding = 4.0f, x = padding;
+  f32 y = padding;
+  for (i32 i = 0; i < ENV_END; i++) {
+    struct osc_entry_f32 *ent = &cfgs->env[i];
+    draw_ascii_string(rc->renderer, ent->name, ent->name_len, glyphs, x, y);
+    y = y + (f32)lskip + padding;
+
+    
+    const f32 slider_x = ((ent->value / ent->max_val) - (ent->min_val / 2.0f)) * (f32)vp->w;
+    SDL_FRect slider = { x + slider_x, y, slider_width, slider_height };
+    fill_rect(rc->renderer, &slider);
+    y = y + slider_height + padding;
+  }
+  vp = &rc->rect_meta_data[SPEC_OPTS_VIEWPORT_VAL];
+  set_viewport(rc->renderer, vp);
+  y = 0.0f;
+  for (i32 i = 0; i < SPEC_END; i++) {
+    struct osc_entry_f32 *ent = &cfgs->spec[i];
+    draw_ascii_string(rc->renderer, ent->name, ent->name_len, glyphs, x, y);
+    y = y + (f32)lskip + padding;
+
+    const f32 slider_x = ((ent->value / ent->max_val) - (ent->min_val / 2.0f)) * (f32)vp->w;
+    SDL_FRect slider = { x + slider_x, y, slider_width, slider_height };
+    fill_rect(rc->renderer, &slider);
+    y = y + slider_height + padding;
+  }
 }
 
-SDL_Rect make_opt_view(i32 ww, i32 wh, i32 x, i32 y) {
-  return make_rect(x, y, DIM_MOD(ww, OPT_RECT_WIDTH_MOD),
-                   DIM_MOD(wh, OPT_RECT_HEIGHT_MOD));
+i32 apply_modifier(i32 val, f32 mod) { return (i32)((f32)val * mod); }
+
+struct render_context make_render_context(u32 wflags, SDL_Window *w,
+                                          SDL_Renderer *r, i32 ww, i32 wh) {
+  const f32 OPT_HEIGHT_MOD = 0.50f;
+  const f32 OPT_WIDTH_MOD = 0.5f;
+  const f32 WAVEFORM_HEIGHT_MOD = 1.0f - OPT_HEIGHT_MOD;
+
+  struct render_context rc = {
+    .window = w,
+    .renderer = r,
+    .window_flags_at_creation = wflags,
+    .float_meta_data = { [DMOD_HEIGHT_VAL] = OPT_HEIGHT_MOD,
+                         [DMOD_WIDTH_VAL] = OPT_WIDTH_MOD,
+                         [DMOD_WF_HEIGHT_VAL] = WAVEFORM_HEIGHT_MOD },
+    .integer_meta_data = { [WIN_WIDTH_VAL] = ww, [WIN_HEIGHT_VAL] = wh },
+    .rect_meta_data = { [WAVEFORM_VIEWPORT_VAL] = { 0, 0, 0, 0 },
+                        [ENV_OPTS_VIEWPORT_VAL] = { 0, 0, 0, 0 },
+                        [SPEC_OPTS_VIEWPORT_VAL] = { 0, 0, 0, 0 } }
+  };
+
+  SDL_Rect waveform =
+   make_rect(0, 0, ww, apply_modifier(wh, WAVEFORM_HEIGHT_MOD));
+  SDL_Rect spec = make_rect(0, apply_modifier(wh, WAVEFORM_HEIGHT_MOD),
+                            apply_modifier(ww, OPT_WIDTH_MOD),
+                            apply_modifier(wh, OPT_HEIGHT_MOD));
+  SDL_Rect env = make_rect(
+   apply_modifier(ww, OPT_WIDTH_MOD), apply_modifier(wh, WAVEFORM_HEIGHT_MOD),
+   apply_modifier(ww, OPT_WIDTH_MOD), apply_modifier(wh, OPT_HEIGHT_MOD));
+
+  rc.rect_meta_data[WAVEFORM_VIEWPORT_VAL] = waveform;
+  rc.rect_meta_data[SPEC_OPTS_VIEWPORT_VAL] = spec;
+  rc.rect_meta_data[ENV_OPTS_VIEWPORT_VAL] = env;
+
+  return rc;
 }
 
 SDL_Rect make_rect(i32 x, i32 y, i32 w, i32 h) {
