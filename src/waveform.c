@@ -151,7 +151,8 @@ void voice_set_iterate(struct layer *l, f32 amp, i32 midi_key) {
           l->voices[i].osc[k].gen[GEN_ARRAY_HIGH][c] = 0.0f;
           l->voices[i].osc[k].gen[GEN_ARRAY_LOW][c] = 0.0f;
         }
-        l->voices[i].osc[k] = zeroed_osc_state(ENVELOPE_ATTACK, rand_range_f32(0.0f, 0.5f));
+        l->voices[i].osc[k] =
+         zeroed_osc_state(ENVELOPE_ATTACK, rand_range_f32(0.0f, 0.5f));
       }
       return;
     }

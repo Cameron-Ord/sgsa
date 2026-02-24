@@ -23,26 +23,26 @@ static bool oscilator_state_on(const bool *active, const i32 *envelope_state);
 static void render_push(f32 *samples, size_t nsamples, f32 *buffer,
                         size_t buflen);
 static void loop_delay(size_t nsamples, f32 *samples, const struct configs *cfg,
-                       struct delay_line *dl);               
+                       struct delay_line *dl);
 
-static i32 active_voices(const struct layer *l){
+static i32 active_voices(const struct layer *l) {
   i32 count = 0;
-  for(i32 i = 0; i < VOICE_MAX; i++){
-    if(l->voices[i].active){
+  for (i32 i = 0; i < VOICE_MAX; i++) {
+    if (l->voices[i].active) {
       bool oscilators_running = true;
-      for(u32 j = 0; j < l->osc_count; j++){
-         if(!oscilator_state_on(&l->voices[i].active, &l->voices[i].osc[j].envelope_state)){
-            oscilators_running = false;
-         }
+      for (u32 j = 0; j < l->osc_count; j++) {
+        if (!oscilator_state_on(&l->voices[i].active,
+                                &l->voices[i].osc[j].envelope_state)) {
+          oscilators_running = false;
+        }
       }
-      if(oscilators_running){
-          count++;
+      if (oscilators_running) {
+        count++;
       }
     }
   }
   return count;
 }
-
 
 static void render_push(f32 *samples, size_t nsamples, f32 *buffer,
                         size_t buflen) {
@@ -69,7 +69,8 @@ static void loop_delay(size_t nsamples, f32 *samples, const struct configs *cfg,
 }
 
 static bool oscilator_state_on(const bool *active, const i32 *envelope_state) {
-  const bool first = *active && (*envelope_state != ENVELOPE_OFF || *envelope_state != ENVELOPE_RELEASE);
+  const bool first = *active && (*envelope_state != ENVELOPE_OFF ||
+                                 *envelope_state != ENVELOPE_RELEASE);
   const bool second = !*active && *envelope_state == ENVELOPE_RELEASE;
   return first || second;
 }
@@ -176,8 +177,8 @@ static void loop_oscilators(struct voice *v, f32 sum[],
     f32 *low = state->gen[GEN_ARRAY_LOW];
     f32 *high = state->gen[GEN_ARRAY_HIGH];
     f32 scale = 1.0f;
-      //Paranoia
-    if(osc_c > 0){
+    // Paranoia
+    if (osc_c > 0) {
       scale = 1.0f / sqrtf((f32)osc_c);
     }
 
@@ -208,38 +209,41 @@ static void loop_voicings(struct layer *l, f32 wave_samples[CHANNEL_MAX]) {
 
   i32 active_count = active_voices(l);
   f32 scale = 1.0f;
-  if(active_count > 0) {scale = 1.0f / sqrtf((f32)active_count);};
+  if (active_count > 0) {
+    scale = 1.0f / sqrtf((f32)active_count);
+  };
   const i32 channels = l->pb_cfg.ivals[CHANNELS_VAL].value;
-    for (u32 v = 0; v < VOICE_MAX; v++) {
-      switch (channels) {
-      default:
-        break;
-      case MONO: {
-        f32 sum[channels];
-        loop_oscilators(&l->voices[v], sum, &l->osc_cfg, &l->pb_cfg,
-                        l->dc_blocker, l->osc_count);
-        wave_samples[0] += (sum[0]);
-      } break;
+  for (u32 v = 0; v < VOICE_MAX; v++) {
+    switch (channels) {
+    default:
+      break;
+    case MONO: {
+      f32 sum[channels];
+      loop_oscilators(&l->voices[v], sum, &l->osc_cfg, &l->pb_cfg,
+                      l->dc_blocker, l->osc_count);
+      wave_samples[0] += (sum[0]);
+    } break;
 
-      case STEREO: {
-        f32 angle = (0.5f * (PI / 2.0f));
-        f32 left = cosf(angle);
-        f32 right = sinf(angle);
+    case STEREO: {
+      f32 angle = (0.5f * (PI / 2.0f));
+      f32 left = cosf(angle);
+      f32 right = sinf(angle);
 
-        f32 sum[channels];
-        loop_oscilators(&l->voices[v], sum, &l->osc_cfg, &l->pb_cfg,
-                        l->dc_blocker, l->osc_count);
-        wave_samples[0] += ((sum[0] * left));
-        wave_samples[1] += ((sum[1] * right));
-      } break;
-      }
+      f32 sum[channels];
+      loop_oscilators(&l->voices[v], sum, &l->osc_cfg, &l->pb_cfg,
+                      l->dc_blocker, l->osc_count);
+      wave_samples[0] += ((sum[0] * left));
+      wave_samples[1] += ((sum[1] * right));
+    } break;
     }
-    for (i32 c = 0; c < CHANNEL_MAX; c++) {
-      if(wave_samples[c] > 0.0f){
-        wave_samples[c] *= scale;
-        wave_samples[c] = tanhf(wave_samples[c] * l->pb_cfg.fvals[SAMPLE_GAIN_VAL].value);
-      }
+  }
+  for (i32 c = 0; c < CHANNEL_MAX; c++) {
+    if (wave_samples[c] > 0.0f) {
+      wave_samples[c] *= scale;
+      wave_samples[c] =
+       tanhf(wave_samples[c] * l->pb_cfg.fvals[SAMPLE_GAIN_VAL].value);
     }
+  }
 }
 
 static void loop_samples(size_t count, f32 *samplebuffer, struct layer *l) {
