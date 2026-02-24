@@ -78,7 +78,6 @@ void adsr(f32 *envelope, i32 *state, const f32 *attack, const f32 *decay,
           const f32 *sustain, const f32 *release, i32 samplerate);
 f32 vibrato(f32 vrate, f32 depth, f32 freq, i32 samplerate);
 f32 tremolo(f32 trate, f32 depth, f32 time);
-f32 map_velocity(i32 second);
 
 void voice_set_iterate(struct layer *l, f32 amp, i32 midi_key);
 void voice_release_iterate(struct layer *l, i32 midi_key);

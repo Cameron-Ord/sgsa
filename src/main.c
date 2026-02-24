@@ -148,7 +148,7 @@ int main(int argc, char **argv) {
       break;
 
     case NOTE_ON: {
-      voice_set_iterate(&l, map_velocity(in.second), in.first);
+      voice_set_iterate(&l, 1.0f, in.first);
     } break;
 
     case NOTE_OFF: {

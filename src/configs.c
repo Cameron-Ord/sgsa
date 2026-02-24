@@ -13,9 +13,8 @@ const i32 DEFAULT_CHANNELS = 2.0f;
 
 const f32 DEFAULT_VOLUME = 1.0f;
 // Don't set gain too high unless you like feedback hell
-const f32 DEFAULT_VOICE_GAIN = 2.0f;
-const f32 DEFAULT_OSC_GAIN = 2.0f;
-const f32 DEFAULT_DELAY_GAIN = 1.5f;
+const f32 DEFAULT_VOICE_GAIN = 1.25f;
+const f32 DEFAULT_DELAY_GAIN = 1.25f;
 const f32 DEFAULT_DELAY_FEEDBACK = 0.5f;
 
 const f32 DEFAULT_VIBRATO_RATE = 6.0f;
@@ -61,9 +60,6 @@ struct configs make_default_config(void) {
       [DELAY_GAIN_VAL] = { .name = "Delay gain",
                            .name_len = 0,
                            .value = DEFAULT_DELAY_GAIN },
-      [OSC_GAIN_VAL] = { .name = "Per oscilator gain",
-                         .name_len = 0,
-                         .value = DEFAULT_OSC_GAIN },
       [DELAY_FEEDBACK_VAL] = { .name = "Delay feedback",
                                .name_len = 0,
                                .value = DEFAULT_DELAY_FEEDBACK },

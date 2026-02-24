@@ -108,26 +108,6 @@ void adsr(f32 *envelope, i32 *state, const f32 *attack, const f32 *decay,
   }
 }
 
-f32 map_velocity(i32 second) {
-  f32 base_amp = 1.0f, low_scale = 0.0125f, high_scale = 0.0225f;
-  const i32 high_threshold = 75;
-  const i32 low_threshold = 45;
-
-  if (second > high_threshold) {
-    base_amp += (f32)(second - high_threshold) * high_scale;
-  } else if (second < low_threshold) {
-    base_amp -= (f32)(low_threshold - second) * low_scale;
-  }
-
-  if (base_amp < 0.25f) {
-    base_amp = 0.125f;
-  } else if (base_amp > 2.25f) {
-    base_amp = 2.25f;
-  }
-
-  return base_amp;
-}
-
 struct layer make_layer(u32 oscilator_count, bool delay_active,
                         f32 delay_seconds, struct configs cfg) {
   struct layer voice_layer = {
