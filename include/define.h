@@ -2,7 +2,7 @@
 #define DEFINE_H
 
 #define PI                3.1415926535897932384626433832795f
-#define VOICE_MAX         4
+#define VOICE_MAX         16
 #define OSCILATOR_MAX     4
 #define WINDOW_RESOLUTION (1 << 12)
 

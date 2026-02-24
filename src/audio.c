@@ -183,7 +183,7 @@ static void loop_voicings(struct layer *l, f32 wave_samples[CHANNEL_MAX]) {
         f32 sum[channels];
         loop_oscilators(&l->voices[v], sum, &l->osc_cfg, &l->pb_cfg,
                         l->dc_blocker, l->osc_count);
-        wave_samples[0] += (sum[0] / VOICE_MAX);
+        wave_samples[0] += (sum[0]);
       } break;
 
       case STEREO: {
@@ -194,8 +194,8 @@ static void loop_voicings(struct layer *l, f32 wave_samples[CHANNEL_MAX]) {
         f32 sum[channels];
         loop_oscilators(&l->voices[v], sum, &l->osc_cfg, &l->pb_cfg,
                         l->dc_blocker, l->osc_count);
-        wave_samples[0] += ((sum[0] * left) / VOICE_MAX);
-        wave_samples[1] += ((sum[1] * right) / VOICE_MAX);
+        wave_samples[0] += ((sum[0] * left));
+        wave_samples[1] += ((sum[1] * right));
       } break;
       }
     }
