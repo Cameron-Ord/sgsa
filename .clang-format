@@ -40,28 +40,9 @@ BraceWrapping:
 
 Cpp11BracedListStyle: false
 
-IncludeBlocks: Preserve
-ColumnLimit: 0
+ColumnLimit: 80
 
-IndentWidth: 4
-ContinuationIndentWidth: 4
-IndentCaseLabels: false
-IndentCaseBlocks: false
-IndentGotoLabels: true
-IndentPPDirectives: None
-IndentExternBlock: NoIndent
-
-PointerAlignment: Right
-SpaceAfterCStyleCast: false
-SpacesInCStyleCastParentheses: false
-SpacesInConditionalStatement: false
-SpacesInContainerLiterals: true
-SpaceBeforeAssignmentOperators: true
-SpaceBeforeCaseColon: false
-SpaceBeforeParens: ControlStatements
-SpaceAroundPointerQualifiers: Default
-SpaceInEmptyBlock: false
-SpaceInEmptyParentheses: false
-
+IndentWidth: 2
+ContinuationIndentWidth: 1
 UseCRLF: false
 UseTab: Never

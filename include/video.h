@@ -4,18 +4,16 @@
 #include "typedef.h"
 #include <SDL3/SDL_render.h>
 
-#define RENDER_RESOLUTION (1 << 12)
-#define WINDOW_HEIGHT     768
-#define WINDOW_WIDTH      1024
+#define WINDOW_HEIGHT 768
+#define WINDOW_WIDTH  1024
 
 struct render_context {
-    SDL_Window *window;
-    SDL_Renderer *renderer;
-    u32 window_flags_at_creation;
-    i32 win_width, win_height;
-    SDL_Rect waveform_viewport;
-    SDL_Rect opts_viewport;
-    f32 buffer[RENDER_RESOLUTION];
+  SDL_Window *window;
+  SDL_Renderer *renderer;
+  u32 window_flags_at_creation;
+  i32 win_width, win_height;
+  SDL_Rect waveform_viewport;
+  SDL_Rect opts_viewport;
 };
 
 struct glyph;
@@ -26,7 +24,7 @@ void clear(SDL_Renderer *rend);
 void set_colour(SDL_Renderer *rend, u8 r, u8 g, u8 b, u8 a);
 void present(SDL_Renderer *rend);
 void fill_rect(SDL_Renderer *rend, SDL_FRect *rect);
-void draw_waveform(const struct render_context *rc);
+void draw_waveform(const struct render_context *rc, f32 *layer_window);
 void *free_texture(SDL_Texture *texture);
 void *free_surface(SDL_Surface *surface);
 void set_viewport(SDL_Renderer *rend, const SDL_Rect *viewport);

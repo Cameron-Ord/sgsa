@@ -11,15 +11,15 @@
 #define NULL_CHAR '\0'
 
 struct font {
-    TTF_Font *font;
-    f32 size;
-    i32 line_skip;
+  TTF_Font *font;
+  f32 size;
+  i32 line_skip;
 };
 
 struct glyph {
-    u8 code;
-    SDL_Texture *texture;
-    i32 width, height;
+  u8 code;
+  SDL_Texture *texture;
+  i32 width, height;
 };
 
 struct font create_font(const char *fontpath, f32 size);

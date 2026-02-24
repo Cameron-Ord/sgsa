@@ -5,10 +5,9 @@
 #include <stddef.h>
 
 struct delay_line {
-    bool active;
-    size_t start, end;
-    f32 *buffer;
-    size_t read, write;
+  size_t start, end;
+  f32 *buffer;
+  size_t read, write;
 };
 
 void print_delay_line(struct delay_line dl);

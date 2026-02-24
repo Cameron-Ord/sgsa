@@ -3,50 +3,88 @@
 #include "configs.h"
 #include "define.h"
 #include "effect.h"
-#include "oscilator.h"
 
 #include <stdarg.h>
 #include <stdbool.h>
 
-struct delay_line;
+enum osc_data_indexes {
+  ENVELOPE_VAL = 0,
+  ATTACK_VAL = 1,
+  DECAY_VAL = 2,
+  SUSTAIN_VAL = 3,
+  RELEASE_VAL = 4,
+  ENV_END = 5,
+
+  OCTAVE_VAL = 0,
+  COEFF_VAL = 1,
+  OSC_VOLUME_VAL = 2,
+  DETUNE_VAL = 3,
+  SPEC_END = 4,
+
+  PHASE_VAL = 0,
+  INTEGRATOR_VAL = 1,
+  DC_X_VAL = 2,
+  DC_Y_VAL = 3,
+  TIME_VAL = 4,
+  STATE_END = 5,
+
+  WAVEFORM_ID_VAL = 0,
+  ENVELOPE_STATE_VAL = 1,
+  OSC_DATA_END = 2,
+
+  GEN_ARRAY_RAW = 0,
+  GEN_ARRAY_HIGH = 1,
+  GEN_ARRAY_LOW = 2,
+  GEN_ARRAY_END = 3,
+};
+
+struct osc_entry_f32 {
+  const char *name;
+  size_t name_len;
+  f32 value;
+};
+
+struct oscilator {
+  i32 osc_playback_data[OSC_DATA_END];
+  f32 gen[GEN_ARRAY_END][CHANNEL_MAX];
+  struct osc_entry_f32 spec[SPEC_END];
+  struct osc_entry_f32 env[ENV_END];
+  f32 oscilator_states[STATE_END];
+};
+
+struct oscilator make_default_oscilator(i32 wfid);
+void osc_change_id(struct oscilator *osc, i32 wfid);
 
 struct voice {
-    bool active;
-    i32 midi_key;
-    f32 amplitude;
-    struct layer l;
+  bool active;
+  i32 midi_key;
+  f32 base_freq;
+  f32 amplitude;
+  struct oscilator osc[OSCILATOR_MAX];
 };
 
-struct voice_control {
-    // What it doesn't own (Must be assgined with vc_assign() funcs)
-    // All initialized to 0.
-    f32 *render_buffer;
-    size_t rbuflen;
-    // What it owns.
-    struct configs cfg;
-    struct delay_line dl;
-    struct voice voices[VOICE_MAX];
-    f32 dcblock;
+struct layer {
+  u32 osc_count;
+  f32 dc_blocker;
+  bool delay_active;
+  struct configs cfg;
+  struct delay_line dl;
+  struct voice voices[VOICE_MAX];
+  f32 layer_window[WINDOW_RESOLUTION];
 };
 
-void adsr(f32 *envelope, f32 *state, const f32 *attack, const f32 *decay,
+void adsr(f32 *envelope, i32 *state, const f32 *attack, const f32 *decay,
           const f32 *sustain, const f32 *release, i32 samplerate);
-f32 vibrato(f32 vrate, f32 depth, f32 freq, f32 samplerate);
+f32 vibrato(f32 vrate, f32 depth, f32 freq, i32 samplerate);
 f32 tremolo(f32 trate, f32 depth, f32 time);
-
 f32 map_velocity(i32 second);
-u32 next_layer(u32 current, u32 last);
-u32 prev_layer(u32 current, u32 last);
 
-void voice_set_iterate(struct voice voices[VOICE_MAX], f32 amp, i32 midi_key);
-void voice_release_iterate(struct voice voices[VOICE_MAX], i32 midi_key);
+void voice_set_iterate(struct layer *l, f32 amp, i32 midi_key);
+void voice_release_iterate(struct layer *l, i32 midi_key);
 void voices_initialize(struct voice voices[VOICE_MAX]);
+struct layer make_layer(u32 oscilator_count, bool delay_active,
+                        f32 delay_seconds, struct configs cfg);
 
-void vc_assign_render_buffer(struct voice_control *vc, f32 *buffer, size_t len);
-void vc_initialize(struct voice_control *vc);
-
-void layers_set_adsr(struct voice voices[VOICE_MAX], f32 atk, f32 dec, f32 sus,
-                     f32 rel);
 // Raw waves
 f32 sawtooth(f32 amp, f32 phase);
 f32 square(f32 amp, f32 phase, f32 duty);
