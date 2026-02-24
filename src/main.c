@@ -99,18 +99,23 @@ int main(int argc, char **argv) {
     .window = window,
     .renderer = renderer,
     .window_flags_at_creation = SDL_WINDOW_HIDDEN,
-    .win_width = WINDOW_WIDTH,
-    .win_height = WINDOW_HEIGHT,
-    .waveform_viewport =
-     make_rect(0, 0, WINDOW_WIDTH, (i32)(WINDOW_HEIGHT * 0.25f)),
-    .opts_viewport = make_rect(0, (i32)(WINDOW_HEIGHT * 0.25f), WINDOW_WIDTH,
-                               (i32)(WINDOW_HEIGHT * 0.75f))
+    .integer_meta_data = { [WIN_WIDTH_VAL] = WINDOW_WIDTH,
+                           [WIN_HEIGHT_VAL] = WINDOW_HEIGHT },
+    .rect_meta_data = { [WAVEFORM_VIEWPORT_VAL] =
+                         make_waveform_view(WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0),
+                        [ENV_OPTS_VIEWPORT_VAL] = make_opt_view(
+                         WINDOW_WIDTH, WINDOW_HEIGHT, 0,
+                         DIM_MOD(WINDOW_HEIGHT, WAVEFORM_RECT_HEIGHT_MOD)),
+                        [SPEC_OPTS_VIEWPORT_VAL] = make_opt_view(
+                         WINDOW_WIDTH, WINDOW_HEIGHT,
+                         DIM_MOD(WINDOW_WIDTH, OPT_RECT_WIDTH_MOD),
+                         DIM_MOD(WINDOW_HEIGHT, WAVEFORM_RECT_HEIGHT_MOD)) }
   };
 
   struct layer l = make_layer(1, true, 0.5f, make_default_config());
 
   SDL_AudioSpec internal_spec = make_audio_spec(
-   l.cfg.ivals[CHANNELS_VAL].value, l.cfg.ivals[SAMPLE_RATE_VAL].value);
+   l.pb_cfg.ivals[CHANNELS_VAL].value, l.pb_cfg.ivals[SAMPLE_RATE_VAL].value);
   struct playback_device pbdev = open_audio_device();
   pbdev.stream = audio_stream_create(&internal_spec, &pbdev.output_spec);
 

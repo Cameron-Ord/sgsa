@@ -19,14 +19,30 @@ const f32 DEFAULT_CONTRIBUTION_VOLUME = 1.0f;
 const f32 DEFAULT_DETUNE = 1.0f;
 const f32 DEFAULT_COEFF = 0.5f;
 
-struct oscilator make_default_oscilator(i32 wfid) {
-  struct oscilator osc =
-      {.osc_playback_data =
-           {[WAVEFORM_ID_VAL] = wfid, [ENVELOPE_STATE_VAL] = ENVELOPE_OFF},
-       .gen = {[GEN_ARRAY_RAW] = {ZEROED, ZEROED},
+struct osc_state zeroed_osc_state(void) {
+  struct osc_state osc =
+      {
+        .gen = {[GEN_ARRAY_RAW] = {ZEROED, ZEROED},
                [GEN_ARRAY_HIGH] = {ZEROED, ZEROED},
                [GEN_ARRAY_LOW] = {ZEROED, ZEROED}},
-       .spec = {[OCTAVE_VAL] = {.name = "Octave increment",
+
+       .oscilator_states = {
+           [ENVELOPE_VAL] = ZEROED,
+           [PHASE_VAL] = ZEROED,
+           [INTEGRATOR_VAL] = ZEROED,
+           [DC_X_VAL] = ZEROED,
+           [DC_Y_VAL] = ZEROED,
+           [TIME_VAL] = ZEROED,
+       },
+       .envelope_state = ENVELOPE_OFF    
+    };
+  return osc;
+}
+
+struct osc_config default_osc_config(i32 wfid) {
+  struct osc_config osc = {
+        .waveform_id = wfid,
+               .spec = {[OCTAVE_VAL] = {.name = "Octave increment",
                                 .name_len = strlen("Octave increment"),
                                 .value = DEFAULT_OCTAVE_SKIP},
                 [COEFF_VAL] = {.name = "Coefficient value",
@@ -40,9 +56,6 @@ struct oscilator make_default_oscilator(i32 wfid) {
                                 .value = DEFAULT_DETUNE}},
        .env =
            {
-               [ENVELOPE_VAL] = {.name = "Envelope value",
-                                 .name_len = strlen("Envelope value"),
-                                 .value = ZEROED},
                [ATTACK_VAL] = {.name = "Attack value",
                                .name_len = strlen("Attack value"),
                                .value = DEFAULT_ENV_ATTACK},
@@ -56,12 +69,6 @@ struct oscilator make_default_oscilator(i32 wfid) {
                                 .name_len = strlen("Release value"),
                                 .value = DEFAULT_ENV_RELEASE},
            },
-       .oscilator_states = {
-           [PHASE_VAL] = ZEROED,
-           [INTEGRATOR_VAL] = ZEROED,
-           [DC_X_VAL] = ZEROED,
-           [DC_Y_VAL] = ZEROED,
-           [TIME_VAL] = ZEROED,
-       }};
+    };
   return osc;
 }

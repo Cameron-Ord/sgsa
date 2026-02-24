@@ -108,36 +108,6 @@ void adsr(f32 *envelope, i32 *state, const f32 *attack, const f32 *decay,
   }
 }
 
-static void print_osc(struct voice *voices, u32 osc_c) {
-  for (u32 i = 0; i < VOICE_MAX; i++) {
-    for (u32 k = 0; k < osc_c; k++) {
-      struct oscilator *osc = &voices[i].osc[k];
-      printf("\n%d->SPEC:(", i);
-      for (u32 o = 0; o < SPEC_END; o++) {
-        printf("(%s: %f)", osc->spec[o].name, (f64)osc->spec[o].value);
-      }
-      printf(")\n");
-
-      printf("%d->ENVELOPE:(", i);
-      for (u32 o = 0; o < ENV_END; o++) {
-        printf("(%s: %f)", osc->env[o].name, (f64)osc->env[o].value);
-      }
-      printf(")\n");
-
-      printf("%d->STATES:(", i);
-      for (u32 o = 0; o < STATE_END; o++) {
-        printf("(%f)", (f64)osc->oscilator_states[0]);
-      }
-      printf(")\n");
-    }
-  }
-}
-
-static void print_layer(struct layer *l) {
-  print_config(l->cfg);
-  print_osc(l->voices, l->osc_count);
-}
-
 f32 map_velocity(i32 second) {
   f32 base_amp = 1.0f, low_scale = 0.0125f, high_scale = 0.0225f;
   const i32 high_threshold = 75;
@@ -165,13 +135,13 @@ struct layer make_layer(u32 oscilator_count, bool delay_active,
     .dc_blocker =
      expf(-1.0f / (0.0025f * (f32)cfg.ivals[SAMPLE_RATE_VAL].value)),
     .delay_active = delay_active,
-    .cfg = cfg,
+    .pb_cfg = cfg,
     .dl = create_delay_line(
      MS_BUFSIZE((f32)cfg.ivals[SAMPLE_RATE_VAL].value, delay_seconds)),
+    .osc_cfg = default_osc_config(SAW_POLY)
   };
   memset(voice_layer.layer_window, 0, sizeof(f32) * WINDOW_RESOLUTION);
   voices_initialize(voice_layer.voices);
-  print_layer(&voice_layer);
   return voice_layer;
 }
 
@@ -182,7 +152,7 @@ void voices_initialize(struct voice voices[VOICE_MAX]) {
     voices[i].active = false;
 
     for (u32 k = 0; k < OSCILATOR_MAX; k++) {
-      voices[i].osc[k] = make_default_oscilator(SAW_POLY);
+      voices[i].osc[k] = zeroed_osc_state();
     }
   }
 }
@@ -204,8 +174,7 @@ void voice_set_iterate(struct layer *l, f32 amp, i32 midi_key) {
 
         l->voices[i].osc[k].oscilator_states[PHASE_VAL] =
          rand_range_f32(0.0f, 0.5f);
-        l->voices[i].osc[k].osc_playback_data[ENVELOPE_STATE_VAL] =
-         ENVELOPE_ATTACK;
+        l->voices[i].osc[k].envelope_state = ENVELOPE_ATTACK;
       }
       return;
     }
@@ -216,8 +185,7 @@ void voice_release_iterate(struct layer *l, i32 midi_key) {
   for (i32 i = 0; i < VOICE_MAX; i++) {
     if (l->voices[i].active && l->voices[i].midi_key == midi_key) {
       for (u32 k = 0; k < l->osc_count; k++) {
-        l->voices[i].osc[k].osc_playback_data[ENVELOPE_STATE_VAL] =
-         ENVELOPE_RELEASE;
+        l->voices[i].osc[k].envelope_state = ENVELOPE_RELEASE;
       }
 
       l->voices[i].active = false;

@@ -69,7 +69,7 @@ static f32 set_vibrato(f32 freq, const f32 *state, const struct configs *cfg) {
 }
 
 static f32 generate(f32 ampl, i32 waveform_id, f32 *state,
-                    struct osc_entry_f32 *spec, f32 inc, f32 dc_blocker) {
+                    const struct osc_entry_f32 *spec, f32 inc, f32 dc_blocker) {
 
   const f32 phase = state[PHASE_VAL];
   const f32 vol = spec[OSC_VOLUME_VAL].value;
@@ -108,6 +108,7 @@ static f32 generate(f32 ampl, i32 waveform_id, f32 *state,
 }
 
 static void loop_oscilators(struct voice *v, f32 sum[],
+                            const struct osc_config *osc_cfg,
                             const struct configs *cfg, f32 dc_blocker,
                             u32 osc_c) {
   const i32 channels = cfg->ivals[CHANNELS_VAL].value;
@@ -118,52 +119,48 @@ static void loop_oscilators(struct voice *v, f32 sum[],
   }
 
   for (u32 i = 0; i < osc_c; i++) {
-    struct oscilator *osc = &v->osc[i];
-    struct osc_entry_f32 *env = osc->env;
-    struct osc_entry_f32 *spec = osc->spec;
+    struct osc_state *state = &v->osc[i];
 
-    f32 *state = osc->oscilator_states;
-    i32 *envelope_state = &osc->osc_playback_data[ENVELOPE_STATE_VAL];
-
-    if (!oscilator_state_on(&v->active, envelope_state)) {
+    if (!oscilator_state_on(&v->active, &state->envelope_state)) {
       continue;
     }
 
     const f32 base_freq = v->base_freq;
-    const f32 octave_inc = spec[OCTAVE_VAL].value;
-    const f32 detune = spec[DETUNE_VAL].value;
+    const f32 octave_inc = osc_cfg->spec[OCTAVE_VAL].value;
+    const f32 detune = osc_cfg->spec[DETUNE_VAL].value;
     const i32 sample_rate = cfg->ivals[SAMPLE_RATE_VAL].value;
     const f32 ampl = v->amplitude;
 
     f32 freq = base_freq * octave_inc * detune;
-    freq = set_vibrato(freq, state, cfg);
+    freq = set_vibrato(freq, state->oscilator_states, cfg);
 
     const f32 inc = freq / (f32)sample_rate;
     const f32 dt = 1.0f / (f32)sample_rate;
 
-    const i32 waveform_id = osc->osc_playback_data[WAVEFORM_ID_VAL];
+    const i32 waveform_id = osc_cfg->waveform_id;
     for (i32 c = 0; c < channels; c++) {
-      osc->gen[GEN_ARRAY_RAW][c] =
-       generate(ampl, waveform_id, state, spec, inc, dc_blocker);
+      state->gen[GEN_ARRAY_RAW][c] =
+       generate(ampl, waveform_id, state->oscilator_states, osc_cfg->spec, inc,
+                dc_blocker);
     }
     // inc (ie: time interval per sample) /
     // (cutoff_in_seconds + time interval)
     const f32 alpha_high =
-     (dt) / (CUTOFF_IN_SEC(HZ_TO_RAD_PER_SEC(14000.0f)) + dt);
-    const f32 alpha_low = (dt) / (CUTOFF_IN_SEC(HZ_TO_RAD_PER_SEC(80.0f)) + dt);
+     (dt) / (CUTOFF_IN_SEC(HZ_TO_RAD_PER_SEC(NYQUIST((f32)sample_rate))) + dt);
+    const f32 alpha_low = (dt) / (CUTOFF_IN_SEC(HZ_TO_RAD_PER_SEC(20.0f)) + dt);
     // Basic interpolation using a cutoff alpha
 
-    f32 *envelope = &env[ENVELOPE_VAL].value;
-    const f32 *atk = &env[ATTACK_VAL].value;
-    const f32 *dec = &env[DECAY_VAL].value;
-    const f32 *sus = &env[SUSTAIN_VAL].value;
-    const f32 *rel = &env[RELEASE_VAL].value;
+    f32 *envelope = &state->oscilator_states[ENVELOPE_VAL];
+    const f32 *atk = &osc_cfg->env[ATTACK_VAL].value;
+    const f32 *dec = &osc_cfg->env[DECAY_VAL].value;
+    const f32 *sus = &osc_cfg->env[SUSTAIN_VAL].value;
+    const f32 *rel = &osc_cfg->env[RELEASE_VAL].value;
 
-    f32 *raw = osc->gen[GEN_ARRAY_RAW];
-    f32 *low = osc->gen[GEN_ARRAY_LOW];
-    f32 *high = osc->gen[GEN_ARRAY_HIGH];
+    f32 *raw = state->gen[GEN_ARRAY_RAW];
+    f32 *low = state->gen[GEN_ARRAY_LOW];
+    f32 *high = state->gen[GEN_ARRAY_HIGH];
 
-    adsr(envelope, envelope_state, atk, dec, sus, rel, samplerate);
+    adsr(envelope, &state->envelope_state, atk, dec, sus, rel, samplerate);
     for (i32 c = 0; c < channels; c++) {
       // adsr and compress per osc
       raw[c] *= *envelope;
@@ -172,20 +169,14 @@ static void loop_oscilators(struct voice *v, f32 sum[],
       low[c] += linear_interpolate(raw[c], low[c], alpha_low);
       // mix and sum
       raw[c] = HIGH_MIX * high[c] + LOW_MIX * low[c];
-      sum[c] += raw[c] / (f32)osc_c;
+      sum[c] += tanhf((raw[c] / (f32)osc_c) * cfg->fvals[OSC_GAIN_VAL].value);
     }
 
-    state[PHASE_VAL] += inc;
-    if (state[PHASE_VAL] >= 1.0f) {
-      state[PHASE_VAL] -= 1.0f;
+    state->oscilator_states[PHASE_VAL] += inc;
+    if (state->oscilator_states[PHASE_VAL] >= 1.0f) {
+      state->oscilator_states[PHASE_VAL] -= 1.0f;
     }
-    state[TIME_VAL] += dt;
-  }
-
-  return;
-
-  for (i32 c = 0; c < channels; c++) {
-    sum[c] = tanhf(sum[c] * cfg->fvals[OSC_GAIN_VAL].value);
+    state->oscilator_states[TIME_VAL] += dt;
   }
 }
 
@@ -193,7 +184,7 @@ static void loop_voicings(struct layer *l, f32 wave_samples[CHANNEL_MAX]) {
   for (i32 c = 0; c < CHANNEL_MAX; c++) {
     wave_samples[c] = 0.0;
   }
-  const i32 channels = l->cfg.ivals[CHANNELS_VAL].value;
+  const i32 channels = l->pb_cfg.ivals[CHANNELS_VAL].value;
   const i32 count = get_active_voice_count(l);
   if (count > 0) {
     for (u32 v = 0; v < VOICE_MAX; v++) {
@@ -202,8 +193,8 @@ static void loop_voicings(struct layer *l, f32 wave_samples[CHANNEL_MAX]) {
         break;
       case MONO: {
         f32 sum[channels];
-        loop_oscilators(&l->voices[v], sum, &l->cfg, l->dc_blocker,
-                        l->osc_count);
+        loop_oscilators(&l->voices[v], sum, &l->osc_cfg, &l->pb_cfg,
+                        l->dc_blocker, l->osc_count);
         wave_samples[0] += (sum[0] / VOICE_MAX);
       } break;
 
@@ -213,8 +204,8 @@ static void loop_voicings(struct layer *l, f32 wave_samples[CHANNEL_MAX]) {
         f32 right = sinf(angle);
 
         f32 sum[channels];
-        loop_oscilators(&l->voices[v], sum, &l->cfg, l->dc_blocker,
-                        l->osc_count);
+        loop_oscilators(&l->voices[v], sum, &l->osc_cfg, &l->pb_cfg,
+                        l->dc_blocker, l->osc_count);
         wave_samples[0] += ((sum[0] * left) / VOICE_MAX);
         wave_samples[1] += ((sum[1] * right) / VOICE_MAX);
       } break;
@@ -224,19 +215,19 @@ static void loop_voicings(struct layer *l, f32 wave_samples[CHANNEL_MAX]) {
   if (count > 0) {
     for (i32 c = 0; c < CHANNEL_MAX; c++) {
       wave_samples[c] =
-       tanhf(wave_samples[c] * l->cfg.fvals[SAMPLE_GAIN_VAL].value);
+       tanhf(wave_samples[c] * l->pb_cfg.fvals[SAMPLE_GAIN_VAL].value);
     }
   }
 }
 
 static void loop_samples(size_t count, f32 *samplebuffer, struct layer *l) {
-  const size_t channels = (size_t)l->cfg.ivals[CHANNELS_VAL].value;
+  const size_t channels = (size_t)l->pb_cfg.ivals[CHANNELS_VAL].value;
   for (size_t n = 0; n < count / channels; n++) {
     f32 wave_samples[CHANNEL_MAX];
     loop_voicings(l, wave_samples);
     for (size_t c = 0; c < channels; c++) {
       samplebuffer[n * channels + c] =
-       wave_samples[c] * l->cfg.fvals[MAIN_VOLUME_VAL].value;
+       wave_samples[c] * l->pb_cfg.fvals[MAIN_VOLUME_VAL].value;
     }
   }
 }
@@ -255,7 +246,7 @@ void stream_callback(void *data, SDL_AudioStream *stream, i32 add, i32 total) {
     const size_t valid_samples = SDL_min(sample_count, SDL_arraysize(samples));
     loop_samples(valid_samples, samples, l);
     if (l->delay_active) {
-      loop_delay(valid_samples, samples, &l->cfg, &l->dl);
+      loop_delay(valid_samples, samples, &l->pb_cfg, &l->dl);
     }
     stream_feed(stream, samples, (i32)valid_samples * (i32)sizeof(f32));
     render_push(samples, valid_samples, l->layer_window, WINDOW_RESOLUTION);
