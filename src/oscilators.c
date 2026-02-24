@@ -29,6 +29,7 @@ struct osc_state zeroed_osc_state(i32 preset_state, f32 preset_phase) {
        .oscilator_states = {
            [ENVELOPE_VAL] = ZEROED,
            [PHASE_VAL] = preset_phase,
+           [MOD_PHASE_VAL] = ZEROED,
            [INTEGRATOR_VAL] = ZEROED,
            [DC_X_VAL] = ZEROED,
            [DC_Y_VAL] = ZEROED,

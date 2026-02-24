@@ -17,8 +17,8 @@ const f32 DEFAULT_VOICE_GAIN = 1.25f;
 const f32 DEFAULT_DELAY_GAIN = 1.25f;
 const f32 DEFAULT_DELAY_FEEDBACK = 0.5f;
 
-const f32 DEFAULT_VIBRATO_RATE = 6.0f;
-const f32 DEFAULT_VIBRATO_DEPTH = 5.0f;
+const f32 DEFAULT_VIBRATO_RATE = 10.0f;
+const f32 DEFAULT_VIBRATO_DEPTH = 0.3f * 0.003f;
 const f32 DEFAULT_VIBRATO_ON = 0.18f;
 
 void print_config(struct configs config) {

@@ -22,11 +22,12 @@ enum osc_data_indexes {
 
   ENVELOPE_VAL = 0,
   PHASE_VAL = 1,
-  INTEGRATOR_VAL = 2,
-  DC_X_VAL = 3,
-  DC_Y_VAL = 4,
-  TIME_VAL = 5,
-  STATE_END = 6,
+  MOD_PHASE_VAL = 2,
+  INTEGRATOR_VAL = 3,
+  DC_X_VAL = 4,
+  DC_Y_VAL = 5,
+  TIME_VAL = 6,
+  STATE_END = 7,
 
   GEN_ARRAY_RAW = 0,
   GEN_ARRAY_HIGH = 1,
@@ -76,8 +77,7 @@ struct layer {
 
 void adsr(f32 *envelope, i32 *state, const f32 *attack, const f32 *decay,
           const f32 *sustain, const f32 *release, i32 samplerate);
-f32 vibrato(f32 vrate, f32 depth, f32 freq, i32 samplerate);
-f32 tremolo(f32 trate, f32 depth, f32 time);
+f32 vibrato(f32 depth, f32 phase);
 
 void voice_set_iterate(struct layer *l, f32 amp, i32 midi_key);
 void voice_release_iterate(struct layer *l, i32 midi_key);
