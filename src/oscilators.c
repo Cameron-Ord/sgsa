@@ -5,10 +5,10 @@
 #include "../include/waveform.h"
 
 // Used per oscilator
-const f32 DEFAULT_ENV_ATTACK = 0.4f;
-const f32 DEFAULT_ENV_DECAY = 0.75f;
-const f32 DEFAULT_ENV_SUSTAIN = 0.8f;
-const f32 DEFAULT_ENV_RELEASE = 0.4f;
+const f32 DEFAULT_ENV_ATTACK = 0.01f;
+const f32 DEFAULT_ENV_DECAY = 0.1f;
+const f32 DEFAULT_ENV_SUSTAIN = 0.7f;
+const f32 DEFAULT_ENV_RELEASE = 0.01f;
 
 const f32 RELEASE_MAX = 2.0f;
 const f32 DEC_MAX = 2.0f;
@@ -18,7 +18,7 @@ const f32 SUS_MAX = 2.0f;
 const f32 DEFAULT_OCTAVE_SKIP = 1.0f;
 const f32 DEFAULT_CONTRIBUTION_VOLUME = 1.0f;
 const f32 DEFAULT_DETUNE = 1.0f;
-const f32 DEFAULT_COEFF = 0.5f;
+const f32 DEFAULT_COEFF = 0.33f;
 
 const f32 OCT_SKIP_MIN = 0.5f;
 const f32 OCT_SKIP_MAX = 2.0f;

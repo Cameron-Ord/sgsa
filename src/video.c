@@ -89,7 +89,7 @@ void draw_waveform(const struct render_context *rc, f32 *layer_window) {
   const f32 cell_width = (f32)vp->w / (f32)WINDOW_RESOLUTION;
   for (u32 i = 0; i < WINDOW_RESOLUTION; i++) {
     const f32 x = (f32)i * cell_width + cell_width / 2;
-    const f32 y = layer_window[i] * (f32)vp->h;
+    const f32 y = layer_window[i] * ((f32)vp->h / 2.0f);
     SDL_FRect rect = { x, (f32)vp->h / 2, cell_width, y };
     fill_rect(rc->renderer, &rect);
   }

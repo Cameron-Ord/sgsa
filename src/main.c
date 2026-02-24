@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
   struct glyph glyphs[ASCII_SIZE];
   create_glyph_textures(rc.renderer, f.font, glyphs);
 
-  const u32 FPS = 60;
+  const u32 FPS = 120;
   const u32 FG = 1000 / FPS;
   bool RUNNING = true;
   printf("Init end timer: %zums : %zums\n", SDL_GetTicks(),

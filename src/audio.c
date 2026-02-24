@@ -211,7 +211,7 @@ static void loop_oscilators(struct voice *v, f32 sum[],
       low[c] += linear_interpolate(raw[c], low[c], alpha_low);
       // mix and sum
       raw[c] = HIGH_MIX * high[c] + LOW_MIX * low[c];
-      sum[c] += (raw[c] * scale);
+      sum[c] += raw[c] * scale;
     }
   }
 }
@@ -235,7 +235,7 @@ static void loop_voicings(struct layer *l, f32 wave_samples[CHANNEL_MAX]) {
       f32 sum[channels];
       loop_oscilators(&l->voices[v], sum, &l->osc_cfg, &l->pb_cfg,
                       l->dc_blocker, l->osc_count);
-      wave_samples[0] += (sum[0]);
+      wave_samples[0] += sum[0];
     } break;
 
     case STEREO: {
@@ -246,17 +246,13 @@ static void loop_voicings(struct layer *l, f32 wave_samples[CHANNEL_MAX]) {
       f32 sum[channels];
       loop_oscilators(&l->voices[v], sum, &l->osc_cfg, &l->pb_cfg,
                       l->dc_blocker, l->osc_count);
-      wave_samples[0] += ((sum[0] * left));
-      wave_samples[1] += ((sum[1] * right));
+      wave_samples[0] += sum[0] * left;
+      wave_samples[1] += sum[1] * right;
     } break;
     }
   }
   for (i32 c = 0; c < CHANNEL_MAX; c++) {
-    if (wave_samples[c] > 0.0f) {
       wave_samples[c] *= scale;
-      wave_samples[c] =
-       tanhf(wave_samples[c] * l->pb_cfg.fvals[SAMPLE_GAIN_VAL].value);
-    }
   }
 }
 
@@ -266,8 +262,7 @@ static void loop_samples(size_t count, f32 *samplebuffer, struct layer *l) {
     f32 wave_samples[CHANNEL_MAX];
     loop_voicings(l, wave_samples);
     for (size_t c = 0; c < channels; c++) {
-      samplebuffer[n * channels + c] =
-       wave_samples[c] * l->pb_cfg.fvals[MAIN_VOLUME_VAL].value;
+      samplebuffer[n * channels + c] = wave_samples[c];
     }
   }
 }
@@ -288,8 +283,8 @@ void stream_callback(void *data, SDL_AudioStream *stream, i32 add, i32 total) {
     if (l->delay_active) {
       loop_delay(valid_samples, samples, &l->pb_cfg, &l->dl);
     }
-    stream_feed(stream, samples, (i32)valid_samples * (i32)sizeof(f32));
     render_push(samples, valid_samples, l->layer_window, WINDOW_RESOLUTION);
+    stream_feed(stream, samples, (i32)valid_samples * (i32)sizeof(f32));
     sample_count -= valid_samples;
   }
 }
