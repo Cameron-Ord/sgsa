@@ -55,7 +55,7 @@ f32 triangle(f32 amp, f32 phase) {
   return amp * (2.0f * fabsf(2.0f * (phase - 0.5f)) - 1.0f);
 }
 
-f32 sine(f32 amp, f32 phase) { return amp * (1.0f * sinf(2.0f * PI * phase)); }
+f32 sine(f32 amp, f32 phase) { return amp * sinf(2.0f * PI * phase); }
 
 f32 vibrato(f32 depth, f32 mod_phase) {
   return depth * sinf(2.0f * PI * mod_phase);
@@ -112,7 +112,7 @@ struct layer make_layer(u32 oscilator_count, bool delay_active,
     .pb_cfg = cfg,
     .dl = create_delay_line(
      MS_BUFSIZE((f32)cfg.ivals[SAMPLE_RATE_VAL].value, delay_seconds)),
-    .osc_cfg = default_osc_config(PULSE_POLY)
+    .osc_cfg = default_osc_config(SAW_POLY)
   };
   memset(voice_layer.layer_window, 0, sizeof(f32) * WINDOW_RESOLUTION);
   voices_initialize(voice_layer.voices);

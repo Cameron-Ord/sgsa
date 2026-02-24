@@ -89,6 +89,10 @@ static f32 generate(f32 ampl, i32 waveform_id, f32 *state, const struct configs 
   const f32 phase = state[PHASE_VAL];
   const f32 mod_phase = state[MOD_PHASE_VAL];
   const f32 vib = set_vibrato(mod_phase, state, cfg);
+  
+  f32 total = phase + vib;
+  if(total >= 1.0f) total -= 1.0f;
+  if(total < 0.0f) total += 1.0f;
 
   const f32 vol = spec[OSC_VOLUME_VAL].value;
   const f32 coeff = spec[COEFF_VAL].value;
@@ -101,26 +105,26 @@ static f32 generate(f32 ampl, i32 waveform_id, f32 *state, const struct configs 
   default:
     return 0.0f;
   case SINE: {
-    return sine(ampl, phase + vib) * vol;
+    return sine(ampl, total) * vol;
   } break;
   case PULSE_POLY: {
-    return poly_square(ampl, inc, phase + vib, coeff) * vol;
+    return poly_square(ampl, inc, total, coeff) * vol;
   } break;
   case TRIANGLE_POLY: {
-    return poly_triangle(ampl, inc, phase + vib, integrator, dc_x, dc_y, dc_blocker) *
+    return poly_triangle(ampl, inc, total, integrator, dc_x, dc_y, dc_blocker) *
            vol;
   } break;
   case SAW_POLY: {
-    return poly_saw(ampl, inc, phase + vib) * vol;
+    return poly_saw(ampl, inc, total) * vol;
   } break;
   case SAW_RAW: {
-    return sawtooth(ampl, phase + vib) * vol;
+    return sawtooth(ampl, total) * vol;
   } break;
   case TRIANGLE_RAW: {
-    return triangle(ampl, phase + vib) * vol;
+    return triangle(ampl, total) * vol;
   } break;
   case PULSE_RAW: {
-    return square(ampl, phase + vib, coeff) * vol;
+    return square(ampl, total, coeff) * vol;
   } break;
   }
 }
@@ -159,8 +163,8 @@ static void loop_oscilators(struct voice *v, f32 sum[],
       state->oscilator_states[PHASE_VAL] -= 1.0f;
     }
     state->oscilator_states[MOD_PHASE_VAL] += mod_phase_inc;
-    if (state->oscilator_states[MOD_PHASE_VAL] >= 2.0f) {
-      state->oscilator_states[MOD_PHASE_VAL] -= 2.0f;
+    if (state->oscilator_states[MOD_PHASE_VAL] >= 1.0f) {
+      state->oscilator_states[MOD_PHASE_VAL] -= 1.0f;
     }
     state->oscilator_states[TIME_VAL] += dt;
 
