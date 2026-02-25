@@ -1,6 +1,6 @@
 TARGET = sgsa
 CC = gcc
-LFLAGS = -lm -lSDL3 -lSDL3_ttf -lportmidi
+LFLAGS = -lm -lSDL3 -lportmidi
 CFLAGS  = -Wall -Wextra -Wpedantic -O0 -std=c23
 DEBUG_CFLAGS = -Wshadow -Wconversion -Wnull-dereference -Wdouble-promotion -g
 
