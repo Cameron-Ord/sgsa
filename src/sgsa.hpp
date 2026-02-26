@@ -4,8 +4,23 @@
 #include <SDL3/SDL.h>
 #include <portmidi.h>
 
+enum STATUS {
+  NOTE_ON = 0x90,
+  NOTE_OFF = 0x80,
+  CONTROL = 0xB0,
+  CONTROL_ON = 0x7F,
+  CONTROL_OFF = 0x0,
+};
+
 #define CONTROLLER_NAME_MAX 256
 void stream_get(void *data, SDL_AudioStream *stream, i32 add, i32 total);
+
+enum input_positions {
+    INPUT_MSG_STATUS,
+    INPUT_MSG_ONE,
+    INPUT_MSG_TWO,
+    INPUT_END
+};
 
 class Audio {
 public:
@@ -45,10 +60,15 @@ public:
     void list_available_controllers(void);
     void get_midi_device_by_name(const char *name);
     bool open_stream(i32 bufsize);
+    void read_input(i32 len);
+    void clear_msg_buf(void);
+
+    const i32 *get_msgbuf(void) const { return msgbuf; }
 private:
     char input_name[CONTROLLER_NAME_MAX + 1];
     i32 input_id;
     PortMidiStream *stream;
+    i32 msgbuf[INPUT_END];
 };
 
 class Manager {

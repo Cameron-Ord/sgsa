@@ -3,7 +3,9 @@
 #include <iostream>
 
 Controller::Controller(const char *name_arg) 
-: input_name(), input_id(-1), stream(NULL) {
+: input_name(), input_id(-1), stream(NULL), msgbuf() {
+    memset(input_name, 0, CONTROLLER_NAME_MAX * sizeof(char));
+    memset(msgbuf, 0, INPUT_END * sizeof(i32));
     list_available_controllers();
     get_midi_device_by_name(name_arg);
     open_stream(1024);
@@ -57,4 +59,20 @@ void Controller::get_midi_device_by_name(const char *name){
         }
     }
     std::cout << "Failed to find specified device" << std::endl;
+}
+
+void Controller::clear_msg_buf(void){
+    for(i32 i = 0; i < INPUT_END; i++){
+        msgbuf[i] = 0;
+    }
+}
+
+void Controller::read_input(i32 len){
+    PmEvent event; 
+    i32 count = Pm_Read(stream, &event, len);
+    if(count > 0){
+        msgbuf[INPUT_MSG_STATUS] = Pm_MessageStatus(event.message); 
+        msgbuf[INPUT_MSG_ONE] = Pm_MessageData1(event.message); 
+        msgbuf[INPUT_MSG_TWO] = Pm_MessageData2(event.message); 
+    }
 }
