@@ -52,7 +52,9 @@ void Controller::get_midi_device_by_name(const char *name){
         if((info && info->input) && strcmp(info->name, name) == 0){
             copy_char_buffer(info->name, input_name, strlen(info->name));
             input_id = i;
+            std::cout << "Found device: " << name << std::endl;
             return;
         }
     }
+    std::cout << "Failed to find specified device" << std::endl;
 }
