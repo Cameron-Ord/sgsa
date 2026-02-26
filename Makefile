@@ -6,6 +6,8 @@ DEBUG_CFLAGS = -Wshadow -Wconversion -Wnull-dereference -Wdouble-promotion -g
 
 SRCS = src/main.cpp
 SRCS += src/util.cpp
+SRCS += src/midi.cpp
+SRCS += src/audio.cpp
 
 
 all: $(TARGET)
