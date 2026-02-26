@@ -4,6 +4,7 @@
 #include <SDL3/SDL.h>
 #include <portmidi.h>
 
+#define CONTROLLER_NAME_MAX 256
 void stream_get(void *data, SDL_AudioStream *stream, i32 add, i32 total);
 
 class Audio {
@@ -38,16 +39,21 @@ private:
 
 class Controller {
 public:
-    Controller(void);
+    Controller(const char *name_arg);
     ~Controller(void) = default;
 
     void list_available_controllers(void);
+    void get_midi_device_by_name(const char *name);
+    bool open_stream(i32 bufsize);
 private:
+    char input_name[CONTROLLER_NAME_MAX + 1];
+    i32 input_id;
+    PortMidiStream *stream;
 };
 
 class Manager {
 public:
-    Manager(i32 channels, i32 samplerate);
+    Manager(i32 channels, i32 samplerate, const char *name_arg);
     ~Manager(void);
     bool quit(void);
 

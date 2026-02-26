@@ -9,6 +9,14 @@ const i32 CHANNELS = 1;
 static bool initialize(void);
 
 int main(int argc, char **argv){
+    const char *name_arg = NULL;
+    if(argc > 1 && argc < 3){
+        name_arg = argv[1];
+    } else {
+        std::cout << "Usage: sgsa device-name" << std::endl;
+        return 0;
+    }
+
     if(!initialize()){
         return 0;
     }
@@ -25,13 +33,14 @@ int main(int argc, char **argv){
     << SDL_VERSIONNUM_MINOR(linked) << "."
     << SDL_VERSIONNUM_MICRO(linked) << "." << std::endl;
 
-    Manager manager(CHANNELS, SAMPLE_RATE);
-
+    Manager manager(CHANNELS, SAMPLE_RATE, name_arg);
+    
 
     return 0;
 }
 
-Manager::Manager(i32 channels, i32 samplerate) : audio(channels, samplerate), key_events(), controller() {
+Manager::Manager(i32 channels, i32 samplerate, const char *name_arg) 
+: audio(channels, samplerate), key_events(), controller(name_arg) {
     
 }
 
