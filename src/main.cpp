@@ -1,3 +1,4 @@
+#include "sgsa.hpp"
 
 
 int main(int argc, char **argv){

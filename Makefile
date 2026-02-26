@@ -1,18 +1,19 @@
 TARGET = sgsa
-CC = gcc
+CC = g++
 LFLAGS = -lm -lSDL3 -lportmidi
-CFLAGS  = -Wall -Wextra -Wpedantic -O0 -std=c23
+CFLAGS  = -Wall -Wextra -Wpedantic -O0 -std=c++17
 DEBUG_CFLAGS = -Wshadow -Wconversion -Wnull-dereference -Wdouble-promotion -g
 
 SRCS = src/main.cpp
+SRCS += src/util.cpp
 
 
 all: $(TARGET)
 
-windows: CC = x86_64-w64-mingw32-gcc
+windows: CC = x86_64-w64-mingw32-g++
 windows: all
 
-linux: CC = gcc
+linux: CC = g++
 linux: all
 
 $(TARGET): $(SRCS)
