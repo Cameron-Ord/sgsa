@@ -3,9 +3,6 @@
 #include <iostream>
 #include <portmidi.h>
 
-const i32 SAMPLE_RATE = 13379;
-const i32 CHANNELS = 1;
-
 static bool initialize(void);
 static bool sdl_check_quit(void);
 
@@ -48,7 +45,16 @@ int main(int argc, char **argv){
     << SDL_VERSIONNUM_MINOR(linked) << "."
     << SDL_VERSIONNUM_MICRO(linked) << "." << std::endl;
 
-    Manager manager(CHANNELS, SAMPLE_RATE, name_arg);
+    const i32 SAMPLE_RATE = 13379;
+    const i32 CHANNELS = 1;
+
+    const f32 ATK = 0.0f;
+    const f32 DEC = 0.1f;
+    const f32 SUS = 0.1f;
+    const f32 REL = 0.0f;
+    const f32 CYCLE = 0.25f;
+
+    Manager manager(CHANNELS, SAMPLE_RATE, ATK, DEC, SUS, REL, CYCLE, name_arg);
 
     
     const u32 FPS = 120;
@@ -86,8 +92,8 @@ int main(int argc, char **argv){
     return 0;
 }
 
-Manager::Manager(i32 channels, i32 samplerate, const char *name_arg) 
-: audio(channels, samplerate), key_events(), controller(name_arg) {
+Manager::Manager(i32 chan, i32 sr, f32 atk, f32 dec, f32 sus, f32 rel, f32 cyc, const char *name_arg) 
+: audio(chan, sr, atk, dec, sus, rel, cyc), key_events(), controller(name_arg) {
     
 }
 

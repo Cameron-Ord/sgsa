@@ -1,4 +1,5 @@
 #include "sgsa.hpp"
+#include "util.hpp"
 #include <iostream>
 
 const i32 SAMPLES_PER_TICK = 128;
@@ -17,8 +18,27 @@ void stream_get(void *data, SDL_AudioStream *stream, i32 add, i32 total){
     return;
 }
 
-Audio::Audio(i32 channels, i32 samplerate) 
-: valid(true), dev(0), stream(NULL), internal(make_spec(channels, samplerate)), output({SDL_AUDIO_F32, 0, 0}) {
+Voice::Voice(void){
+    voice_state = set_bit(0, ENVELOPE_OFF | VOICE_OFF);
+    gen = 0.0f;
+    for(i32 j = 0; j < STATE_END; j++){
+        generative_states[j] = 0.0f;
+    }
+}
+
+Audio_Data::Audio_Data(i32 chan, i32 sr, f32 atk, f32 dec, f32 sus, f32 rel, f32 cyc) 
+: channels(chan), samplerate(sr), attack(atk), decay(dec), sustain(sus), release(rel), cycle(cyc) {
+    std::cout << "(Channels: " << channels << ") "
+    << "(Sample rate: " << samplerate << ") "
+    << "(Attack: " << attack << ") "
+    << "(Decay: " << decay << ") "
+    << "(Sustain: " << sustain << ") "
+    << "(Release: " << release << ") "
+    << "(Cycle: " << cycle << ") " << std::endl;
+}
+
+Audio::Audio(i32 chan, i32 sr, f32 atk, f32 dec, f32 sus, f32 rel, f32 cyc) 
+: valid(true), dev(0), stream(NULL), internal(make_spec(chan, sr)), output({SDL_AUDIO_F32, 0, 0}), data(chan, sr, atk, dec, sus, rel, cyc) {
     if(!(open_audio_device() && create_audio_stream())){
         valid = false;
         return;
