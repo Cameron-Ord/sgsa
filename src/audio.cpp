@@ -7,6 +7,9 @@ const f32 PI = 3.141592653589793f;
 const i32 CHUNK_MAX = 128;
 const f32 VIBRATO_ON = 0.33f;
 
+//d->voices[i].increment_phase(d->voices[i].generative_states[STATE_LFO2], ((120.0f / 60.0f) * 1.0f / (f32)d->samplerate), 1.0f);
+//f32 amp = 0.5f * (1.0f + sinf(2.0f * PI * d->voices[i].generative_states[STATE_LFO2]));
+
 static SDL_AudioSpec make_spec(i32 chan, i32 sr);
 static bool stream_feed(SDL_AudioStream *stream, const f32 samples[], i32 len);
 static void generate_loop(struct Audio_Data *d, size_t count, f32 *sample_buffer);
@@ -24,12 +27,7 @@ static SDL_AudioSpec make_spec(i32 chan, i32 sr) {
 // Safety is my middle name baby (It's not)
 static f32 generate(const struct Wave_Table *wt, struct Voice *v, f32 vdepth){
     const f32 *wave = wt->tables[wt->current_table];
-    f32 vib = 0.0f;
-    if(v->generative_states[STATE_TIME] > VIBRATO_ON){
-        vib = v->vibrato(vdepth);
-    }
-
-    i32 index = (i32)(v->generative_states[STATE_PHASE] + vib);
+    i32 index = (i32)(v->generative_states[STATE_PHASE]);
     if(index < 0) {
         index += TABLE_SIZE;
     }
@@ -50,21 +48,20 @@ static void voice_loop(struct Audio_Data *d, f32 generated[CHANNEL_MAX]){
             continue;
         }
 
-        const f32 inc = TABLE_SIZE * d->voices[i].freq / (f32)d->samplerate;
+        const f32 vib_inc = d->vibrato_rate / (f32)d->samplerate;        
+        d->voices[i].increment_phase(d->voices[i].generative_states[STATE_LFO1], vib_inc, 1.0f);
+        
+        f32 vib = 0.0f;
+        if(d->voices[i].generative_states[STATE_TIME] > VIBRATO_ON){
+            vib = d->voices[i].vibrato(d->vibrato_depth);
+        }
+
         const f32 dt = 1.0f / (f32)d->samplerate;
-        d->voices[i].generative_states[STATE_TIME] += dt;
+        d->voices[i].increment_time(d->voices[i].generative_states[STATE_TIME], dt);     
 
-        d->voices[i].generative_states[STATE_PHASE] += inc;
-        if(d->voices[i].generative_states[STATE_PHASE] >= TABLE_SIZE){
-            d->voices[i].generative_states[STATE_PHASE] -= TABLE_SIZE;
-        }
-
-        const f32 mod_inc = d->vibrato_rate / (f32)d->samplerate;
-        d->voices[i].generative_states[STATE_PHASE_MOD] += mod_inc;
-        if(d->voices[i].generative_states[STATE_PHASE_MOD] >= 1.0f){
-            d->voices[i].generative_states[STATE_PHASE_MOD] -= 1.0f;
-        }
-
+        const f32 freq_inc = TABLE_SIZE * (d->voices[i].freq + vib) / (f32)d->samplerate;
+        d->voices[i].increment_phase(d->voices[i].generative_states[STATE_PHASE], freq_inc, TABLE_SIZE);
+        
         for(i32 c = 0; c < d->channels; c++){
             d->voices[i].gen[c] = generate(&d->wave_table, &d->voices[i], d->vibrato_depth);
             d->voices[i].adsr(d->samplerate, d->attack, d->decay, d->sustain, d->release);
@@ -120,6 +117,18 @@ Voice::Voice(void)
     }
 }
 
+void Voice::increment_time(f32& time, f32 inc){
+    time += inc;
+}
+
+
+void Voice::increment_phase(f32& phase, f32 inc, f32 max){
+    phase += inc;
+    if(phase >= max){
+        phase -= max;
+    }
+}
+
 void Wave_Table::print_table(f32 table[TABLE_SIZE]){
     for(i32 i = 0; i < TABLE_SIZE; i++){
         std::cout << "(" << table[i] << ")";
@@ -165,7 +174,9 @@ Wave_Table::Wave_Table(f32 duty_cycle_coeff)
 }
 
 Audio_Data::Audio_Data(i32 chan, i32 sr, f32 atk, f32 dec, f32 sus, f32 rel, f32 cyc, f32 vrate, f32 vdepth) 
-: channels(chan), samplerate(sr), attack(atk), decay(dec), sustain(sus), release(rel), vibrato_rate(vrate), vibrato_depth(vdepth), voices(), wave_table(cyc) {
+: channels(chan), samplerate(sr), attack(atk), decay(dec), sustain(sus), release(rel), 
+vibrato_rate(vrate), vibrato_depth(vdepth), voices(), wave_table(cyc)
+{
     std::cout << "(Channels: " << channels << ") "
     << "(Sample rate: " << samplerate << ") "
     << "(Attack: " << attack << ") "
@@ -175,7 +186,7 @@ Audio_Data::Audio_Data(i32 chan, i32 sr, f32 atk, f32 dec, f32 sus, f32 rel, f32
 }
 
 f32 Voice::vibrato(f32 depth){
-    return depth * sinf(2.0f * PI * generative_states[STATE_PHASE_MOD]);
+    return depth * sinf(2.0f * PI * generative_states[STATE_LFO1]);
 }
 
 void Voice::adsr(i32 samplerate, f32 atk, f32 dec, f32 sus, f32 rel){

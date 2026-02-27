@@ -48,7 +48,8 @@ enum midi_input_mappings {
 enum state_positions {
     STATE_ENVELOPE,
     STATE_PHASE, 
-    STATE_PHASE_MOD,
+    STATE_LFO1,
+    STATE_LFO2,
     STATE_TIME,
 //    STATE_INTEGRATOR,
 //    STATE_DC_X,
@@ -81,6 +82,8 @@ struct Voice {
     f32 gen[CHANNEL_MAX];
     void adsr(i32 samplerate, f32 atk, f32 dec, f32 sus, f32 rel);
     f32 vibrato(f32 depth);
+    void increment_phase(f32& phase, f32 inc, f32 max);
+    void increment_time(f32& time, f32 inc);
 };
 
 struct Audio_Data {
