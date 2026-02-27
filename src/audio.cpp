@@ -133,6 +133,7 @@ Wave_Table::Wave_Table(f32 duty_cycle_coeff)
     const i32 N = TABLE_SIZE;
     const i32 HALFN = N / 2;
 
+    // Gonna make another branch for the next synth and implement band limited tables by using the fourier series for each waveform
     for(i32 i = 0, j = HALFN; i < HALFN && j < N; i++, j++){
         tables[TABLE_TRIANGLE][i] = 2.0f * (f32)i / (HALFN - 1) - 1.0f;
         tables[TABLE_TRIANGLE][j] = 2.0f * ((N - 1) - (f32)j) / (HALFN - 1) - 1.0f;
@@ -147,8 +148,12 @@ Wave_Table::Wave_Table(f32 duty_cycle_coeff)
     for(i32 i = 0; i < cycN; i++){
         tables[TABLE_PULSE][i] = 1.0f;
     }
-    for(i32 i = cycN; i < TABLE_SIZE; i++){
+    for(i32 i = cycN; i < N; i++){
         tables[TABLE_PULSE][i] = -1.0f;
+    }
+
+    for(i32 i = 0; i < N; i++){
+        tables[TABLE_SAW][i] = -1.0f + 2.0f * ((f32)i / (N - 1));
     }
 
     std::cout << "==TRIANGLE==" << std::endl;

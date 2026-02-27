@@ -58,6 +58,7 @@ enum state_positions {
 
 enum table_locations {
     TABLE_PULSE,
+    TABLE_SAW,
     TABLE_TRIANGLE,
     TABLE_SQUARE,
     TABLE_END
