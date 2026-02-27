@@ -46,7 +46,7 @@ int main(int argc, char **argv){
     << SDL_VERSIONNUM_MICRO(linked) << "." << std::endl;
 
     const i32 SAMPLE_RATE = 13379;
-    const i32 CHANNELS = 1;
+    const i32 CHANNELS = 2;
 
     const f32 ATK = 0.0f;
     const f32 DEC = 0.1f;

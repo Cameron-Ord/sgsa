@@ -24,21 +24,6 @@ static SDL_AudioSpec make_spec(i32 chan, i32 sr) {
 // Safety is my middle name baby (It's not)
 static f32 generate(const struct Wave_Table *wt, struct Voice *v, i32 sample_rate, f32 vrate, f32 vdepth){
     const f32 *wave = wt->tables[wt->current_table];
-    const f32 inc = TABLE_SIZE * v->freq / (f32)sample_rate;
-    const f32 dt = 1.0f / (f32)sample_rate;
-    v->generative_states[STATE_TIME] += dt;
-
-    v->generative_states[STATE_PHASE] += inc;
-    if(v->generative_states[STATE_PHASE] >= TABLE_SIZE){
-        v->generative_states[STATE_PHASE] -= TABLE_SIZE;
-    }
-
-    const f32 mod_inc = vrate / (f32)sample_rate;
-    v->generative_states[STATE_PHASE_MOD] += mod_inc;
-    if(v->generative_states[STATE_PHASE_MOD] >= 1.0f){
-        v->generative_states[STATE_PHASE_MOD] -= 1.0f;
-    }
-    
     f32 vib = 0.0f;
     if(v->generative_states[STATE_TIME] > VIBRATO_ON){
         vib = v->vibrato(vdepth);
@@ -63,6 +48,21 @@ static void voice_loop(struct Audio_Data *d, f32 generated[CHANNEL_MAX]){
     for(i32 i = 0; i < MAX_VOICE; i++){
         if(!generating(d->voices[i])) {
             continue;
+        }
+
+        const f32 inc = TABLE_SIZE * d->voices[i].freq / (f32)d->samplerate;
+        const f32 dt = 1.0f / (f32)d->samplerate;
+        d->voices[i].generative_states[STATE_TIME] += dt;
+
+        d->voices[i].generative_states[STATE_PHASE] += inc;
+        if(d->voices[i].generative_states[STATE_PHASE] >= TABLE_SIZE){
+            d->voices[i].generative_states[STATE_PHASE] -= TABLE_SIZE;
+        }
+
+        const f32 mod_inc = d->vibrato_rate / (f32)d->samplerate;
+        d->voices[i].generative_states[STATE_PHASE_MOD] += mod_inc;
+        if(d->voices[i].generative_states[STATE_PHASE_MOD] >= 1.0f){
+            d->voices[i].generative_states[STATE_PHASE_MOD] -= 1.0f;
         }
 
         for(i32 c = 0; c < d->channels; c++){
