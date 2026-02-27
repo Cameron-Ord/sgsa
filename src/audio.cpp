@@ -11,7 +11,7 @@ static SDL_AudioSpec make_spec(i32 chan, i32 sr);
 static bool stream_feed(SDL_AudioStream *stream, const f32 samples[], i32 len);
 static void generate_loop(struct Audio_Data *d, size_t count, f32 *sample_buffer);
 static bool generating(const struct Voice& v);
-static f32 generate(const struct Wave_Table *wt, struct Voice *v, i32 sample_rate, f32 vrate, f32 vdepth);
+static f32 generate(const struct Wave_Table *wt, struct Voice *v, f32 vdepth);
 static void voice_loop(struct Audio_Data *d, f32 generated[CHANNEL_MAX]);
 
 static SDL_AudioSpec make_spec(i32 chan, i32 sr) {
@@ -22,7 +22,7 @@ static SDL_AudioSpec make_spec(i32 chan, i32 sr) {
     return spec;
 }
 // Safety is my middle name baby (It's not)
-static f32 generate(const struct Wave_Table *wt, struct Voice *v, i32 sample_rate, f32 vrate, f32 vdepth){
+static f32 generate(const struct Wave_Table *wt, struct Voice *v, f32 vdepth){
     const f32 *wave = wt->tables[wt->current_table];
     f32 vib = 0.0f;
     if(v->generative_states[STATE_TIME] > VIBRATO_ON){
@@ -66,7 +66,7 @@ static void voice_loop(struct Audio_Data *d, f32 generated[CHANNEL_MAX]){
         }
 
         for(i32 c = 0; c < d->channels; c++){
-            d->voices[i].gen[c] = generate(&d->wave_table, &d->voices[i], d->samplerate, d->vibrato_rate, d->vibrato_depth);
+            d->voices[i].gen[c] = generate(&d->wave_table, &d->voices[i], d->vibrato_depth);
             d->voices[i].adsr(d->samplerate, d->attack, d->decay, d->sustain, d->release);
             d->voices[i].gen[c] *= d->voices[i].generative_states[STATE_ENVELOPE];
             sum += d->voices[i].gen[c];
