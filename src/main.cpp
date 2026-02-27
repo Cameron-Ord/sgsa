@@ -54,7 +54,7 @@ int main(int argc, char **argv){
     const f32 REL = 0.03f;
 
     const f32 VRATE = 6.0f;
-    const f32 VDEPTH = 1.5f;
+    const f32 VDEPTH = 2.5f;
 
     const f32 CYCLE = 0.25f;
     Manager manager(CHANNELS, SAMPLE_RATE, ATK, DEC, SUS, REL, CYCLE, VRATE, VDEPTH, name_arg);
