@@ -3,15 +3,28 @@
 #include "typedef.hpp"
 #include <SDL3/SDL.h>
 #include <portmidi.h>
+#include <memory>
 
 #define VOICE_ON (1 << 1)
 #define VOICE_OFF (1 << 2)
 #define ENVELOPE_OFF (1 << 3)
-#define ENVELOPE_DECAYING (1 << 4)
-#define ENVELOPE_RELEASING (1 << 5)
-#define ENVELOPE_SUSTAINING (1 << 6)
+#define ENVELOPE_ATTACKING (1 << 4)
+#define ENVELOPE_DECAYING (1 << 5)
+#define ENVELOPE_RELEASING (1 << 6)
+#define ENVELOPE_SUSTAINING (1 << 7)
 
+// (VALUE - VALUE) / SAMPLES
+#define ATTACK_INCREMENT(samplerate, ATK) \
+    (1.0f - 0.0f) / ((ATK) * (samplerate))
+#define DECAY_INCREMENT(samplerate, DEC, SUS) \
+    (1.0f - (SUS)) / ((DEC) * (samplerate))
+#define RELEASE_INCREMENT(envelope, samplerate, REL) \
+    (envelope) / ((REL) * (samplerate))
+
+
+#define CHANNEL_MAX 2
 #define CONTROLLER_NAME_MAX 256
+#define TABLE_SIZE 32
 #define MAX_VOICE 4
 
 void stream_get(void *data, SDL_AudioStream *stream, i32 add, i32 total);
@@ -35,30 +48,51 @@ enum state_positions {
     STATE_ENVELOPE,
     STATE_PHASE, 
     STATE_PHASE_MOD,
-    STATE_INTEGRATOR,
-    STATE_DC_X,
-    STATE_DC_Y,
+    STATE_TIME,
+//    STATE_INTEGRATOR,
+//    STATE_DC_X,
+//    STATE_DC_Y,
     STATE_END
+};
+
+enum table_locations {
+    TABLE_PULSE,
+    TABLE_TRIANGLE,
+    TABLE_SQUARE,
+    TABLE_END
+};
+
+struct Wave_Table {
+    Wave_Table(f32 duty_cycle_coeff);
+    const f32 cycle;
+    f32 tables[TABLE_END][TABLE_SIZE];
+    u8 current_table;
+    void print_table(f32 table[TABLE_SIZE]);
 };
 
 struct Voice {
     Voice(void);
     u8 voice_state;
+    f32 freq;
+    i32 midi_key;
     f32 generative_states[STATE_END];
-    f32 gen;
+    f32 gen[CHANNEL_MAX];
+    void adsr(i32 samplerate, f32 atk, f32 dec, f32 sus, f32 rel);
+    f32 vibrato(f32 depth);
 };
 
 struct Audio_Data {
-    Audio_Data(i32 chan, i32 sr, f32 atk, f32 dec, f32 sus, f32 rel, f32 cyc);
+    Audio_Data(i32 chan, i32 sr, f32 atk, f32 dec, f32 sus, f32 rel, f32 cyc, f32 vrate, f32 vdepth);
     const i32 channels, samplerate;
     const f32 attack, decay, sustain, release;
-    const f32 cycle;
+    const f32 vibrato_rate, vibrato_depth;
     struct Voice voices[MAX_VOICE];
+    const struct Wave_Table wave_table;
 };
 
 class Audio {
 public:
-    Audio(i32 chan, i32 sr, f32 atk, f32 dec, f32 sus, f32 rel, f32 cyc);
+    Audio(i32 chan, i32 sr, f32 atk, f32 dec, f32 sus, f32 rel, f32 cyc, f32 vrate, f32 vdepth);
     ~Audio(void) = default;
     bool set_audio_callback(void *userdata);
     bool bind_stream(void);
@@ -71,6 +105,7 @@ public:
     bool pause(void);
     void clear(void);
     void quit(void);
+    struct Audio_Data &get_data(void) { return data; }
 private:
     bool valid;
     u32 dev;
@@ -97,8 +132,11 @@ public:
     bool open_stream(i32 bufsize);
     void read_input(i32 len);
     void clear_msg_buf(void);
+    void iterate_input_on(struct Audio_Data &data, i32 midi_key);
+    void iterate_input_off(struct Audio_Data &data, i32 midi_key);
 
     const i32 *get_msgbuf(void) const { return msgbuf; }
+
 private:
     char input_name[CONTROLLER_NAME_MAX + 1];
     i32 input_id;
@@ -108,7 +146,7 @@ private:
 
 class Manager {
 public:
-    Manager(i32 channels, i32 samplerate, f32 atk, f32 dec, f32 sus, f32 rel, f32 cyc, const char *name_arg);
+    Manager(i32 channels, i32 samplerate, f32 atk, f32 dec, f32 sus, f32 rel, f32 cyc, f32 vrate, f32 vdepth, const char *name_arg);
     ~Manager(void);
     bool quit(void);
 

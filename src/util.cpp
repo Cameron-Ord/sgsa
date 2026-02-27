@@ -35,6 +35,6 @@ u8 set_bit(u8 original, u8 pos){
     return original |= pos;
 }
 
-bool check_bit(u8 original, u8 pos){
-    return original & pos;
+bool check_bit(u8 original, u8 mask, u8 want){
+    return (original & mask) == want; 
 }

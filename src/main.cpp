@@ -52,10 +52,12 @@ int main(int argc, char **argv){
     const f32 DEC = 0.1f;
     const f32 SUS = 0.1f;
     const f32 REL = 0.0f;
+
+    const f32 VRATE = 6.0f;
+    const f32 VDEPTH = 1.5f;
+
     const f32 CYCLE = 0.25f;
-
-    Manager manager(CHANNELS, SAMPLE_RATE, ATK, DEC, SUS, REL, CYCLE, name_arg);
-
+    Manager manager(CHANNELS, SAMPLE_RATE, ATK, DEC, SUS, REL, CYCLE, VRATE, VDEPTH, name_arg);
     
     const u32 FPS = 120;
     const u32 FG = 1000 / FPS;
@@ -73,11 +75,11 @@ int main(int argc, char **argv){
         switch(buf[INPUT_MSG_STATUS]){
             default: break;
             case NOTE_ON:{
-                std::cout << "ON: " << midi_to_freq(buf[INPUT_MSG_ONE]) << std::endl;
+                manager.get_controller().iterate_input_on(manager.get_audio().get_data(), buf[INPUT_MSG_ONE]);
             }break;
 
             case NOTE_OFF:{
-                std::cout << "OFF: " << midi_to_freq(buf[INPUT_MSG_ONE]) << std::endl;
+                manager.get_controller().iterate_input_off(manager.get_audio().get_data(), buf[INPUT_MSG_ONE]);
             }break;
         }
 
@@ -92,8 +94,8 @@ int main(int argc, char **argv){
     return 0;
 }
 
-Manager::Manager(i32 chan, i32 sr, f32 atk, f32 dec, f32 sus, f32 rel, f32 cyc, const char *name_arg) 
-: audio(chan, sr, atk, dec, sus, rel, cyc), key_events(), controller(name_arg) {
+Manager::Manager(i32 chan, i32 sr, f32 atk, f32 dec, f32 sus, f32 rel, f32 cyc, f32 vrate, f32 vdepth, const char *name_arg) 
+: audio(chan, sr, atk, dec, sus, rel, cyc, vrate, vdepth), key_events(), controller(name_arg) {
     
 }
 

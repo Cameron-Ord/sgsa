@@ -8,6 +8,6 @@ void copy_char_buffer(const char *src, char *dst, size_t len);
 u8 toggle_bit(u8 original, u8 pos);
 u8 clear_bit(u8 original, u8 pos);
 u8 set_bit(u8 original, u8 pos);
-bool check_bit(u8 original, u8 pos);
+bool check_bit(u8 original, u8 mask, u8 want);
 
 #endif
