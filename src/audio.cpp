@@ -13,7 +13,6 @@ const f32 VIBRATO_ON = 0.33f;
 static SDL_AudioSpec make_spec(i32 chan, i32 sr);
 static bool stream_feed(SDL_AudioStream *stream, const f32 samples[], i32 len);
 static void generate_loop(struct Audio_Data *d, size_t count, f32 *sample_buffer);
-static bool generating(const struct Voice& v);
 static f32 generate(const struct Wave_Table *wt, struct Voice *v, f32 freq);
 static void voice_loop(struct Audio_Data *d, f32 generated[CHANNEL_MAX]);
 
@@ -35,17 +34,10 @@ static f32 generate(const struct Wave_Table *wt, struct Voice *v, f32 freq){
     return wave[index % TABLE_SIZE];
 }
 
-static bool generating(const struct Voice& v){
-    const bool first = check_bit(v.voice_state, VOICE_ON | ENVELOPE_OFF | ENVELOPE_RELEASING, VOICE_ON);
-    const bool second = check_bit(v.voice_state, VOICE_OFF | ENVELOPE_RELEASING, VOICE_OFF | ENVELOPE_RELEASING);
-    return first || second;
-}
-
 static void voice_loop(struct Audio_Data *d, f32 generated[CHANNEL_MAX]){
-    f32 sum = 0.0f;
-    i32 active_count = 0;
+    f32 sums[CHANNEL_MAX] = {0.0f, 0.0f};
     for(i32 i = 0; i < MAX_VOICE; i++){
-        if(!generating(d->voices[i])) {
+        if(!is_generating(d->voices[i].voice_state)) {
             continue;
         }
 
@@ -66,14 +58,14 @@ static void voice_loop(struct Audio_Data *d, f32 generated[CHANNEL_MAX]){
             d->voices[i].gen[c] = generate(&d->wave_table, &d->voices[i], d->voices[i].freq + vib);
             d->voices[i].adsr(d->samplerate, d->attack, d->decay, d->sustain, d->release);
             d->voices[i].gen[c] *= d->voices[i].generative_states[STATE_ENVELOPE];
-            sum += d->voices[i].gen[c];
+            sums[c] += d->voices[i].gen[c];
         }
 
-        active_count++;    
     }
 
     for(i32 c = 0; c < d->channels; c++){
-        generated[c] = sum * (1.0f / sqrtf((f32)active_count));
+        const f32 scale = voice_rms(d->voices, c);
+        generated[c] = sums[c] * scale;
     }
 }
 
@@ -167,9 +159,6 @@ Wave_Table::Wave_Table(f32 duty_cycle_coeff, i32 sample_rate)
             tables[TABLE_SAW][o * 2][n] = -((2.0f * 1.0f) / PI) * sum;
         }
     }
-
-    //tables[TABLE_SAW][i] = -1.0f + 2.0f * ((f32)i / (N - 1));
-
 }
 
 Audio_Data::Audio_Data(i32 chan, i32 sr, f32 atk, f32 dec, f32 sus, f32 rel, f32 cyc, f32 vrate, f32 vdepth) 

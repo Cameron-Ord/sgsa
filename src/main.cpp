@@ -48,13 +48,18 @@ int main(int argc, char **argv){
     const i32 SAMPLE_RATE = 48000;
     const i32 CHANNELS = 2;
 
-    const f32 ATK = 0.1f;
-    const f32 DEC = 0.045f;
-    const f32 SUS = 0.4f;
-    const f32 REL = 0.03f;
+    const f32 minute = 60.0f;
+    const f32 tempo = 100.0f;
+    const f32 note_duration = 1.0f;
+    const f32 duration = (minute / tempo) * note_duration;
+    
+    const f32 ATK = 0.6f * duration;
+    const f32 DEC = 0.6f * duration;
+    const f32 SUS = 0.8f;
+    const f32 REL = 1.25f * duration;
 
     const f32 VRATE = 4.0f;
-    const f32 VDEPTH = 2.0f;
+    const f32 VDEPTH = 1.0f;
 
     const f32 CYCLE = 0.125f;
     Manager manager(CHANNELS, SAMPLE_RATE, ATK, DEC, SUS, REL, CYCLE, VRATE, VDEPTH, name_arg);

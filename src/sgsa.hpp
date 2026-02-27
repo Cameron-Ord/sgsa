@@ -26,8 +26,8 @@
 
 #define CHANNEL_MAX 2
 #define CONTROLLER_NAME_MAX 256
-#define TABLE_SIZE 1024
-#define MAX_VOICE 4
+#define TABLE_SIZE 2048
+#define MAX_VOICE 16
 
 void stream_get(void *data, SDL_AudioStream *stream, i32 add, i32 total);
 
