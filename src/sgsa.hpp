@@ -26,7 +26,7 @@
 
 #define CHANNEL_MAX 2
 #define CONTROLLER_NAME_MAX 256
-#define TABLE_SIZE 2048
+#define TABLE_SIZE 512
 #define MAX_VOICE 16
 
 void stream_get(void *data, SDL_AudioStream *stream, i32 add, i32 total);
@@ -84,6 +84,9 @@ struct Voice {
     i32 midi_key;
     f32 generative_states[STATE_END];
     f32 gen[CHANNEL_MAX];
+    f32 prev[CHANNEL_MAX];
+
+    void lpf(i32 sample_rate, f32 cutoff, i32 chan);
     void adsr(i32 samplerate, f32 atk, f32 dec, f32 sus, f32 rel);
     f32 vibrato(f32 depth);
     void increment_phase(f32& phase, f32 inc, f32 max);

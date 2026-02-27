@@ -27,6 +27,7 @@ void Controller::iterate_input_on(struct Audio_Data& data, i32 midi_key){
         if(check_bit(v.voice_state, VOICE_OFF | ENVELOPE_OFF, VOICE_OFF | ENVELOPE_OFF)){
             memset(v.generative_states, 0, sizeof(f32) * STATE_END);
             memset(v.gen, 0, sizeof(f32) * CHANNEL_MAX);
+            memset(v.prev, 0, sizeof(f32) * CHANNEL_MAX);
             v.midi_key = midi_key;
             v.freq = midi_to_freq(midi_key);
             v.voice_state = set_bit(0, VOICE_ON | ENVELOPE_ATTACKING | ENVELOPE_ON);

@@ -43,7 +43,6 @@ static f32 generate(const struct Wave_Table *wt, struct Voice *v, f32 freq){
 
 static void voice_loop(struct Audio_Data *d, f32 generated[CHANNEL_MAX]){
     f32 sums[CHANNEL_MAX] = {0.0f, 0.0f};
-    i32 ct = 0;
     for(i32 i = 0; i < MAX_VOICE; i++){
         if(!is_generating(d->voices[i].voice_state)) {
             continue;
@@ -66,10 +65,9 @@ static void voice_loop(struct Audio_Data *d, f32 generated[CHANNEL_MAX]){
             d->voices[i].gen[c] = generate(&d->wave_table, &d->voices[i], d->voices[i].freq + vib);
             d->voices[i].adsr(d->samplerate, d->attack, d->decay, d->sustain, d->release);
             d->voices[i].gen[c] *= d->voices[i].generative_states[STATE_ENVELOPE];
-            sums[c] += d->voices[i].gen[c];
+            d->voices[i].lpf(d->samplerate, 14000.0, c);
+            sums[c] += d->voices[i].prev[c];
         }
-
-        ct++;
     }
 
     for(i32 c = 0; c < d->channels; c++){
@@ -77,6 +75,15 @@ static void voice_loop(struct Audio_Data *d, f32 generated[CHANNEL_MAX]){
         generated[c] = sums[c] * scale;
     }
 }
+
+void Voice::lpf(i32 sample_rate, f32 cutoff, i32 c){
+    f32 dt = 1.0f / (f32)sample_rate;
+    // Cutoff freq in radians/s
+    f32 rc = 1.0f / (2.0f * PI * cutoff);
+    f32 alpha = dt / (rc + dt);
+    prev[c] += (gen[c] - prev[c]) * alpha;
+}
+
 
 static void generate_loop(struct Audio_Data *d, size_t count, f32 *sample_buffer){
     for(i32 n = 0; n < (i32)count / d->channels; n++){
@@ -113,6 +120,7 @@ Voice::Voice(void)
 : voice_state(0), freq(0.0f), midi_key(0), generative_states(), gen() {
     voice_state = set_bit(0, ENVELOPE_OFF | VOICE_OFF);
     memset(gen, 0, sizeof(f32) * CHANNEL_MAX);
+    memset(prev, 0, sizeof(f32) * CHANNEL_MAX);
     for(i32 j = 0; j < STATE_END; j++){
         generative_states[j] = 0.0f;
     }

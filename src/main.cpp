@@ -50,13 +50,13 @@ int main(int argc, char **argv){
 
     const f32 minute = 60.0f;
     const f32 tempo = 120.0f;
-    const f32 note_duration = 1.0f;
+    const f32 note_duration = 0.5f;
     const f32 duration = (minute / tempo) * note_duration;
     
-    const f32 ATK = 0.6f * duration;
-    const f32 DEC = 0.4f * duration;
+    const f32 ATK = 1.0f * duration;
+    const f32 DEC = 0.8f * duration;
     const f32 SUS = 0.6f;
-    const f32 REL = 1.25f * duration;
+    const f32 REL = 1.5f * duration;
 
     const f32 VRATE = 2.0f;
     const f32 VDEPTH = 1.0f;
