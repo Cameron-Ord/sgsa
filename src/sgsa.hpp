@@ -5,21 +5,22 @@
 #include <portmidi.h>
 #include <memory>
 
-#define VOICE_ON (1 << 1)
-#define VOICE_OFF (1 << 2)
-#define ENVELOPE_OFF (1 << 3)
-#define ENVELOPE_ATTACKING (1 << 4)
-#define ENVELOPE_DECAYING (1 << 5)
-#define ENVELOPE_RELEASING (1 << 6)
-#define ENVELOPE_SUSTAINING (1 << 7)
+#define VOICE_ON (1 << 0)
+#define VOICE_OFF (1 << 1)
+#define ENVELOPE_OFF (1 << 2)
+#define ENVELOPE_ATTACKING (1 << 3)
+#define ENVELOPE_DECAYING (1 << 4)
+#define ENVELOPE_RELEASING (1 << 5)
+#define ENVELOPE_SUSTAINING (1 << 6)
+#define ENVELOPE_ON (1 << 7)
 
 // (VALUE - VALUE) / SAMPLES
 #define ATTACK_INCREMENT(samplerate, ATK) \
     (1.0f - 0.0f) / ((ATK) * (samplerate))
 #define DECAY_INCREMENT(samplerate, DEC, SUS) \
     (1.0f - (SUS)) / ((DEC) * (samplerate))
-#define RELEASE_INCREMENT(envelope, samplerate, REL) \
-    (envelope) / ((REL) * (samplerate))
+#define RELEASE_INCREMENT(samplerate, REL) \
+    (REL) <= 0.0f ? 1.0f : 1.0f / ((REL) * (samplerate))
 
 
 #define CHANNEL_MAX 2

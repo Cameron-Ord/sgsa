@@ -49,9 +49,9 @@ int main(int argc, char **argv){
     const i32 CHANNELS = 2;
 
     const f32 ATK = 0.0f;
-    const f32 DEC = 0.1f;
-    const f32 SUS = 0.1f;
-    const f32 REL = 0.0f;
+    const f32 DEC = 0.045f;
+    const f32 SUS = 0.4f;
+    const f32 REL = 0.03f;
 
     const f32 VRATE = 6.0f;
     const f32 VDEPTH = 1.5f;

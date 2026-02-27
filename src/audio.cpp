@@ -175,37 +175,34 @@ f32 Voice::vibrato(f32 depth){
 
 void Voice::adsr(i32 samplerate, f32 atk, f32 dec, f32 sus, f32 rel){
     switch(voice_state){
-        case VOICE_ON | ENVELOPE_ATTACKING: {
+        case VOICE_ON | ENVELOPE_ATTACKING | ENVELOPE_ON: {
             generative_states[STATE_ENVELOPE] += ATTACK_INCREMENT((f32)samplerate, atk);
             if(generative_states[STATE_ENVELOPE] >= 1.0f){
                 generative_states[STATE_ENVELOPE] = 1.0f;
-                voice_state = clear_bit(voice_state, ENVELOPE_ATTACKING);
-                voice_state = set_bit(voice_state, ENVELOPE_DECAYING);
+                voice_state = set_bit(voice_state, VOICE_ON | ENVELOPE_DECAYING | ENVELOPE_ON);
             }
             return;
         } break;
 
-        case VOICE_ON | ENVELOPE_DECAYING: {
+        case VOICE_ON | ENVELOPE_DECAYING | ENVELOPE_ON: {
             generative_states[STATE_ENVELOPE] -= DECAY_INCREMENT((f32)samplerate, dec, sus);
             if (generative_states[STATE_ENVELOPE] <= sus) {
                 generative_states[STATE_ENVELOPE] = sus;
-                voice_state = clear_bit(voice_state, ENVELOPE_DECAYING);
-                voice_state = set_bit(voice_state, ENVELOPE_SUSTAINING);
+                voice_state = set_bit(0, VOICE_ON | ENVELOPE_SUSTAINING | ENVELOPE_ON);
             }       
             return;
         }break;
 
-        case VOICE_OFF | ENVELOPE_RELEASING: {
-            generative_states[STATE_ENVELOPE] -= RELEASE_INCREMENT(generative_states[STATE_ENVELOPE], (f32)samplerate, rel);
+        case VOICE_OFF | ENVELOPE_RELEASING | ENVELOPE_ON: {
+            generative_states[STATE_ENVELOPE] -= RELEASE_INCREMENT((f32)samplerate, rel);
             if (generative_states[STATE_ENVELOPE] <= 0.0f) {
                 generative_states[STATE_ENVELOPE] = 0.0f;
-                voice_state = clear_bit(voice_state, ENVELOPE_RELEASING);
-                voice_state = set_bit(voice_state, ENVELOPE_OFF);
+                voice_state = set_bit(0, ENVELOPE_OFF | VOICE_OFF);
             }
             return;
         }break;
 
-        case VOICE_ON | ENVELOPE_SUSTAINING: {
+        case VOICE_ON | ENVELOPE_SUSTAINING | ENVELOPE_ON: {
             return;
         }break;
 
