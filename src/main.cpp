@@ -45,10 +45,10 @@ int main(int argc, char **argv){
     << SDL_VERSIONNUM_MINOR(linked) << "."
     << SDL_VERSIONNUM_MICRO(linked) << "." << std::endl;
 
-    const i32 SAMPLE_RATE = 13379;
+    const i32 SAMPLE_RATE = 48000;
     const i32 CHANNELS = 2;
 
-    const f32 ATK = 0.0f;
+    const f32 ATK = 0.1f;
     const f32 DEC = 0.045f;
     const f32 SUS = 0.4f;
     const f32 REL = 0.03f;
@@ -56,7 +56,7 @@ int main(int argc, char **argv){
     const f32 VRATE = 4.0f;
     const f32 VDEPTH = 2.0f;
 
-    const f32 CYCLE = 0.25f;
+    const f32 CYCLE = 0.125f;
     Manager manager(CHANNELS, SAMPLE_RATE, ATK, DEC, SUS, REL, CYCLE, VRATE, VDEPTH, name_arg);
     
     const u32 FPS = 120;

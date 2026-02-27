@@ -16,16 +16,17 @@
 
 // (VALUE - VALUE) / SAMPLES
 #define ATTACK_INCREMENT(samplerate, ATK) \
-    (1.0f - 0.0f) / ((ATK) * (samplerate))
+    1.0f / ((ATK) * (samplerate))
 #define DECAY_INCREMENT(samplerate, DEC, SUS) \
     (1.0f - (SUS)) / ((DEC) * (samplerate))
 #define RELEASE_INCREMENT(samplerate, REL) \
     (REL) <= 0.0f ? 1.0f : 1.0f / ((REL) * (samplerate))
 
+#define NYQUIST(samplerate) (samplerate) / 2.0f
 
 #define CHANNEL_MAX 2
 #define CONTROLLER_NAME_MAX 256
-#define TABLE_SIZE 32
+#define TABLE_SIZE 1024
 #define MAX_VOICE 4
 
 void stream_get(void *data, SDL_AudioStream *stream, i32 add, i32 total);
@@ -58,19 +59,22 @@ enum state_positions {
 };
 
 enum table_locations {
-    TABLE_PULSE,
-    TABLE_SAW,
-    TABLE_TRIANGLE,
-    TABLE_SQUARE,
-    TABLE_END
+    TABLE_SAW = 0,
+    TABLE_END = 1,
+    TABLE_FREQ_LOW = 0,
+    TABLE_FREQ_MID = 1,
+    TABLE_FREQ_HIGH = 2,
+    TABLE_FREQ_END = 3,
+    OCTAVES = 12
 };
 
 struct Wave_Table {
-    Wave_Table(f32 duty_cycle_coeff);
+    Wave_Table(f32 duty_cycle_coeff, i32 sample_rate);
     const f32 cycle;
-    f32 tables[TABLE_END][TABLE_SIZE];
+    f32 tables[TABLE_END][OCTAVES * 2][TABLE_SIZE];
     u8 current_table;
     void print_table(f32 table[TABLE_SIZE]);
+    u8 index_octave(f32 freq) const;
 };
 
 struct Voice {

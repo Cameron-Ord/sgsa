@@ -14,7 +14,7 @@ static SDL_AudioSpec make_spec(i32 chan, i32 sr);
 static bool stream_feed(SDL_AudioStream *stream, const f32 samples[], i32 len);
 static void generate_loop(struct Audio_Data *d, size_t count, f32 *sample_buffer);
 static bool generating(const struct Voice& v);
-static f32 generate(const struct Wave_Table *wt, struct Voice *v, f32 vdepth);
+static f32 generate(const struct Wave_Table *wt, struct Voice *v, f32 freq);
 static void voice_loop(struct Audio_Data *d, f32 generated[CHANNEL_MAX]);
 
 static SDL_AudioSpec make_spec(i32 chan, i32 sr) {
@@ -25,8 +25,9 @@ static SDL_AudioSpec make_spec(i32 chan, i32 sr) {
     return spec;
 }
 // Safety is my middle name baby (It's not)
-static f32 generate(const struct Wave_Table *wt, struct Voice *v, f32 vdepth){
-    const f32 *wave = wt->tables[wt->current_table];
+static f32 generate(const struct Wave_Table *wt, struct Voice *v, f32 freq){
+    const u8 i = wt->index_octave(freq);
+    const f32 *wave = wt->tables[wt->current_table][i * 2];
     i32 index = (i32)(v->generative_states[STATE_PHASE]);
     if(index < 0) {
         index += TABLE_SIZE;
@@ -61,9 +62,8 @@ static void voice_loop(struct Audio_Data *d, f32 generated[CHANNEL_MAX]){
 
         const f32 freq_inc = TABLE_SIZE * (d->voices[i].freq + vib) / (f32)d->samplerate;
         d->voices[i].increment_phase(d->voices[i].generative_states[STATE_PHASE], freq_inc, TABLE_SIZE);
-        
         for(i32 c = 0; c < d->channels; c++){
-            d->voices[i].gen[c] = generate(&d->wave_table, &d->voices[i], d->vibrato_depth);
+            d->voices[i].gen[c] = generate(&d->wave_table, &d->voices[i], d->voices[i].freq + vib);
             d->voices[i].adsr(d->samplerate, d->attack, d->decay, d->sustain, d->release);
             d->voices[i].gen[c] *= d->voices[i].generative_states[STATE_ENVELOPE];
             sum += d->voices[i].gen[c];
@@ -136,46 +136,45 @@ void Wave_Table::print_table(f32 table[TABLE_SIZE]){
     std::cout << std::endl;
 }
 
+u8 Wave_Table::index_octave(f32 freq) const {
+    for(u8 i = 0; i < OCTAVES - 1; i++){
+        const f32 base = tables[current_table][i * 2 + 1][0];
+        const f32 next = tables[current_table][(i + 1) * 2 + 1][0];
+        if(freq >= base && freq < next) {
+            return i;
+        }
+    }
+    return OCTAVES - 1;
+}
 
-Wave_Table::Wave_Table(f32 duty_cycle_coeff) 
+Wave_Table::Wave_Table(f32 duty_cycle_coeff, i32 sample_rate) 
 : cycle(duty_cycle_coeff), tables(), current_table(0) {
     const i32 N = TABLE_SIZE;
-    const i32 HALFN = N / 2;
+    const f32 C0 = 16.35f;
 
-    // Gonna make another branch for the next synth and implement band limited tables by using the fourier series for each waveform
-    for(i32 i = 0, j = HALFN; i < HALFN && j < N; i++, j++){
-        tables[TABLE_TRIANGLE][i] = 2.0f * (f32)i / (HALFN - 1) - 1.0f;
-        tables[TABLE_TRIANGLE][j] = 2.0f * ((N - 1) - (f32)j) / (HALFN - 1) - 1.0f;
-    }
- 
-    for(i32 i = 0, j = HALFN; i < HALFN && j < N; i++, j++){
-        tables[TABLE_SQUARE][i] = 1.0f;
-        tables[TABLE_SQUARE][j] = -1.0f;
-    }
- 
-    const i32 cycN = (i32)floorf((N * cycle));
-    for(i32 i = 0; i < cycN; i++){
-        tables[TABLE_PULSE][i] = 1.0f;
-    }
-    for(i32 i = cycN; i < N; i++){
-        tables[TABLE_PULSE][i] = -1.0f;
+    for(i32 o = 0; o < OCTAVES; o++){
+        const f32 freq = C0 * powf(2.0f, (f32)o);
+        const i32 end = (i32)(NYQUIST((f32)sample_rate) / freq);
+        tables[TABLE_SAW][o * 2 + 1][0] = freq;
+
+        for(i32 n = 0; n < N; n++){
+            const f32 phase = (f32)n / N;
+            f32 sum = 0.0f;
+            for(i32 k = 1; k <= end; k++){
+                f32 sign = powf(-1.0f, (f32)k);
+                sum += sign * sinf(2.0f * PI * (f32)k * phase) / (f32)k;
+            }
+            tables[TABLE_SAW][o * 2][n] = -((2.0f * 1.0f) / PI) * sum;
+        }
     }
 
-    for(i32 i = 0; i < N; i++){
-        tables[TABLE_SAW][i] = -1.0f + 2.0f * ((f32)i / (N - 1));
-    }
+    //tables[TABLE_SAW][i] = -1.0f + 2.0f * ((f32)i / (N - 1));
 
-    std::cout << "==TRIANGLE==" << std::endl;
-    print_table(tables[TABLE_TRIANGLE]);
-    std::cout << "==PULSE==" << std::endl;
-    print_table(tables[TABLE_PULSE]);
-    std::cout << "==SQUARE==" << std::endl;
-    print_table(tables[TABLE_SQUARE]);
 }
 
 Audio_Data::Audio_Data(i32 chan, i32 sr, f32 atk, f32 dec, f32 sus, f32 rel, f32 cyc, f32 vrate, f32 vdepth) 
 : channels(chan), samplerate(sr), attack(atk), decay(dec), sustain(sus), release(rel), 
-vibrato_rate(vrate), vibrato_depth(vdepth), voices(), wave_table(cyc)
+vibrato_rate(vrate), vibrato_depth(vdepth), voices(), wave_table(cyc, sr)
 {
     std::cout << "(Channels: " << channels << ") "
     << "(Sample rate: " << samplerate << ") "
