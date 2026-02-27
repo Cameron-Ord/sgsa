@@ -25,17 +25,25 @@ static SDL_AudioSpec make_spec(i32 chan, i32 sr) {
 }
 // Safety is my middle name baby (It's not)
 static f32 generate(const struct Wave_Table *wt, struct Voice *v, f32 freq){
+    const f32 phase = v->generative_states[STATE_PHASE];
+    i32 index = (i32)phase;
     const u8 i = wt->index_octave(freq);
     const f32 *wave = wt->tables[wt->current_table][i * 2];
-    i32 index = (i32)(v->generative_states[STATE_PHASE]);
+
+    i32 j = index;
+    i32 k = (j + 1) % TABLE_SIZE;
+    f32 f = phase - (f32)j;
+
     if(index < 0) {
         index += TABLE_SIZE;
     }
-    return wave[index % TABLE_SIZE];
+    //Basically just calculating the distance by taking a fraction part and blending that fractional amount of the next sample into the current wave
+    return wave[j] * (1.0f - f) + wave[k] * f;
 }
 
 static void voice_loop(struct Audio_Data *d, f32 generated[CHANNEL_MAX]){
     f32 sums[CHANNEL_MAX] = {0.0f, 0.0f};
+    i32 ct = 0;
     for(i32 i = 0; i < MAX_VOICE; i++){
         if(!is_generating(d->voices[i].voice_state)) {
             continue;
@@ -61,6 +69,7 @@ static void voice_loop(struct Audio_Data *d, f32 generated[CHANNEL_MAX]){
             sums[c] += d->voices[i].gen[c];
         }
 
+        ct++;
     }
 
     for(i32 c = 0; c < d->channels; c++){
