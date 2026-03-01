@@ -1,10 +1,11 @@
-#include "sgsa.hpp"
+#include "controller.hpp"
+#include "audio.hpp"
 #include "util.hpp"
 #include <iostream>
 
 Controller::Controller(const char *name) 
 : input_name(name), input_id(-1), stream(NULL), msgbuf() {
-    memset(msgbuf, 0, INPUT_END * sizeof(i32));
+    memset(msgbuf, 0, INPUT_TYPE::INPUT_END * sizeof(i32));
     list_available_controllers();
 }
 
@@ -26,7 +27,7 @@ void Controller::iterate_input_off(struct Audio_Data& data, i32 midi_key){
         if(v->active_oscilators > 0 && v->midi_key == midi_key){
             for(size_t o = 0; o < v->osc_count; o++){
               struct Oscilator *osc = &v->oscs[o];
-              osc->env_state = ENVELOPE_RELEASING;
+              osc->env_state = ENV_STATE::REL;
             }
             return;
         }
@@ -43,9 +44,9 @@ void Controller::iterate_input_on(struct Audio_Data& data, i32 midi_key){
 
           for(size_t o = 0; o < v->osc_count; o++){
             struct Oscilator *osc = &v->oscs[o];
-            memset(osc->gen_states, 0, sizeof(f32) * STATE_END);
+            memset(osc->gen_states, 0, sizeof(f32) * OSC_STATE::STATE_COUNT);
             osc->samples = Interpolator();
-            osc->env_state = ENVELOPE_ATTACKING;
+            osc->env_state = ENV_STATE::ATK;
             v->active_oscilators++;
           }
           return;
@@ -112,7 +113,7 @@ void Controller::get_midi_device_by_name(void){
 }
 
 void Controller::clear_msg_buf(void){
-    for(i32 i = 0; i < INPUT_END; i++){
+    for(size_t i = 0; i < INPUT_TYPE::INPUT_END; i++){
         msgbuf[i] = 0;
     }
 }
@@ -121,8 +122,8 @@ void Controller::read_input(i32 len){
     PmEvent event; 
     i32 count = Pm_Read(stream, &event, len);
     if(count > 0){
-        msgbuf[INPUT_MSG_STATUS] = Pm_MessageStatus(event.message); 
-        msgbuf[INPUT_MSG_ONE] = Pm_MessageData1(event.message); 
-        msgbuf[INPUT_MSG_TWO] = Pm_MessageData2(event.message); 
+        msgbuf[INPUT_TYPE::STATUS] = Pm_MessageStatus(event.message); 
+        msgbuf[INPUT_TYPE::MSG_ONE] = Pm_MessageData1(event.message); 
+        msgbuf[INPUT_TYPE::MSG_TWO] = Pm_MessageData2(event.message); 
     }
 }

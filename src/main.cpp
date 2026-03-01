@@ -1,5 +1,5 @@
-#include "sgsa.hpp"
-#include "config.hpp"
+#include "audio.hpp"
+#include "controller.hpp"
 #include <iostream>
 #include <portmidi.h>
 
@@ -71,12 +71,16 @@ int main(int argc, char **argv){
 
     Params params;
     std::vector<Oscilator_Cfg> templates = { 
-      Oscilator_Cfg(0.0f, "SINE", 1.0f, 1.0f, 1.0f), 
+      Oscilator_Cfg(0.0f, "SAW", 1.0f, 1.0f, 1.0f), 
+      Oscilator_Cfg(0.0f, "SAW", 0.998f, 0.8f, 1.0f), 
+      Oscilator_Cfg(0.0f, "SINE", 1.0f, 0.6f, 0.5f), 
     };
-    Manager manager(name_arg, params, templates);
 
-    manager.get_controller().open();
-    manager.get_audio().open();
+    Audio audio(params, templates);
+    Controller controller(name_arg);
+
+    audio.open();
+    controller.open();
 
     const u32 FPS = 120;
     const u32 FG = 1000 / FPS;
@@ -87,18 +91,18 @@ int main(int argc, char **argv){
             running = false;
         }
 
-        manager.get_controller().clear_msg_buf();
-        manager.get_controller().read_input(1);
-        const i32 *buf = manager.get_controller().get_msgbuf();
+        controller.clear_msg_buf();
+        controller.read_input(1);
+        const i32 *buf = controller.get_msgbuf();
 
-        switch(buf[INPUT_MSG_STATUS]){
+        switch(buf[INPUT_TYPE::STATUS]){
             default: break;
             case NOTE_ON:{
-                manager.get_controller().iterate_input_on(manager.get_audio().get_data(), buf[INPUT_MSG_ONE]);
+                controller.iterate_input_on(audio.get_data(), buf[INPUT_TYPE::MSG_ONE]);
             }break;
 
             case NOTE_OFF:{
-                manager.get_controller().iterate_input_off(manager.get_audio().get_data(), buf[INPUT_MSG_ONE]);
+                controller.iterate_input_off(audio.get_data(), buf[INPUT_TYPE::MSG_ONE]);
             }break;
         }
 
@@ -110,15 +114,9 @@ int main(int argc, char **argv){
 
     }
 
-    manager.get_controller().close();
-    manager.get_audio().close();
-
+    audio.close();
+    controller.close();
     quit();
     return 0;
-}
-
-Manager::Manager(const char *name_arg, const Params params, std::vector<Oscilator_Cfg> templates) 
-: audio(params, templates), key_events(), controller(name_arg) {
-    
 }
 

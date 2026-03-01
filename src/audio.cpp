@@ -1,5 +1,4 @@
-#include "sgsa.hpp"
-#include "util.hpp"
+#include "audio.hpp"
 #include <cmath>
 #include <iostream>
 
@@ -29,7 +28,7 @@ void stream_get(void *data, SDL_AudioStream *stream, i32 add, i32 total){
 
 // Safety is my middle name baby (It's not)
 static f32 generate(const struct Wave_Table *wt, f32 phase, size_t table_id, f32 freq){
-    const u8 i = wt->index_octave(freq);
+    const size_t i = wt->index_octave(freq);
     const f32 *wave = wt->tables[table_id][i];
     size_t j = (size_t)floorf(phase) % wt->size;
     size_t k = (j + 1) % wt->size;
@@ -38,14 +37,10 @@ static f32 generate(const struct Wave_Table *wt, f32 phase, size_t table_id, f32
     return wave[j] + ((wave[k] - wave[j]) * f);
 }
 
-static void voice_loop(struct Audio_Data *d, f32 generated[CHANNEL_MAX]){
-    f32 sums[CHANNEL_MAX] = {0.0f, 0.0f};
-    f32 sums_squared[CHANNEL_MAX] = {0.0f, 0.0f};
-
+static void voice_loop(struct Audio_Data *d, f32 generated[MAX::CHANNEL_MAX]){
     const Audio_Params *ap = &d->ap_;
-    size_t count = 0;
-
-    for(size_t i = 0; i < ap->voicings; i++){
+    f32 sums[MAX::CHANNEL_MAX] = {0.0f, 0.0f};
+    for(size_t i = 0; i < ap->voicings && i < MAX::VOICE_MAX; i++){
         struct Voice *v = &d->voices[i];
         if(!(v->active_oscilators > 0)){
           continue;
@@ -56,10 +51,10 @@ static void voice_loop(struct Audio_Data *d, f32 generated[CHANNEL_MAX]){
           const struct Oscilator_Cfg *cfg = &v->cfgs[o];
 
           const size_t wt_size = d->wave_table.size;
-          const f32 freq = v->freq * cfg->detune * cfg->volume * cfg->step;
+          const f32 freq = v->freq * cfg->detune * cfg->step;
           const f32 dt = 1.0f / (f32)ap->sample_rate;
           const f32 inc = (f32)wt_size * freq / (f32)ap->sample_rate;
-          
+
           osc->increment_time(dt);     
           osc->increment_phase(inc, (f32)wt_size);
 
@@ -67,37 +62,34 @@ static void voice_loop(struct Audio_Data *d, f32 generated[CHANNEL_MAX]){
           for(i32 c = 0; c < ap->channels; c++){
             switch(ep->env_id){
               default: break;
-              case ENV_AR: {
+              case ENV_TYPE::AR: {
                 osc->ar(v->active_oscilators, ap->sample_rate, ep->attack, ep->release);
               } break;
 
-              case ENV_ADSR: {
+              case ENV_TYPE::ADSR: {
                 osc->adsr(v->active_oscilators, ap->sample_rate, ep->attack, ep->decay, ep->sustain, ep->release);
               }break;
             }
-            osc->samples.unfiltered[c] = generate(&d->wave_table, osc->gen_states[STATE_PHASE], cfg->table_id, freq);
-            osc->samples.unfiltered[c] *= osc->gen_states[STATE_ENVELOPE];
+
+            osc->samples.unfiltered[c] = generate(&d->wave_table, osc->gen_states[OSC_STATE::PHASE], cfg->table_id, freq);
+            osc->samples.unfiltered[c] *= osc->gen_states[OSC_STATE::ENVELOPE] * (1.0f /sqrtf((f32)v->osc_count));
             
             osc->samples.lerp(ap->lpf_alpha_low, ap->lpf_alpha_high, c);
             osc->samples.filtered[c] = 0.7f * osc->samples.high[c] + 0.3f * osc->samples.low[c];
 
             sums[c] += osc->samples.filtered[c];
-            sums_squared[c] += osc->samples.filtered[c] * osc->samples.filtered[c];
           }
-          count++;
         }
     }
-    if(count > 0){
-      for(i32 c = 0; c < ap->channels; c++){
-          const f32 scale = sqrtf(sums_squared[c] / (f32)count);
-          generated[c] = sums[c] * scale;
-      }
+
+    for(i32 c = 0; c < ap->channels; c++){
+      generated[c] = tanhf(sums[c] * (1.0f / sqrtf((f32)ap->voicings)) * ap->gain * ap->volume);
     }
 }
 
 static void generate_loop(struct Audio_Data *d, size_t count, f32 *sample_buffer){
     for(i32 n = 0; n < (i32)count / d->ap_.channels; n++){
-        f32 generated[CHANNEL_MAX] = {0.0f, 0.0f};
+        f32 generated[MAX::CHANNEL_MAX] = {0.0f, 0.0f};
         voice_loop(d, generated);
         for(i32 c = 0; c < d->ap_.channels; c++){
             sample_buffer[n * d->ap_.channels + c] = generated[c];
