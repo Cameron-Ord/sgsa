@@ -1,15 +1,31 @@
 #include "sgsa.hpp"
 #include "util.hpp"
+#include "config.hpp"
 #include <iostream>
 #include <portmidi.h>
+#include <unordered_map>
 
 static bool initialize(void);
 static bool sdl_check_quit(void);
 
+
+static bool initialize(void){
+    if(!SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS)){
+        std::cerr << "Failed to initialize SDL! -> " << SDL_GetError() << std::endl;
+        return false;
+    }
+
+    if(Pm_Initialize() < 0){
+        std::cerr << "Failed to initialize PortMidi!" << std::endl;
+        return false;
+    }
+    return true;
+}
+
 static bool sdl_check_quit(void){
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
-      switch (event.type) {
+switch (event.type) {
       default: return false;
        
       case SDL_EVENT_QUIT: {
@@ -44,25 +60,15 @@ int main(int argc, char **argv){
     << SDL_VERSIONNUM_MAJOR(linked) << "." 
     << SDL_VERSIONNUM_MINOR(linked) << "."
     << SDL_VERSIONNUM_MICRO(linked) << "." << std::endl;
-
-    const i32 SAMPLE_RATE = 48000;
-    const i32 CHANNELS = 2;
-
-    const f32 minute = 60.0f;
-    const f32 tempo = 120.0f;
-    const f32 note_duration = 0.5f;
-    const f32 duration = (minute / tempo) * note_duration;
+    //parse_config();
     
-    const f32 ATK = 1.0f * duration;
-    const f32 DEC = 0.8f * duration;
-    const f32 SUS = 0.6f;
-    const f32 REL = 1.5f * duration;
+    std::unordered_map<std::string, size_t> table_id_map = {
+      { "saw", TABLE_SAW },
+    };
 
-    const f32 VRATE = 2.0f;
-    const f32 VDEPTH = 1.0f;
-
-    const f32 CYCLE = 0.125f;
-    Manager manager(CHANNELS, SAMPLE_RATE, ATK, DEC, SUS, REL, CYCLE, VRATE, VDEPTH, name_arg);
+    Params params;
+    std::vector<Oscilator_Cfg> templates = { Oscilator_Cfg() };
+    Manager manager(name_arg, params, templates);
     
     const u32 FPS = 120;
     const u32 FG = 1000 / FPS;
@@ -99,8 +105,8 @@ int main(int argc, char **argv){
     return 0;
 }
 
-Manager::Manager(i32 chan, i32 sr, f32 atk, f32 dec, f32 sus, f32 rel, f32 cyc, f32 vrate, f32 vdepth, const char *name_arg) 
-: audio(chan, sr, atk, dec, sus, rel, cyc, vrate, vdepth), key_events(), controller(name_arg) {
+Manager::Manager(const char *name_arg, const Params params, std::vector<Oscilator_Cfg> templates) 
+: audio(params, templates), key_events(), controller(name_arg) {
     
 }
 
@@ -113,19 +119,6 @@ bool Manager::quit(void){
     SDL_Quit();
     if(Pm_Terminate() < 0) {
         std::cerr << "PortMidi failed to terminate correctly!" << std::endl;
-        return false;
-    }
-    return true;
-}
-
-static bool initialize(void){
-    if(!SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS)){
-        std::cerr << "Failed to initialize SDL! -> " << SDL_GetError() << std::endl;
-        return false;
-    }
-
-    if(Pm_Initialize() < 0){
-        std::cerr << "Failed to initialize PortMidi!" << std::endl;
         return false;
     }
     return true;

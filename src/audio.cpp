@@ -3,101 +3,12 @@
 #include <cmath>
 #include <iostream>
 
-const f32 PI = 3.141592653589793f;
-const i32 CHUNK_MAX = 128;
-const f32 VIBRATO_ON = 0.33f;
-
-//d->voices[i].increment_phase(d->voices[i].generative_states[STATE_LFO2], ((120.0f / 60.0f) * 1.0f / (f32)d->samplerate), 1.0f);
-//f32 amp = 0.5f * (1.0f + sinf(2.0f * PI * d->voices[i].generative_states[STATE_LFO2]));
-
-static SDL_AudioSpec make_spec(i32 chan, i32 sr);
 static bool stream_feed(SDL_AudioStream *stream, const f32 samples[], i32 len);
 static void generate_loop(struct Audio_Data *d, size_t count, f32 *sample_buffer);
-static f32 generate(const struct Wave_Table *wt, struct Voice *v, f32 freq);
+static f32 generate(const struct Wave_Table *wt, f32 phase, size_t table_id, f32 freq);
 static void voice_loop(struct Audio_Data *d, f32 generated[CHANNEL_MAX]);
 
-static SDL_AudioSpec make_spec(i32 chan, i32 sr) {
-    SDL_AudioSpec spec;
-    spec.format = SDL_AUDIO_F32;
-    spec.channels = chan;
-    spec.freq = sr;
-    return spec;
-}
-// Safety is my middle name baby (It's not)
-static f32 generate(const struct Wave_Table *wt, struct Voice *v, f32 freq){
-    const f32 phase = v->generative_states[STATE_PHASE];
-    i32 index = (i32)phase;
-    const u8 i = wt->index_octave(freq);
-    const f32 *wave = wt->tables[wt->current_table][i * 2];
-
-    i32 j = index;
-    i32 k = (j + 1) % TABLE_SIZE;
-    f32 f = phase - (f32)j;
-
-    if(index < 0) {
-        index += TABLE_SIZE;
-    }
-    //Basically just calculating the distance by taking a fraction part and blending that fractional amount of the next sample into the current wave
-    return wave[j] * (1.0f - f) + wave[k] * f;
-}
-
-static void voice_loop(struct Audio_Data *d, f32 generated[CHANNEL_MAX]){
-    f32 sums[CHANNEL_MAX] = {0.0f, 0.0f};
-    for(i32 i = 0; i < MAX_VOICE; i++){
-        if(!is_generating(d->voices[i].voice_state)) {
-            continue;
-        }
-
-        const f32 vib_inc = d->vibrato_rate / (f32)d->samplerate;        
-        d->voices[i].increment_phase(d->voices[i].generative_states[STATE_LFO1], vib_inc, 1.0f);
-        
-        f32 vib = 0.0f;
-        if(d->voices[i].generative_states[STATE_TIME] > VIBRATO_ON){
-            vib = d->voices[i].vibrato(d->vibrato_depth);
-        }
-
-        const f32 dt = 1.0f / (f32)d->samplerate;
-        d->voices[i].increment_time(d->voices[i].generative_states[STATE_TIME], dt);     
-
-        const f32 freq_inc = TABLE_SIZE * (d->voices[i].freq + vib) / (f32)d->samplerate;
-        d->voices[i].increment_phase(d->voices[i].generative_states[STATE_PHASE], freq_inc, TABLE_SIZE);
-        for(i32 c = 0; c < d->channels; c++){
-            d->voices[i].gen[c] = generate(&d->wave_table, &d->voices[i], d->voices[i].freq + vib);
-            d->voices[i].adsr(d->samplerate, d->attack, d->decay, d->sustain, d->release);
-            d->voices[i].gen[c] *= d->voices[i].generative_states[STATE_ENVELOPE];
-            d->voices[i].lpf(d->samplerate, 14000.0, c);
-            sums[c] += d->voices[i].prev[c];
-        }
-    }
-
-    for(i32 c = 0; c < d->channels; c++){
-        const f32 scale = voice_rms(d->voices, c);
-        generated[c] = sums[c] * scale;
-    }
-}
-
-void Voice::lpf(i32 sample_rate, f32 cutoff, i32 c){
-    f32 dt = 1.0f / (f32)sample_rate;
-    // Cutoff freq in radians/s
-    f32 rc = 1.0f / (2.0f * PI * cutoff);
-    f32 alpha = dt / (rc + dt);
-    prev[c] += (gen[c] - prev[c]) * alpha;
-}
-
-
-static void generate_loop(struct Audio_Data *d, size_t count, f32 *sample_buffer){
-    for(i32 n = 0; n < (i32)count / d->channels; n++){
-        f32 generated[CHANNEL_MAX] = {0.0f, 0.0f};
-        voice_loop(d, generated);
-        for(i32 c = 0; c < d->channels; c++){
-            sample_buffer[n * d->channels + c] = generated[c];
-        }
-    }
-}
-
-static bool stream_feed(SDL_AudioStream *stream, const f32 samples[], i32 len) {
-  return SDL_PutAudioStreamData(stream, samples, len);
-}
+const i32 CHUNK_MAX = 128;
 
 void stream_get(void *data, SDL_AudioStream *stream, i32 add, i32 total){
     struct Audio_Data *d = static_cast<struct Audio_Data *>(data);
@@ -116,125 +27,83 @@ void stream_get(void *data, SDL_AudioStream *stream, i32 add, i32 total){
     return;
 }
 
-Voice::Voice(void) 
-: voice_state(0), freq(0.0f), midi_key(0), generative_states(), gen() {
-    voice_state = set_bit(0, ENVELOPE_OFF | VOICE_OFF);
-    memset(gen, 0, sizeof(f32) * CHANNEL_MAX);
-    memset(prev, 0, sizeof(f32) * CHANNEL_MAX);
-    for(i32 j = 0; j < STATE_END; j++){
-        generative_states[j] = 0.0f;
-    }
+// Safety is my middle name baby (It's not)
+static f32 generate(const struct Wave_Table *wt, f32 phase, size_t table_id, f32 freq){
+    const u8 i = wt->index_octave(freq);
+    const f32 *wave = wt->tables[table_id][i];
+    size_t j = (size_t)floorf(phase) % wt->size;
+    size_t k = (j + 1) % wt->size;
+    f32 f = phase - (f32)j;
+    //Source: BasicSynth
+    return wave[j] + ((wave[k] - wave[j]) * f);
 }
 
-void Voice::increment_time(f32& time, f32 inc){
-    time += inc;
-}
+static void voice_loop(struct Audio_Data *d, f32 generated[CHANNEL_MAX]){
+    f32 sums[CHANNEL_MAX] = {0.0f, 0.0f};
+    f32 sums_squared[CHANNEL_MAX] = {0.0f, 0.0f};
 
+    const Audio_Params *ap = &d->ap_;
+    size_t count = 0;
 
-void Voice::increment_phase(f32& phase, f32 inc, f32 max){
-    phase += inc;
-    if(phase >= max){
-        phase -= max;
-    }
-}
+    for(size_t i = 0; i < ap->voicings; i++){
+        struct Voice *v = &d->voices[i];
+        for(size_t o = 0; o < v->osc_count; o++){
+          struct Oscilator *osc = &v->oscs[o];
+          if(!is_generating(v->voice_state | osc->env_state)) {
+            continue;
+          }
+          const struct Oscilator_Cfg *cfg = &v->cfgs[o];
 
-void Wave_Table::print_table(f32 table[TABLE_SIZE]){
-    for(i32 i = 0; i < TABLE_SIZE; i++){
-        std::cout << "(" << table[i] << ")";
-    }
-    std::cout << std::endl;
-}
+          const size_t wt_size = d->wave_table.size;
+          const f32 freq = v->freq * cfg->detune * cfg->volume * cfg->step;
+          const f32 dt = 1.0f / (f32)ap->sample_rate;
+          const f32 inc = (f32)wt_size * freq / (f32)ap->sample_rate;
+          
+          osc->increment_time(dt);     
+          osc->increment_phase(inc, (f32)wt_size);
 
-u8 Wave_Table::index_octave(f32 freq) const {
-    for(u8 i = 0; i < OCTAVES - 1; i++){
-        const f32 base = tables[current_table][i * 2 + 1][0];
-        const f32 next = tables[current_table][(i + 1) * 2 + 1][0];
-        if(freq >= base && freq < next) {
-            return i;
+          const Env_Params *ep = &d->envp_;
+          for(i32 c = 0; c < ap->channels; c++){
+            osc->adsr(v->active_oscilators, ap->sample_rate, ep->attack, ep->decay, ep->sustain, ep->release);
+            osc->samples.unfiltered[c] = generate(&d->wave_table, osc->gen_states[STATE_PHASE], cfg->table_id, freq);
+            osc->samples.unfiltered[c] *= osc->gen_states[STATE_ENVELOPE];
+            osc->samples.lerp(ap->lpf_alpha_low, ap->lpf_alpha_high, c);
+            osc->samples.filtered[c] = 0.7f * osc->samples.high[c] + 0.3f * osc->samples.low[c];
+
+            sums[c] += osc->samples.filtered[c];
+            sums_squared[c] += osc->samples.filtered[c] * osc->samples.filtered[c];
+          }
+          count++;
         }
     }
-    return OCTAVES - 1;
+    if(count > 0){
+      for(i32 c = 0; c < ap->channels; c++){
+          const f32 scale = sqrtf(sums_squared[c] / (f32)count);
+          generated[c] = sums[c] * scale;
+      }
+    }
 }
 
-Wave_Table::Wave_Table(f32 duty_cycle_coeff, i32 sample_rate) 
-: cycle(duty_cycle_coeff), tables(), current_table(0) {
-    const i32 N = TABLE_SIZE;
-    const f32 C0 = 16.35f;
-
-    for(i32 o = 0; o < OCTAVES; o++){
-        const f32 freq = C0 * powf(2.0f, (f32)o);
-        const i32 end = (i32)(NYQUIST((f32)sample_rate) / freq);
-        tables[TABLE_SAW][o * 2 + 1][0] = freq;
-
-        for(i32 n = 0; n < N; n++){
-            const f32 phase = (f32)n / N;
-            f32 sum = 0.0f;
-            for(i32 k = 1; k <= end; k++){
-                f32 sign = powf(-1.0f, (f32)k);
-                sum += sign * sinf(2.0f * PI * (f32)k * phase) / (f32)k;
-            }
-            tables[TABLE_SAW][o * 2][n] = -((2.0f * 1.0f) / PI) * sum;
+static void generate_loop(struct Audio_Data *d, size_t count, f32 *sample_buffer){
+    for(i32 n = 0; n < (i32)count / d->ap_.channels; n++){
+        f32 generated[CHANNEL_MAX] = {0.0f, 0.0f};
+        voice_loop(d, generated);
+        for(i32 c = 0; c < d->ap_.channels; c++){
+            sample_buffer[n * d->ap_.channels + c] = generated[c];
         }
     }
 }
 
-Audio_Data::Audio_Data(i32 chan, i32 sr, f32 atk, f32 dec, f32 sus, f32 rel, f32 cyc, f32 vrate, f32 vdepth) 
-: channels(chan), samplerate(sr), attack(atk), decay(dec), sustain(sus), release(rel), 
-vibrato_rate(vrate), vibrato_depth(vdepth), voices(), wave_table(cyc, sr)
+static bool stream_feed(SDL_AudioStream *stream, const f32 samples[], i32 len) {
+  return SDL_PutAudioStreamData(stream, samples, len);
+}
+
+
+Audio::Audio(const Params p, std::vector<Oscilator_Cfg> templates) 
+: parameters(p), valid(true), dev(0), stream(NULL), 
+  internal({SDL_AUDIO_F32, p.ap.channels, p.ap.sample_rate}), 
+  output({SDL_AUDIO_F32, 0, 0}),  data(parameters, templates, templates.size()) 
 {
-    std::cout << "(Channels: " << channels << ") "
-    << "(Sample rate: " << samplerate << ") "
-    << "(Attack: " << attack << ") "
-    << "(Decay: " << decay << ") "
-    << "(Sustain: " << sustain << ") "
-    << "(Release: " << release << ") " << std::endl;
-}
-
-f32 Voice::vibrato(f32 depth){
-    return depth * sinf(2.0f * PI * generative_states[STATE_LFO1]);
-}
-
-void Voice::adsr(i32 samplerate, f32 atk, f32 dec, f32 sus, f32 rel){
-    switch(voice_state){
-        case VOICE_ON | ENVELOPE_ATTACKING | ENVELOPE_ON: {
-            generative_states[STATE_ENVELOPE] += ATTACK_INCREMENT((f32)samplerate, atk);
-            if(generative_states[STATE_ENVELOPE] >= 1.0f){
-                generative_states[STATE_ENVELOPE] = 1.0f;
-                voice_state = set_bit(voice_state, VOICE_ON | ENVELOPE_DECAYING | ENVELOPE_ON);
-            }
-            return;
-        } break;
-
-        case VOICE_ON | ENVELOPE_DECAYING | ENVELOPE_ON: {
-            generative_states[STATE_ENVELOPE] -= DECAY_INCREMENT((f32)samplerate, dec, sus);
-            if (generative_states[STATE_ENVELOPE] <= sus) {
-                generative_states[STATE_ENVELOPE] = sus;
-                voice_state = set_bit(0, VOICE_ON | ENVELOPE_SUSTAINING | ENVELOPE_ON);
-            }       
-            return;
-        }break;
-
-        case VOICE_OFF | ENVELOPE_RELEASING | ENVELOPE_ON: {
-            generative_states[STATE_ENVELOPE] -= RELEASE_INCREMENT((f32)samplerate, rel);
-            if (generative_states[STATE_ENVELOPE] <= 0.0f) {
-                generative_states[STATE_ENVELOPE] = 0.0f;
-                voice_state = set_bit(0, ENVELOPE_OFF | VOICE_OFF);
-            }
-            return;
-        }break;
-
-        case VOICE_ON | ENVELOPE_SUSTAINING | ENVELOPE_ON: {
-            return;
-        }break;
-
-        case VOICE_OFF | ENVELOPE_OFF: {
-            return;
-        }break;
-    }
-}
-
-Audio::Audio(i32 chan, i32 sr, f32 atk, f32 dec, f32 sus, f32 rel, f32 cyc, f32 vrate, f32 vdepth) 
-: valid(true), dev(0), stream(NULL), internal(make_spec(chan, sr)), output({SDL_AUDIO_F32, 0, 0}), data(chan, sr, atk, dec, sus, rel, cyc, vrate, vdepth) {
     if(!(open_audio_device() && create_audio_stream())){
         valid = false;
         return;

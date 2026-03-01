@@ -12,26 +12,36 @@ Controller::Controller(const char *name_arg)
 }
 
 void Controller::iterate_input_off(struct Audio_Data& data, i32 midi_key){
-    for(i32 i = 0; i < MAX_VOICE; i++){
-        struct Voice& v = data.voices[i];
-        if(check_bit(v.voice_state, VOICE_ON | ENVELOPE_ON, VOICE_ON | ENVELOPE_ON) && v.midi_key == midi_key){
-            v.voice_state = set_bit(0, VOICE_OFF | ENVELOPE_RELEASING | ENVELOPE_ON);
+    for(size_t i = 0; i < data.ap_.voicings; i++){
+        struct Voice *v = &data.voices[i];
+        if(check_bit(v->voice_state, VOICE_ON, VOICE_ON) && v->midi_key == midi_key){
+            v->voice_state = set_bit(0, VOICE_OFF);
+            for(size_t o = 0; o < v->osc_count; o++){
+              struct Oscilator *osc = &v->oscs[o];
+              osc->env_state = set_bit(0, ENVELOPE_ON | ENVELOPE_RELEASING);
+            }
             return;
         }
     }
 }
 
 void Controller::iterate_input_on(struct Audio_Data& data, i32 midi_key){
-    for(i32 i = 0; i < MAX_VOICE; i++){
-        struct Voice& v = data.voices[i];
-        if(check_bit(v.voice_state, VOICE_OFF | ENVELOPE_OFF, VOICE_OFF | ENVELOPE_OFF)){
-            memset(v.generative_states, 0, sizeof(f32) * STATE_END);
-            memset(v.gen, 0, sizeof(f32) * CHANNEL_MAX);
-            memset(v.prev, 0, sizeof(f32) * CHANNEL_MAX);
-            v.midi_key = midi_key;
-            v.freq = midi_to_freq(midi_key);
-            v.voice_state = set_bit(0, VOICE_ON | ENVELOPE_ATTACKING | ENVELOPE_ON);
-            return;
+    for(size_t i = 0; i < data.ap_.voicings; i++){
+        struct Voice *v = &data.voices[i];
+        if(check_bit(v->voice_state, VOICE_OFF, VOICE_OFF) && v->active_oscilators <= 0){
+          v->active_oscilators = 0;
+          v->midi_key = midi_key;
+          v->freq = midi_to_freq(midi_key);
+          v->voice_state = set_bit(0, VOICE_ON);
+
+          for(size_t o = 0; o < v->osc_count; o++){
+            struct Oscilator *osc = &v->oscs[o];
+            memset(osc->gen_states, 0, sizeof(f32) * STATE_END);
+            osc->samples = Interpolator();
+            osc->env_state = set_bit(0, ENVELOPE_ON | ENVELOPE_ATTACKING);
+            v->active_oscilators++;
+          }
+          return;
         } 
     }
 }

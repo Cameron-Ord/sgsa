@@ -1,0 +1,34 @@
+title = "sgsa config"
+
+[time]
+tempo = 120.0
+note_duration = 1.0
+
+[adsr]
+type = "default"
+attack = 1.0
+decay = 0.8
+sustain = 0.8
+release = 1.0
+
+[lfo]
+lfo_vibrato_rate = 2.0
+lfo_vibrato_depth = 1.0
+lfo_vibrato_onset_time = 0.33
+lfo_tremolo_rate = 2.0
+lfo_tremolo_depth = 1.0
+
+[audio]
+volume = 1.0
+voicings = 16
+wave_table_size = 512
+sample_rate = 48000
+channels = 2
+
+[oscilators]
+pulse_width = 0.5
+oscilators = [
+  { name = "saw", detune = 1.0, volume = 1.0, octave_step = 0.0, cycle = 0.0  },
+  { name = "sine", detune = 1.0, volume = 1.0, octave_step = -1.0, cycle = 0.0 }
+]
+

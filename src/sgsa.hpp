@@ -3,8 +3,10 @@
 #include "typedef.hpp"
 #include <SDL3/SDL.h>
 #include <portmidi.h>
-#include <memory>
+#include <string>
+#include <vector>
 
+#define PI 3.141592653589793f
 #define VOICE_ON (1 << 0)
 #define VOICE_OFF (1 << 1)
 #define ENVELOPE_OFF (1 << 2)
@@ -24,11 +26,6 @@
 
 #define NYQUIST(samplerate) (samplerate) / 2.0f
 
-#define CHANNEL_MAX 2
-#define CONTROLLER_NAME_MAX 256
-#define TABLE_SIZE 512
-#define MAX_VOICE 16
-
 void stream_get(void *data, SDL_AudioStream *stream, i32 add, i32 total);
 
 enum input_positions {
@@ -36,6 +33,17 @@ enum input_positions {
     INPUT_MSG_ONE,
     INPUT_MSG_TWO,
     INPUT_END
+};
+
+enum lfo_enum {
+  MODE_VIBRATO,
+  MODE_TREMOLO,
+};
+
+enum max_values {
+  CONTROLLER_NAME_MAX = 256,
+  CHANNEL_MAX = 2,
+  MAX_TABLE_SIZE = 512,
 };
 
 enum midi_input_mappings {
@@ -49,8 +57,6 @@ enum midi_input_mappings {
 enum state_positions {
     STATE_ENVELOPE,
     STATE_PHASE, 
-    STATE_LFO1,
-    STATE_LFO2,
     STATE_TIME,
 //    STATE_INTEGRATOR,
 //    STATE_DC_X,
@@ -58,53 +64,140 @@ enum state_positions {
     STATE_END
 };
 
-enum table_locations {
+enum table_enum {
     TABLE_SAW = 0,
     TABLE_END = 1,
     TABLE_FREQ_LOW = 0,
     TABLE_FREQ_MID = 1,
     TABLE_FREQ_HIGH = 2,
     TABLE_FREQ_END = 3,
-    OCTAVES = 12
+    OCTAVES = 12,
+};
+
+struct Lfo_Params {
+  Lfo_Params(void);
+  //Lfo_Params(f32 r, f32 d, f32 t);
+  f32 rate, depth, timer;
+  u8 mode;
+};
+
+struct Env_Params {
+  Env_Params(void);
+  //Env_Params(f32 atk, f32 dec, f32 sus, f32 rel, std::string type);
+  f32 attack, decay, sustain, release;
+  std::string type;
+};
+
+struct Audio_Params {
+  Audio_Params(void);
+  //Audio_Params(i32 chan, i32 sr, i32 voice_count, i32 wtsize, f32 tempo, f32 nd);
+
+  i32 channels, sample_rate;
+  size_t voicings, wave_table_size;
+  f32 tempo, note_duration;
+  f32 lpf_alpha_low, lpf_alpha_high;
+};
+
+struct Params {
+  Params(void);
+  struct Lfo_Params lfop;
+  struct Env_Params envp;
+  struct Audio_Params ap;
+};
+
+struct Interpolator {
+  Interpolator(void);
+  f32 unfiltered[CHANNEL_MAX];
+  f32 high[CHANNEL_MAX];
+  f32 low[CHANNEL_MAX];
+  f32 filtered[CHANNEL_MAX];
+  void lerp(f32 alpha_low, f32 alpha_high, i32 c);
+};
+
+struct Lfo {
+  Lfo(f32 r, f32 d, f32 t, i32 sr, u8 m);
+  u8 mode;
+  f32 rate, depth, timer;
+  f32 inc, max;
+  f32 phase; 
+  f32 vibrato(void);
+  void increment_lfo(void);
+};
+
+struct Oscilator {
+  Oscilator(i32 sr, const Env_Params& env, const Lfo_Params& lfop);
+  const Env_Params& env_;
+  const Lfo_Params& lfop_;
+
+  f32 gen_states[STATE_END];
+  struct Interpolator samples;
+  u8 env_state;
+  const Lfo lfo;
+
+  void adsr(i32& counter, i32 samplerate, f32 atk, f32 dec, f32 sus, f32 rel);
+  void increment_phase(f32 inc, f32 max);
+  void increment_time(f32 inc);
 };
 
 struct Wave_Table {
-    Wave_Table(f32 duty_cycle_coeff, i32 sample_rate);
-    const f32 cycle;
-    f32 tables[TABLE_END][OCTAVES * 2][TABLE_SIZE];
-    u8 current_table;
-    void print_table(f32 table[TABLE_SIZE]);
+    Wave_Table(i32 sample_rate, size_t table_size);
+    f32 tables[TABLE_END][OCTAVES][MAX_TABLE_SIZE];
+    f32 freq_mapper[OCTAVES];
+    size_t size;
+    void print_table(f32 table[MAX_TABLE_SIZE]);
     u8 index_octave(f32 freq) const;
 };
 
+struct Oscilator_Cfg{
+  Oscilator_Cfg(void);
+  // Oscilator_Cfg(f32 cyc, std::string n, f32 det, f32 vol, f32 st);
+  f32 cycle;
+  std::string name;
+  f32 detune, volume, step;
+  size_t table_id;
+};
+
 struct Voice {
-    Voice(void);
+    Voice(i32 sr, size_t osc_c, const Env_Params& env, const Lfo_Params& lfop, std::vector<Oscilator_Cfg> templates);
+    i32 sample_rate;
+    const Env_Params& env_;
+    const Lfo_Params& lfop_;
+
     u8 voice_state;
+    i32 active_oscilators;
     f32 freq;
     i32 midi_key;
-    f32 generative_states[STATE_END];
-    f32 gen[CHANNEL_MAX];
-    f32 prev[CHANNEL_MAX];
 
-    void lpf(i32 sample_rate, f32 cutoff, i32 chan);
-    void adsr(i32 samplerate, f32 atk, f32 dec, f32 sus, f32 rel);
-    f32 vibrato(f32 depth);
-    void increment_phase(f32& phase, f32 inc, f32 max);
-    void increment_time(f32& time, f32 inc);
+    size_t osc_count;
+    std::vector<struct Oscilator_Cfg> cfgs;
+    std::vector<struct Oscilator> oscs;
 };
 
 struct Audio_Data {
-    Audio_Data(i32 chan, i32 sr, f32 atk, f32 dec, f32 sus, f32 rel, f32 cyc, f32 vrate, f32 vdepth);
-    const i32 channels, samplerate;
-    const f32 attack, decay, sustain, release;
-    const f32 vibrato_rate, vibrato_depth;
-    struct Voice voices[MAX_VOICE];
+    Audio_Data(
+      const Params& p,
+      std::vector<Oscilator_Cfg> templates,
+      size_t osc_c
+    );
+    const Lfo_Params& lfop_;
+    const Audio_Params& ap_;
+    const Env_Params& envp_;
+
+    std::vector<struct Voice> voices;
     const struct Wave_Table wave_table;
 };
 
+// This is where it all happens basically
+// Params are passed by value and on construction the Audio class constructs everything
+// So literally make any changes anywhere (like the Params struct or oscilator cfg)
+// and you can just reinstantiate this class and it will destroy then recreate
+// All the audio allocations. Goes crazy
+//
+// Params is stored by copying, the Oscilator_Cfg vector is just passed by value since 
+// it's just a template for values nested inside, then is thrown away since it gets copy assigned to a location
 class Audio {
 public:
-    Audio(i32 chan, i32 sr, f32 atk, f32 dec, f32 sus, f32 rel, f32 cyc, f32 vrate, f32 vdepth);
+    Audio(Params p, std::vector<Oscilator_Cfg> templates);
     ~Audio(void) = default;
     bool set_audio_callback(void *userdata);
     bool bind_stream(void);
@@ -119,6 +212,7 @@ public:
     void quit(void);
     struct Audio_Data &get_data(void) { return data; }
 private:
+    struct Params parameters;
     bool valid;
     u32 dev;
     SDL_AudioStream *stream;
@@ -158,7 +252,7 @@ private:
 
 class Manager {
 public:
-    Manager(i32 channels, i32 samplerate, f32 atk, f32 dec, f32 sus, f32 rel, f32 cyc, f32 vrate, f32 vdepth, const char *name_arg);
+    Manager(const char *name_arg, const Params params, std::vector<Oscilator_Cfg> templates);
     ~Manager(void);
     bool quit(void);
 
