@@ -199,6 +199,8 @@ class Audio {
 public:
     Audio(Params p, std::vector<Oscilator_Cfg> templates);
     ~Audio(void) = default;
+    bool open(void);
+    void close(void);
     bool set_audio_callback(void *userdata);
     bool bind_stream(void);
     bool unbind_stream(void);
@@ -209,11 +211,9 @@ public:
     bool resume(void);
     bool pause(void);
     void clear(void);
-    void quit(void);
     struct Audio_Data &get_data(void) { return data; }
 private:
     struct Params parameters;
-    bool valid;
     u32 dev;
     SDL_AudioStream *stream;
     SDL_AudioSpec internal;
@@ -233,9 +233,12 @@ public:
     Controller(const char *name_arg);
     ~Controller(void) = default;
 
+    bool open(void);
+    bool close(void);
     void list_available_controllers(void);
-    void get_midi_device_by_name(const char *name);
+    void get_midi_device_by_name(void);
     bool open_stream(i32 bufsize);
+    bool close_stream(void);
     void read_input(i32 len);
     void clear_msg_buf(void);
     void iterate_input_on(struct Audio_Data &data, i32 midi_key);
@@ -244,7 +247,7 @@ public:
     const i32 *get_msgbuf(void) const { return msgbuf; }
 
 private:
-    char input_name[CONTROLLER_NAME_MAX + 1];
+    std::string input_name;
     i32 input_id;
     PortMidiStream *stream;
     i32 msgbuf[INPUT_END];
@@ -253,7 +256,7 @@ private:
 class Manager {
 public:
     Manager(const char *name_arg, const Params params, std::vector<Oscilator_Cfg> templates);
-    ~Manager(void);
+    ~Manager(void) = default;
     bool quit(void);
 
     Audio &get_audio(void) { return audio; };

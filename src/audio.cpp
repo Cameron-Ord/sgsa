@@ -98,21 +98,29 @@ static bool stream_feed(SDL_AudioStream *stream, const f32 samples[], i32 len) {
   return SDL_PutAudioStreamData(stream, samples, len);
 }
 
-
 Audio::Audio(const Params p, std::vector<Oscilator_Cfg> templates) 
-: parameters(p), valid(true), dev(0), stream(NULL), 
+: parameters(p), dev(0), stream(NULL), 
   internal({SDL_AUDIO_F32, p.ap.channels, p.ap.sample_rate}), 
   output({SDL_AUDIO_F32, 0, 0}),  data(parameters, templates, templates.size()) 
-{
+{}
+
+bool Audio::open(void){
     if(!(open_audio_device() && create_audio_stream())){
-        valid = false;
-        return;
+        return false;
     }
     
     if(!(set_audio_callback(&data) && bind_stream())){
-        valid = false;
-        return;
+        return false;
     }
+    return true;
+}
+
+void Audio::close(void){
+    pause();
+    clear();
+    unbind_stream();
+    destroy_audio_stream();
+    close_audio_device();
 }
 
 void Audio::clear(void){
@@ -121,13 +129,6 @@ void Audio::clear(void){
     }
 }
 
-void Audio::quit(void){
-    pause();
-    clear();
-    unbind_stream();
-    destroy_audio_stream();
-    close_audio_device();
-}
 
 bool Audio::set_audio_callback(void *userdata){ 
     if(!SDL_SetAudioStreamGetCallback(stream, stream_get, userdata)){

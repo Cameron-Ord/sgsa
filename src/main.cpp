@@ -1,13 +1,14 @@
 #include "sgsa.hpp"
 #include "util.hpp"
 #include "config.hpp"
+#include <memory>
 #include <iostream>
 #include <portmidi.h>
 #include <unordered_map>
 
 static bool initialize(void);
 static bool sdl_check_quit(void);
-
+static bool quit(void);
 
 static bool initialize(void){
     if(!SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS)){
@@ -25,7 +26,7 @@ static bool initialize(void){
 static bool sdl_check_quit(void){
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
-switch (event.type) {
+    switch (event.type) {
       default: return false;
        
       case SDL_EVENT_QUIT: {
@@ -34,6 +35,15 @@ switch (event.type) {
       }
     }
     return false;
+}
+
+static bool quit(void){
+    SDL_Quit();
+    if(Pm_Terminate() < 0) {
+        std::cerr << "PortMidi failed to terminate correctly!" << std::endl;
+        return false;
+    }
+    return true;
 }
 
 int main(int argc, char **argv){
@@ -69,7 +79,10 @@ int main(int argc, char **argv){
     Params params;
     std::vector<Oscilator_Cfg> templates = { Oscilator_Cfg() };
     Manager manager(name_arg, params, templates);
-    
+
+    manager.get_controller().open();
+    manager.get_audio().open();
+
     const u32 FPS = 120;
     const u32 FG = 1000 / FPS;
     bool running = true;
@@ -102,6 +115,10 @@ int main(int argc, char **argv){
 
     }
 
+    manager.get_controller().close();
+    manager.get_audio().close();
+
+    quit();
     return 0;
 }
 
@@ -110,16 +127,3 @@ Manager::Manager(const char *name_arg, const Params params, std::vector<Oscilato
     
 }
 
-Manager::~Manager(void){
-    audio.quit();
-    quit();
-}
-
-bool Manager::quit(void){
-    SDL_Quit();
-    if(Pm_Terminate() < 0) {
-        std::cerr << "PortMidi failed to terminate correctly!" << std::endl;
-        return false;
-    }
-    return true;
-}

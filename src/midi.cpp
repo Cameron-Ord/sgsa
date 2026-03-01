@@ -2,13 +2,22 @@
 #include "util.hpp"
 #include <iostream>
 
-Controller::Controller(const char *name_arg) 
-: input_name(), input_id(-1), stream(NULL), msgbuf() {
-    memset(input_name, 0, CONTROLLER_NAME_MAX * sizeof(char));
+Controller::Controller(const char *name) 
+: input_name(name), input_id(-1), stream(NULL), msgbuf() {
     memset(msgbuf, 0, INPUT_END * sizeof(i32));
     list_available_controllers();
-    get_midi_device_by_name(name_arg);
-    open_stream(1024);
+}
+
+bool Controller::open(void){
+  get_midi_device_by_name();
+  if(input_id < 0) {
+    return false;
+  }
+  return open_stream(1024);
+}
+
+bool Controller::close(void){
+  return close_stream();
 }
 
 void Controller::iterate_input_off(struct Audio_Data& data, i32 midi_key){
@@ -47,11 +56,25 @@ void Controller::iterate_input_on(struct Audio_Data& data, i32 midi_key){
 }
 
 bool Controller::open_stream(i32 bufsize){
-    if(Pm_OpenInput(&stream, input_id, NULL, bufsize, NULL, NULL) < 0){
-        std::cerr << "Failed to open midi input stream" << std::endl;
+  std::cout << "Opening device with given ID: " << input_id << std::endl;
+  PmError err = Pm_OpenInput(&stream, input_id, NULL, bufsize, NULL, NULL);
+    if(err < 0){
+        std::cerr << "Failed to open midi input stream: " << Pm_GetErrorText(err) << std::endl;
         return false;
     }
     return true;
+}
+
+bool Controller::close_stream(void){
+  if(stream){ return false; }
+  PmError err = Pm_Close(stream);
+  if(err < 0){
+    std::cerr << "Failed to close stream: " << Pm_GetErrorText(err) << std::endl;
+    return false;
+  }
+  input_id = -1;
+  stream = NULL;
+  return true;
 }
 
 void Controller::list_available_controllers(void){
@@ -72,24 +95,18 @@ void Controller::list_available_controllers(void){
     }
 }
 
-void Controller::get_midi_device_by_name(const char *name){
+void Controller::get_midi_device_by_name(void){
     const i32 count = Pm_CountDevices();
     if(count < 1){
         std::cout << "No devices" << std::endl;
         return;
     }
-
-    if(!name){
-        std::cout << "Invalid name parameter" << std::endl;
-        return;
-    }
-
+    input_id = -1;
     for(i32 i = 0; i < count; i++){
         const PmDeviceInfo *info = Pm_GetDeviceInfo(i);
-        if((info && info->input) && strcmp(info->name, name) == 0){
-            copy_char_buffer(info->name, input_name, strlen(info->name));
+        if((info && info->input) && strcmp(info->name, input_name.c_str()) == 0){
             input_id = i;
-            std::cout << "Found device: " << name << std::endl;
+            std::cout << "Found device: " << input_name << std::endl;
             return;
         }
     }
