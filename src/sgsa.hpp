@@ -74,23 +74,29 @@ enum table_enum {
     OCTAVES = 12,
 };
 
+enum env_types {
+  ENV_ADSR,
+  ENV_PIANO,
+};
+
 struct Lfo_Params {
   Lfo_Params(void);
-  //Lfo_Params(f32 r, f32 d, f32 t);
+  Lfo_Params(f32 RATE, f32 DEPTH, f32 TIMER, u8 MODE);
   f32 rate, depth, timer;
   u8 mode;
 };
 
 struct Env_Params {
   Env_Params(void);
-  //Env_Params(f32 atk, f32 dec, f32 sus, f32 rel, std::string type);
+  Env_Params(f32 ATK, f32 DEC, f32 SUS, f32 REL, std::string TYPE);
   f32 attack, decay, sustain, release;
   std::string type;
+  size_t env_id;
 };
 
 struct Audio_Params {
   Audio_Params(void);
-  //Audio_Params(i32 chan, i32 sr, i32 voice_count, i32 wtsize, f32 tempo, f32 nd);
+  Audio_Params(i32 CHANNELS, i32 SAMPLE_RATE, size_t VOICE_COUNT, size_t WT_SIZE, f32 TEMPO, f32 NOTE_DUR, f32 CUTOFF_LOW, f32 CUTOFF_HIGH);
 
   i32 channels, sample_rate;
   size_t voicings, wave_table_size;
@@ -100,6 +106,7 @@ struct Audio_Params {
 
 struct Params {
   Params(void);
+  Params(Lfo_Params lfop_tmp, Env_Params envp_tmp, Audio_Params ap_tmp);
   struct Lfo_Params lfop;
   struct Env_Params envp;
   struct Audio_Params ap;
@@ -150,7 +157,7 @@ struct Wave_Table {
 
 struct Oscilator_Cfg{
   Oscilator_Cfg(void);
-  // Oscilator_Cfg(f32 cyc, std::string n, f32 det, f32 vol, f32 st);
+  Oscilator_Cfg(f32 cyc, std::string n, f32 det, f32 vol, f32 st);
   f32 cycle;
   std::string name;
   f32 detune, volume, step;

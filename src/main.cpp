@@ -71,10 +71,6 @@ int main(int argc, char **argv){
     << SDL_VERSIONNUM_MINOR(linked) << "."
     << SDL_VERSIONNUM_MICRO(linked) << "." << std::endl;
     //parse_config();
-    
-    std::unordered_map<std::string, size_t> table_id_map = {
-      { "saw", TABLE_SAW },
-    };
 
     Params params;
     std::vector<Oscilator_Cfg> templates = { Oscilator_Cfg() };
