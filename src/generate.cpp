@@ -26,12 +26,16 @@ Wave_Table::Wave_Table(i32 sample_rate, size_t table_size)
   : tables(), freq_mapper(), size(table_size) 
 {
     const size_t N = size;
+    // C0 lowest note on the piano possible
     const f32 C0 = 16.35f;
 
     for(size_t o = 0; o < OCTAVES; o++){
+        // Calculate the base of the current octave
         const f32 freq = C0 * powf(2.0f, (f32)o);
-        const i32 end = (i32)(NYQUIST((f32)sample_rate) / freq);
-        freq_mapper[o] = freq;
+        // Find the end of the current harmonic content of this octave 
+        // by dividing the nyquist by the top of the current octave
+        const i32 end = (i32)(NYQUIST((f32)sample_rate) / (freq * 2.0f));
+        freq_mapper[o] = freq * 2.0f;
 
         for(size_t n = 0; n < N; n++){
             const f32 phase = (f32)n / (f32)N;
