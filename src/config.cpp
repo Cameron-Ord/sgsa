@@ -3,22 +3,23 @@
 #include <iostream>
 #include <unordered_map>
 
-const std::string DEFAULT_WAVE_STR = "SAW";
-const size_t DEFAULT_WAVE_ID = TABLE_SAW;
-
+const std::string ENV_AR_STR = "AR";
 const std::string DEFAULT_ENV_STR = "ADSR";
 const size_t DEFAULT_ENV_ID = ENV_ADSR;
 
-const std::string PIANO_ENV_STR = "PIANO";
 
+const std::string SINE_WAVE_STR = "SINE";
+const std::string DEFAULT_WAVE_STR = "SAW";
+const size_t DEFAULT_WAVE_ID = TABLE_SAW;
 
 const std::unordered_map<std::string, size_t> table_id_map = {
-  { std::string(DEFAULT_WAVE_STR), DEFAULT_WAVE_ID },
+  { DEFAULT_WAVE_STR, DEFAULT_WAVE_ID },
+  { SINE_WAVE_STR, TABLE_SINE },
 };
 
 const std::unordered_map<std::string, u8> env_id_map = {
-  { std::string(DEFAULT_ENV_STR), DEFAULT_ENV_ID },
-  { std::string(PIANO_ENV_STR), ENV_PIANO }
+  { DEFAULT_ENV_STR, DEFAULT_ENV_ID },
+  { ENV_AR_STR, ENV_AR }
 };
 
 bool parse_config(void){  
@@ -111,7 +112,7 @@ Audio_Params::Audio_Params(i32 CHANNELS, i32 SAMPLE_RATE, size_t VOICE_COUNT,
 }
 
 Env_Params::Env_Params(void){
-  const f32 ATK = 0.2f, DEC = 0.3f, SUS = 0.75f, REL = 0.25f;
+  const f32 ATK = 0.3f, DEC = 0.2f, SUS = 0.8f, REL = 0.2f;
   attack = ATK, decay = DEC, sustain = SUS, release = REL;
   type = DEFAULT_ENV_STR;
   env_id = DEFAULT_ENV_ID;

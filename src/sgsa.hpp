@@ -7,14 +7,11 @@
 #include <vector>
 
 #define PI 3.141592653589793f
-#define VOICE_ON (1 << 0)
-#define VOICE_OFF (1 << 1)
-#define ENVELOPE_OFF (1 << 2)
-#define ENVELOPE_ATTACKING (1 << 3)
-#define ENVELOPE_DECAYING (1 << 4)
-#define ENVELOPE_RELEASING (1 << 5)
-#define ENVELOPE_SUSTAINING (1 << 6)
-#define ENVELOPE_ON (1 << 7)
+#define ENVELOPE_ATTACKING 0
+#define ENVELOPE_DECAYING 1
+#define ENVELOPE_RELEASING 2
+#define ENVELOPE_SUSTAINING 3
+#define ENVELOPE_OFF 4
 
 // (VALUE - VALUE) / SAMPLES
 #define ATTACK_INCREMENT(samplerate, ATK) \
@@ -65,18 +62,15 @@ enum state_positions {
 };
 
 enum table_enum {
-    TABLE_SAW = 0,
-    TABLE_END = 1,
-    TABLE_FREQ_LOW = 0,
-    TABLE_FREQ_MID = 1,
-    TABLE_FREQ_HIGH = 2,
-    TABLE_FREQ_END = 3,
+    TABLE_SAW,
+    TABLE_SINE,
+    TABLE_END,
     OCTAVES = 12,
 };
 
 enum env_types {
   ENV_ADSR,
-  ENV_PIANO,
+  ENV_AR,
 };
 
 struct Lfo_Params {
@@ -141,6 +135,7 @@ struct Oscilator {
   u8 env_state;
   const Lfo lfo;
 
+  void ar(i32& counter, i32 samplerate, f32 atk, f32 rel);
   void adsr(i32& counter, i32 samplerate, f32 atk, f32 dec, f32 sus, f32 rel);
   void increment_phase(f32 inc, f32 max);
   void increment_time(f32 inc);
@@ -157,7 +152,7 @@ struct Wave_Table {
 
 struct Oscilator_Cfg{
   Oscilator_Cfg(void);
-  Oscilator_Cfg(f32 cyc, std::string n, f32 det, f32 vol, f32 st);
+  Oscilator_Cfg(f32 CYCLE, std::string NAME, f32 DETUNE, f32 VOLUME, f32 STEP);
   f32 cycle;
   std::string name;
   f32 detune, volume, step;
@@ -169,8 +164,7 @@ struct Voice {
     i32 sample_rate;
     const Env_Params& env_;
     const Lfo_Params& lfop_;
-
-    u8 voice_state;
+ 
     i32 active_oscilators;
     f32 freq;
     i32 midi_key;

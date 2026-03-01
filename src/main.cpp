@@ -1,10 +1,7 @@
 #include "sgsa.hpp"
-#include "util.hpp"
 #include "config.hpp"
-#include <memory>
 #include <iostream>
 #include <portmidi.h>
-#include <unordered_map>
 
 static bool initialize(void);
 static bool sdl_check_quit(void);
@@ -73,7 +70,9 @@ int main(int argc, char **argv){
     //parse_config();
 
     Params params;
-    std::vector<Oscilator_Cfg> templates = { Oscilator_Cfg() };
+    std::vector<Oscilator_Cfg> templates = { 
+      Oscilator_Cfg(0.0f, "SINE", 1.0f, 1.0f, 1.0f), 
+    };
     Manager manager(name_arg, params, templates);
 
     manager.get_controller().open();

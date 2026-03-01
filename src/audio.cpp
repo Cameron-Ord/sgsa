@@ -47,11 +47,12 @@ static void voice_loop(struct Audio_Data *d, f32 generated[CHANNEL_MAX]){
 
     for(size_t i = 0; i < ap->voicings; i++){
         struct Voice *v = &d->voices[i];
+        if(!(v->active_oscilators > 0)){
+          continue;
+        }
+
         for(size_t o = 0; o < v->osc_count; o++){
           struct Oscilator *osc = &v->oscs[o];
-          if(!is_generating(v->voice_state | osc->env_state)) {
-            continue;
-          }
           const struct Oscilator_Cfg *cfg = &v->cfgs[o];
 
           const size_t wt_size = d->wave_table.size;
@@ -64,9 +65,19 @@ static void voice_loop(struct Audio_Data *d, f32 generated[CHANNEL_MAX]){
 
           const Env_Params *ep = &d->envp_;
           for(i32 c = 0; c < ap->channels; c++){
-            osc->adsr(v->active_oscilators, ap->sample_rate, ep->attack, ep->decay, ep->sustain, ep->release);
+            switch(ep->env_id){
+              default: break;
+              case ENV_AR: {
+                osc->ar(v->active_oscilators, ap->sample_rate, ep->attack, ep->release);
+              } break;
+
+              case ENV_ADSR: {
+                osc->adsr(v->active_oscilators, ap->sample_rate, ep->attack, ep->decay, ep->sustain, ep->release);
+              }break;
+            }
             osc->samples.unfiltered[c] = generate(&d->wave_table, osc->gen_states[STATE_PHASE], cfg->table_id, freq);
             osc->samples.unfiltered[c] *= osc->gen_states[STATE_ENVELOPE];
+            
             osc->samples.lerp(ap->lpf_alpha_low, ap->lpf_alpha_high, c);
             osc->samples.filtered[c] = 0.7f * osc->samples.high[c] + 0.3f * osc->samples.low[c];
 

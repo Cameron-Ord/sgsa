@@ -1,14 +1,7 @@
 #include "util.hpp"
-#include "sgsa.hpp"
 
 #include <cmath>
 #include <cstring>
-
-bool is_generating(u8 flags){
-    const bool first = check_bit(flags, VOICE_ON | ENVELOPE_OFF | ENVELOPE_RELEASING, VOICE_ON);
-    const bool second = check_bit(flags, VOICE_OFF | ENVELOPE_RELEASING, VOICE_OFF | ENVELOPE_RELEASING);
-    return first || second;
-}
 
 f32 midi_to_freq(i32 n) {
     const i32 A4 = 69;

@@ -26,7 +26,7 @@ Wave_Table::Wave_Table(i32 sample_rate, size_t table_size)
   : tables(), freq_mapper(), size(table_size) 
 {
     const size_t N = size;
-    // C0 lowest note on the piano possible
+    // C0 lowest note on the piano realistically possible
     const f32 C0 = 16.35f;
 
     for(size_t o = 0; o < OCTAVES; o++){
@@ -46,12 +46,17 @@ Wave_Table::Wave_Table(i32 sample_rate, size_t table_size)
             }
             tables[TABLE_SAW][o][n] = -((2.0f * 1.0f) / PI) * sum;
         }
+
+        for(size_t n = 0; n < N; n++){
+          const f32 phase = (f32)n / (f32)N;
+          tables[TABLE_SINE][o][n] = sinf(2.0f * PI * phase);
+        }
     }
 }
 // ==WAVE TABLE END==
 // ==VOICE BEGIN==
 Voice::Voice(i32 sr, size_t osc_c, const Env_Params& envp, const Lfo_Params& lfop, std::vector<Oscilator_Cfg> templates) 
-  : sample_rate(sr), env_(envp), lfop_(lfop), voice_state(VOICE_OFF), active_oscilators(0), freq(0.0f), midi_key(0),
+  : sample_rate(sr), env_(envp), lfop_(lfop), active_oscilators(0), freq(0.0f), midi_key(0),
     osc_count(osc_c), cfgs(templates), oscs(osc_c, Oscilator(sr, envp, lfop))
 {}
 // ==VOICE END==
@@ -97,43 +102,55 @@ void Oscilator::increment_phase(f32 inc, f32 max){
 
 void Oscilator::adsr(i32& counter, i32 samplerate, f32 atk, f32 dec, f32 sus, f32 rel){
     switch(env_state){
-        case ENVELOPE_ATTACKING | ENVELOPE_ON: {
+        default: return;
+        case ENVELOPE_ATTACKING: {
             gen_states[STATE_ENVELOPE] += ATTACK_INCREMENT((f32)samplerate, atk);
             if(gen_states[STATE_ENVELOPE] >= 1.0f){
                 gen_states[STATE_ENVELOPE] = 1.0f;
-                env_state = set_bit(0, ENVELOPE_DECAYING | ENVELOPE_ON);
+                env_state = ENVELOPE_DECAYING;
             }
-            return;
         } break;
 
-        case ENVELOPE_DECAYING | ENVELOPE_ON: {
+        case ENVELOPE_DECAYING: {
             gen_states[STATE_ENVELOPE] -= DECAY_INCREMENT((f32)samplerate, dec, sus);
             if (gen_states[STATE_ENVELOPE] <= sus) {
                 gen_states[STATE_ENVELOPE] = sus;
-                env_state = set_bit(0, ENVELOPE_SUSTAINING | ENVELOPE_ON);
+                env_state = ENVELOPE_SUSTAINING;
             }       
-            return;
         }break;
 
-        case ENVELOPE_RELEASING | ENVELOPE_ON: {
+        case ENVELOPE_RELEASING: {
             gen_states[STATE_ENVELOPE] -= RELEASE_INCREMENT((f32)samplerate, rel);
             if (gen_states[STATE_ENVELOPE] <= 0.0f) {
                 gen_states[STATE_ENVELOPE] = 0.0f;
-                env_state = set_bit(0, ENVELOPE_OFF);
+                env_state = ENVELOPE_OFF;
                 counter--;
             }
-            return;
-        }break;
-
-        case ENVELOPE_SUSTAINING | ENVELOPE_ON: {
-            return;
-        }break;
-
-        case ENVELOPE_OFF: {
-            return;
         }break;
     }
 }
+
+void Oscilator::ar(i32& counter, i32 samplerate, f32 atk, f32 rel){
+    switch(env_state){
+      default: break;
+      case ENVELOPE_ATTACKING:{
+        gen_states[STATE_ENVELOPE] += ATTACK_INCREMENT((f32)samplerate, atk);
+        if(gen_states[STATE_ENVELOPE] >= 1.0f){
+            gen_states[STATE_ENVELOPE] = 1.0f;
+            env_state = ENVELOPE_RELEASING;
+        }
+      }break;
+      case ENVELOPE_RELEASING:{
+        gen_states[STATE_ENVELOPE] -= RELEASE_INCREMENT((f32)samplerate, rel);
+        if (gen_states[STATE_ENVELOPE] <= 0.0f) {
+            gen_states[STATE_ENVELOPE] = 0.0f;
+            env_state = ENVELOPE_OFF;
+            counter--;
+        }
+      }break;
+    }
+}
+
 // ==OSCILATOR END==
 // ==INTERPOLATOR==
 Interpolator::Interpolator(void){
