@@ -72,18 +72,18 @@ static void voice_loop(struct Audio_Data *d, f32 generated[MAX::CHANNEL_MAX]){
             }
 
             osc->samples.unfiltered[c] = generate(&d->wave_table, osc->gen_states[OSC_STATE::PHASE], cfg->table_id, freq);
-            osc->samples.unfiltered[c] *= osc->gen_states[OSC_STATE::ENVELOPE] * (1.0f /sqrtf((f32)v->osc_count));
+            osc->samples.unfiltered[c] *= osc->gen_states[OSC_STATE::ENVELOPE];
             
             osc->samples.lerp(ap->lpf_alpha_low, ap->lpf_alpha_high, c);
             osc->samples.filtered[c] = 0.7f * osc->samples.high[c] + 0.3f * osc->samples.low[c];
 
-            sums[c] += osc->samples.filtered[c];
+            sums[c] += osc->samples.filtered[c] / sqrtf((f32)v->osc_count) * cfg->volume;
           }
         }
     }
 
     for(i32 c = 0; c < ap->channels; c++){
-      generated[c] = tanhf(sums[c] * (1.0f / sqrtf((f32)ap->voicings)) * ap->gain * ap->volume);
+      generated[c] = tanhf(sums[c] / sqrtf((f32)ap->voicings) * ap->gain * ap->volume);
     }
 }
 

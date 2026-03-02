@@ -26,19 +26,21 @@ Wave_Table::Wave_Table(i32 sample_rate, size_t table_size)
     const size_t N = size;
     // C0 lowest note on the piano realistically possible
     const f32 C0 = 16.35f;
+    const f32 C1 = 32.703f;
 
     for(size_t o = 0; o < OCTAVES; o++){
         // Calculate the base of the current octave
-        const f32 freq = C0 * powf(2.0f, (f32)o);
+        const f32 base_freq = C0 * powf(2.0f, (f32)o);
+        const f32 last_freq = C1 * powf(2.0f, (f32)o);
         // Find the end of the current harmonic content of this octave 
         // by dividing the nyquist by the top of the current octave
-        const i32 end = (i32)(NYQUIST((f32)sample_rate) / (freq * 2.0f));
-        freq_mapper[o] = freq * 2.0f;
+        freq_mapper[o] = base_freq;
+        const size_t harmonics = (size_t)floorf(NYQUIST((f32)sample_rate) / last_freq);
 
         for(size_t n = 0; n < N; n++){
-            const f32 phase = (f32)n / (f32)(N-1);
+            const f32 phase = (f32)n / (f32)N;
             f32 sum = 0.0f;
-            for(i32 k = 1; k <= end; k++){
+            for(size_t k = 1; k <= harmonics; k++){
                 f32 sign = powf(-1.0f, (f32)k);
                 sum += sign * sinf(2.0f * PI * (f32)k * phase) / (f32)k;
             }
@@ -46,7 +48,7 @@ Wave_Table::Wave_Table(i32 sample_rate, size_t table_size)
         }
 
         for(size_t n = 0; n < N; n++){
-          const f32 phase = (f32)n / (f32)(N-1);
+          const f32 phase = (f32)n / (f32)N;
           tables[WAVEFORM_TYPE::SINE][o][n] = sinf(2.0f * PI * phase);
         }
     }

@@ -36,10 +36,10 @@ namespace DEFAULTS {
   inline constexpr LFO_TYPE LFO_MODE = LFO_TYPE::TREMOLO;
 
   inline constexpr f32 ATK = 0.25f;
-  inline constexpr f32 DEC = 0.0f;
-  inline constexpr f32 SUS = 0.0f;
-  inline constexpr f32 REL = 1.5f;
-  inline constexpr ENV_TYPE ENV_TYPE = ENV_TYPE::AR;
+  inline constexpr f32 DEC = 0.4f;
+  inline constexpr f32 SUS = 0.75f;
+  inline constexpr f32 REL = 0.3f;
+  inline constexpr ENV_TYPE ENV_TYPE = ENV_TYPE::ADSR;
 
   inline constexpr i32 CHANNELS = MAX::CHANNEL_MAX;
   inline constexpr i32 SAMPLE_RATE = 48000;
@@ -48,7 +48,7 @@ namespace DEFAULTS {
   inline constexpr f32 TEMPO = 120.0f;
   inline constexpr f32 NOTE_DURATION = 1.0f;
   inline constexpr f32 MAIN_VOLUME = 1.0f;
-  inline constexpr f32 GAIN_LEVEL = 3.0f;
+  inline constexpr f32 GAIN_LEVEL = 1.0f;
 
   inline constexpr f32 FILTER_UNSET = 1.0f;
 
