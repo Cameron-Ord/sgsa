@@ -42,7 +42,7 @@ static void voice_loop(struct Audio_Data *d, f32 generated[MAX::CHANNEL_MAX]){
     f32 sums[MAX::CHANNEL_MAX] = {0.0f, 0.0f};
     for(size_t i = 0; i < ap->voicings && i < MAX::VOICE_MAX; i++){
         struct Voice *v = &d->voices[i];
-        if(!(v->active_oscilators > 0)){
+        if(!(v->active_oscilators > 0) && !v->oscilators_releasing()){
           continue;
         }
 
@@ -63,11 +63,11 @@ static void voice_loop(struct Audio_Data *d, f32 generated[MAX::CHANNEL_MAX]){
             switch(ep->env_id){
               default: break;
               case ENV_TYPE::AR: {
-                osc->ar(v->active_oscilators, ap->sample_rate, ep->attack, ep->release);
+                osc->ar(ap->sample_rate, ep->attack, ep->release);
               } break;
 
               case ENV_TYPE::ADSR: {
-                osc->adsr(v->active_oscilators, ap->sample_rate, ep->attack, ep->decay, ep->sustain, ep->release);
+                osc->adsr(ap->sample_rate, ep->attack, ep->decay, ep->sustain, ep->release);
               }break;
             }
 

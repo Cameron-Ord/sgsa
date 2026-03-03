@@ -71,10 +71,9 @@ int main(int argc, char **argv){
 
     Params params;
     std::vector<Oscilator_Cfg> templates = { 
-      Oscilator_Cfg(0.0f, "SINE", 1.0f, 0.6f, 0.5f), 
-      Oscilator_Cfg(0.0f, "SAW", 1.0f, 1.0f, 1.0f), 
-      Oscilator_Cfg(0.0f, "SAW", 0.998f, 0.7f, 1.0f), 
-      Oscilator_Cfg(0.0f, "SAW", 0.996f, 0.4f, 1.0f), 
+      Oscilator_Cfg(0.0f, "SAW", 1.0f, 0.8f, 1.0f), 
+      Oscilator_Cfg(0.0f, "SAW", 1.0f, 0.6f, 0.5f), 
+      Oscilator_Cfg(0.0f, "SAW", 0.996f, 0.3f, 1.0f), 
     };
 
     Audio audio(params, templates);

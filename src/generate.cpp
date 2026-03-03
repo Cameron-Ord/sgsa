@@ -1,6 +1,7 @@
 #include "audio.hpp"
 #include <iostream>
 #include <cmath>
+#include <cassert>
 
 void Wave_Table::print_table(f32 table[MAX::MAX_TABLE_SIZE]){
     for(size_t i = 0; i < size && i < MAX::MAX_TABLE_SIZE; i++){
@@ -57,6 +58,25 @@ Voice::Voice(i32 sr, size_t osc_c, const Env_Params& envp, const Lfo_Params& lfo
   : sample_rate(sr), env_(envp), lfop_(lfop), active_oscilators(0), freq(0.0f), midi_key(0),
     osc_count(osc_c), cfgs(templates), oscs(osc_c, Oscilator(sr, envp, lfop))
 {}
+
+bool Voice::oscilators_done(void){
+  for(size_t o = 0; o < osc_count; o++){
+    if(oscs[o].env_state == ENV_STATE::OFF){
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Voice::oscilators_releasing(void){
+  for(size_t o = 0; o < osc_count; o++){
+    if(oscs[o].env_state == ENV_STATE::REL){
+      return true;
+    }
+  }
+  return false;
+}
+
 Audio_Data::Audio_Data(const Params& p, std::vector<Oscilator_Cfg> templates, size_t osc_c) 
   : lfop_(p.lfop), ap_(p.ap), envp_(p.envp), voices(p.ap.voicings, Voice(p.ap.sample_rate, osc_c, p.envp, p.lfop, templates)), wave_table(p.ap.sample_rate, p.ap.wave_table_size) {}
 
@@ -93,7 +113,7 @@ void Oscilator::increment_phase(f32 inc, f32 max){
     }
 }
 
-void Oscilator::adsr(i32& counter, i32 samplerate, f32 atk, f32 dec, f32 sus, f32 rel){
+void Oscilator::adsr(i32 samplerate, f32 atk, f32 dec, f32 sus, f32 rel){
     switch(env_state){
         default: return;
         case ENV_STATE::ATK: {
@@ -117,13 +137,12 @@ void Oscilator::adsr(i32& counter, i32 samplerate, f32 atk, f32 dec, f32 sus, f3
             if (gen_states[OSC_STATE::ENVELOPE] <= 0.0f) {
                 gen_states[OSC_STATE::ENVELOPE] = 0.0f;
                 env_state = ENV_STATE::OFF;
-                counter--;
             }
         }break;
     }
 }
 
-void Oscilator::ar(i32& counter, i32 samplerate, f32 atk, f32 rel){
+void Oscilator::ar(i32 samplerate, f32 atk, f32 rel){
     switch(env_state){
       default: break;
       case ENV_STATE::ATK:{
@@ -138,7 +157,6 @@ void Oscilator::ar(i32& counter, i32 samplerate, f32 atk, f32 rel){
         if (gen_states[OSC_STATE::ENVELOPE] <= 0.0f) {
             gen_states[OSC_STATE::ENVELOPE] = 0.0f;
             env_state = ENV_STATE::OFF;
-            counter--;
         }
       }break;
     }

@@ -24,12 +24,12 @@ bool Controller::close(void){
 void Controller::iterate_input_off(struct Audio_Data& data, i32 midi_key){
     for(size_t i = 0; i < data.ap_.voicings; i++){
         struct Voice *v = &data.voices[i];
-        if(v->active_oscilators > 0 && v->midi_key == midi_key){
+        if(v->midi_key == midi_key && !v->oscilators_done()){
             for(size_t o = 0; o < v->osc_count; o++){
               struct Oscilator *osc = &v->oscs[o];
               osc->env_state = ENV_STATE::REL;
+              v->active_oscilators--;
             }
-            return;
         }
     }
 }
@@ -37,7 +37,7 @@ void Controller::iterate_input_off(struct Audio_Data& data, i32 midi_key){
 void Controller::iterate_input_on(struct Audio_Data& data, i32 midi_key){
     for(size_t i = 0; i < data.ap_.voicings; i++){
         struct Voice *v = &data.voices[i];
-        if(v->active_oscilators <= 0){
+        if(v->active_oscilators <= 0 && v->oscilators_done()){
           v->active_oscilators = 0;
           v->midi_key = midi_key;
           v->freq = midi_to_freq(midi_key);

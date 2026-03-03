@@ -21,7 +21,7 @@ enum WAVEFORM_TYPE : size_t {
 };
 
 enum MAX : size_t {
-  VOICE_MAX = 8,
+  VOICE_MAX = 12,
   CONTROLLER_NAME_MAX = 256,
   CHANNEL_MAX = 2,
   MAX_TABLE_SIZE = 4096,
@@ -35,10 +35,10 @@ namespace DEFAULTS {
   inline constexpr f32 LFO_TIMER = 0.33f;
   inline constexpr LFO_TYPE LFO_MODE = LFO_TYPE::TREMOLO;
 
-  inline constexpr f32 ATK = 0.25f;
-  inline constexpr f32 DEC = 0.4f;
-  inline constexpr f32 SUS = 0.75f;
-  inline constexpr f32 REL = 0.3f;
+  inline constexpr f32 ATK = 0.125f;
+  inline constexpr f32 DEC = 0.565f;
+  inline constexpr f32 SUS = 0.725f;
+  inline constexpr f32 REL = 0.175f;
   inline constexpr ENV_TYPE ENV_TYPE = ENV_TYPE::ADSR;
 
   inline constexpr i32 CHANNELS = MAX::CHANNEL_MAX;
@@ -48,7 +48,7 @@ namespace DEFAULTS {
   inline constexpr f32 TEMPO = 120.0f;
   inline constexpr f32 NOTE_DURATION = 1.0f;
   inline constexpr f32 MAIN_VOLUME = 1.0f;
-  inline constexpr f32 GAIN_LEVEL = 1.0f;
+  inline constexpr f32 GAIN_LEVEL = 3.0f;
 
   inline constexpr f32 FILTER_UNSET = 1.0f;
 

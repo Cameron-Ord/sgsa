@@ -70,8 +70,8 @@ struct Oscilator {
   u8 env_state;
   const Lfo lfo;
 
-  void ar(i32& counter, i32 samplerate, f32 atk, f32 rel);
-  void adsr(i32& counter, i32 samplerate, f32 atk, f32 dec, f32 sus, f32 rel);
+  void ar(i32 samplerate, f32 atk, f32 rel);
+  void adsr(i32 samplerate, f32 atk, f32 dec, f32 sus, f32 rel);
   void increment_phase(f32 inc, f32 max);
   void increment_time(f32 inc);
 };
@@ -98,6 +98,8 @@ struct Voice {
     size_t osc_count;
     std::vector<struct Oscilator_Cfg> cfgs;
     std::vector<struct Oscilator> oscs;
+    bool oscilators_done(void);
+    bool oscilators_releasing(void);
 };
 
 struct Audio_Data {
