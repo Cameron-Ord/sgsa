@@ -1,17 +1,19 @@
+local modes = { "TREMOLO", "VIBRATO" }
+local waveforms = { "SAW", "SINE", "SQUARE" }
+
 return {
   lfo = {
     on = false,
     rate = 1.0,
     depth = 1.0,
     timer = 0.3,
-    mode = "TREMOLO"
+    mode = modes[1]
   },
   envelope = {
     attack = 0.1,
     decay = 0.1,
     sustain = 0.1,
     release = 0.1,
-    type = "ADSR"
   },
   audio = {
     volume = 1.0,
@@ -32,7 +34,7 @@ return {
       detune = 1.0,
       volume = 1.0,
       octave_step = 1.0,
-      waveform = "SAW"
+      waveform = waveforms[1]
     }
   },
 }

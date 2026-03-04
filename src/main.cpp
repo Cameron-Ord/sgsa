@@ -1,13 +1,9 @@
 #include "audio.hpp"
 #include "controller.hpp"
+#include "scripts.hpp"
+
 #include <iostream>
 #include <portmidi.h>
-
-extern "C" {
-#include <lauxlib.h>
-#include <lua.h>
-#include <lualib.h>
-}
 
 static bool initialize(void);
 static bool sdl_check_quit(void);
@@ -72,6 +68,13 @@ int main(int argc, char **argv) {
   std::cout << "Linked SDL Version: " << SDL_VERSIONNUM_MAJOR(linked) << "."
             << SDL_VERSIONNUM_MINOR(linked) << "."
             << SDL_VERSIONNUM_MICRO(linked) << "." << std::endl;
+
+  Lua_Container lua;
+  Lua_Cfg cfg;
+  if(lua.initialize()){
+    cfg = lua.load_cfg("lua/config.lua");
+  }
+  std::cout << cfg.get_state() << std::endl;
 
   Synth syn;
   Controller controller(name_arg);
