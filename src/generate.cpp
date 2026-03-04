@@ -70,7 +70,7 @@ Synth::Synth(void)
 void Synth::loop_voicings_off(i32 midi_key) {
   for (size_t i = 0; i < audio_cfg.voicings; i++) {
     Voice *v = &voices[i];
-    if (v->get_key() == midi_key && !v->done()) {
+    if (v->get_key() == midi_key) {
       for (size_t o = 0; o < v->get_osc_count(); o++) {
         v->set_active_count(v->get_active_count() - 1);
       }

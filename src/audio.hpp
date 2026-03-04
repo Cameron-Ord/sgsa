@@ -9,9 +9,9 @@
 
 #define PI 3.141592653589793f
 // (VALUE - VALUE) / SAMPLES
-#define ATTACK_INCREMENT(samplerate, ATK) 1.0f / ((ATK) * (samplerate))
+#define ATTACK_INCREMENT(samplerate, ATK) 1.0f / (((ATK) <= 0.0f ? 1.0f : (ATK)) * (samplerate))
 #define DECAY_INCREMENT(samplerate, DEC, SUS)                                  \
-  (1.0f - (SUS)) / ((DEC) * (samplerate))
+  (1.0f - (SUS)) / (((DEC) <= 0.0f ? 1.0f : (DEC)) * (samplerate))
 #define RELEASE_INCREMENT(samplerate, REL)                                     \
   (REL) <= 0.0f ? 1.0f : 1.0f / ((REL) * (samplerate))
 

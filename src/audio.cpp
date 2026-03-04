@@ -74,17 +74,7 @@ static void voice_loop(Synth *syn, f32 generated[SIZES::CHANNEL_MAX]) {
     const Env_Params &e = syn->get_env_cfg();
     for (i32 c = 0; c < ap.channels; c++) {
       v.get_lpf().lerp(voice_sums, c);
-
-      switch (e.env_id) {
-      default:
-        break;
-      case ENV_TYPE::AR: {
-        v.ar(ap.sample_rate, e.attack, e.release);
-      } break;
-      case ENV_TYPE::ADSR: {
-        v.adsr(ap.sample_rate, e.attack, e.decay, e.sustain, e.release);
-      } break;
-      }
+      v.adsr(ap.sample_rate, e.attack, e.decay, e.sustain, e.release);
 
       const f32 mix =
           0.7f * v.get_lpf().get_high()[c] + 0.3f * v.get_lpf().get_low()[c];

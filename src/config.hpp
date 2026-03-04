@@ -1,13 +1,6 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 #include "typedef.hpp"
-#include <string>
-bool parse_config(void);
-
-enum ENV_TYPE : size_t {
-  ADSR,
-  AR,
-};
 
 enum LFO_TYPE : size_t {
   VIBRATO,
@@ -35,11 +28,10 @@ inline constexpr f32 LFO_DEPTH = 1.0f;
 inline constexpr f32 LFO_TIMER = 0.33f;
 inline constexpr LFO_TYPE LFO_MODE = LFO_TYPE::TREMOLO;
 
-inline constexpr f32 ATK = 0.1f;
-inline constexpr f32 DEC = 0.1f;
-inline constexpr f32 SUS = 0.1f;
-inline constexpr f32 REL = 0.1f;
-inline constexpr ENV_TYPE ENV_TYPE = ENV_TYPE::ADSR;
+inline constexpr f32 ATK = 0.3f;
+inline constexpr f32 DEC = 0.7f;
+inline constexpr f32 SUS = 0.0f;
+inline constexpr f32 REL = 0.8f;
 
 inline constexpr i32 CHANNELS = SIZES::CHANNEL_MAX;
 inline constexpr i32 SAMPLE_RATE = 48000;
@@ -82,7 +74,6 @@ struct Env_Params {
   f32 decay = DEFAULTS::DEC;
   f32 sustain = DEFAULTS::SUS;
   f32 release = DEFAULTS::REL;
-  ENV_TYPE env_id = DEFAULTS::ENV_TYPE;
 };
 
 struct Audio_Params {
