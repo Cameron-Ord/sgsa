@@ -19,6 +19,7 @@ enum INPUT_TYPE : size_t {
     INPUT_END
 };
 
+class Synth;
 class Controller {
 public:
     Controller(const char *name_arg);
@@ -32,9 +33,6 @@ public:
     bool close_stream(void);
     void read_input(i32 len);
     void clear_msg_buf(void);
-    void iterate_input_on(struct Audio_Data &data, i32 midi_key);
-    void iterate_input_off(struct Audio_Data &data, i32 midi_key);
-
     const i32 *get_msgbuf(void) const { return msgbuf; }
 
 private:

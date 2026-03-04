@@ -21,38 +21,6 @@ bool Controller::close(void){
   return close_stream();
 }
 
-void Controller::iterate_input_off(struct Audio_Data& data, i32 midi_key){
-    for(size_t i = 0; i < data.ap_.voicings; i++){
-        struct Voice *v = &data.voices[i];
-        if(v->midi_key == midi_key && !v->oscilators_done()){
-            for(size_t o = 0; o < v->osc_count; o++){
-              struct Oscilator *osc = &v->oscs[o];
-              osc->env_state = ENV_STATE::REL;
-              v->active_oscilators--;
-            }
-        }
-    }
-}
-
-void Controller::iterate_input_on(struct Audio_Data& data, i32 midi_key){
-    for(size_t i = 0; i < data.ap_.voicings; i++){
-        struct Voice *v = &data.voices[i];
-        if(v->active_oscilators <= 0 && v->oscilators_done()){
-          v->active_oscilators = 0;
-          v->midi_key = midi_key;
-          v->freq = midi_to_freq(midi_key);
-
-          for(size_t o = 0; o < v->osc_count; o++){
-            struct Oscilator *osc = &v->oscs[o];
-            memset(osc->gen_states, 0, sizeof(f32) * OSC_STATE::STATE_COUNT);
-            osc->samples = Interpolator();
-            osc->env_state = ENV_STATE::ATK;
-            v->active_oscilators++;
-          }
-          return;
-        } 
-    }
-}
 
 bool Controller::open_stream(i32 bufsize){
   std::cout << "Opening device with given ID: " << input_id << std::endl;

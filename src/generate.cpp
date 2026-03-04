@@ -1,24 +1,29 @@
 #include "audio.hpp"
-#include <iostream>
+#include "util.hpp"
 #include <cmath>
 #include <cassert>
 
-void Wave_Table::print_table(f32 table[MAX::MAX_TABLE_SIZE]){
-    for(size_t i = 0; i < size && i < MAX::MAX_TABLE_SIZE; i++){
-        std::cout << "(" << table[i] << ")";
-    }
-    std::cout << std::endl;
-}
-
 size_t Wave_Table::index_octave(f32 freq) const {
-    for(u8 i = 0; i < MAX::OCTAVES - 1; i++){
+    for(u8 i = 0; i < SIZES::OCTAVES - 1; i++){
         const f32 base = freq_mapper[i];
         const f32 next = freq_mapper[i + 1];
         if(freq >= base && freq < next) {
             return i;
         }
     }
-    return MAX::OCTAVES - 1;
+    return SIZES::OCTAVES - 1;
+}
+
+const f32 *Wave_Table::get_table(size_t id, size_t index) const {
+  if(index >= SIZES::MAX_TABLE_SIZE) {
+    return NULL;
+  }
+
+  if(id >= SIZES::OCTAVES){
+    return NULL;
+  }
+
+  return tables[id][index];
 }
 
 Wave_Table::Wave_Table(i32 sample_rate, size_t table_size) 
@@ -54,125 +59,149 @@ Wave_Table::Wave_Table(i32 sample_rate, size_t table_size)
         }
     }
 }
-Voice::Voice(i32 sr, size_t osc_c, const Env_Params& envp, const Lfo_Params& lfop, std::vector<Oscilator_Cfg> templates) 
-  : sample_rate(sr), env_(envp), lfop_(lfop), active_oscilators(0), freq(0.0f), midi_key(0),
-    osc_count(osc_c), cfgs(templates), oscs(osc_c, Oscilator(sr, envp, lfop))
-{}
 
-bool Voice::oscilators_done(void){
-  for(size_t o = 0; o < osc_count; o++){
-    if(oscs[o].env_state == ENV_STATE::OFF){
-      return true;
+
+Synth::Synth(void) 
+  : lfo_cfg(), env_cfg(), audio_cfg(), 
+  wave_table(audio_cfg.sample_rate, audio_cfg.wave_table_size), 
+  voices(audio_cfg.voicings, Voice()) {}
+
+
+void Synth::loop_voicings_off(i32 midi_key){
+    for(size_t i = 0; i < audio_cfg.voicings; i++){
+        Voice *v = &voices[i];
+        if(v->get_key() == midi_key && !v->done()){
+            for(size_t o = 0; o < v->get_osc_count(); o++){
+              v->set_active_count(v->get_active_count() - 1);
+            }
+            v->set_env_state(ENV_STATE::REL);
+        }
     }
-  }
-  return false;
 }
 
-bool Voice::oscilators_releasing(void){
-  for(size_t o = 0; o < osc_count; o++){
-    if(oscs[o].env_state == ENV_STATE::REL){
-      return true;
+void Synth::loop_voicings_on(i32 midi_key){
+    for(size_t i = 0; i < audio_cfg.voicings; i++){
+        Voice *v = &voices[i];
+        if(v->get_active_count() <= 0 && v->done()){
+          v->set_active_count(0);
+          v->set_key(midi_key);
+          v->set_freq(midi_to_freq(midi_key));
+
+          for(size_t o = 0; o < v->get_osc_count(); o++){
+            Oscilator *osc = &v->get_osc_array()[o];
+            osc->start();
+            v->set_active_count(v->get_active_count() + 1);
+          }
+          v->set_envelope(0.0f);
+          v->set_env_state(ENV_STATE::ATK);
+          return;
+        } 
     }
-  }
-  return false;
 }
 
-Audio_Data::Audio_Data(const Params& p, std::vector<Oscilator_Cfg> templates, size_t osc_c) 
-  : lfop_(p.lfop), ap_(p.ap), envp_(p.envp), voices(p.ap.voicings, Voice(p.ap.sample_rate, osc_c, p.envp, p.lfop, templates)), wave_table(p.ap.sample_rate, p.ap.wave_table_size) {}
 
-Lfo::Lfo(f32 r, f32 d, f32 t, i32 sr, LFO_TYPE m)
-  : mode(m), rate(r), depth(d), timer(t), inc(r / (f32)sr), max(1.0f), phase(0.0f){}
-
-f32 Lfo::vibrato(void){
+f32 Lfo::vibrato(f32 depth){
     return depth * sinf(2.0f * PI * phase);
 }
 
-void Lfo::increment_lfo(void){
+void Lfo::increment_lfo(f32 inc){
   phase += inc;
-  if(phase > max){
-    phase -= max;
+  if(phase > 1.0f){
+    phase -= 1.0f;
   }
 }
 
-Oscilator::Oscilator(i32 sr, const Env_Params& env, const Lfo_Params& lfop)
-  : env_(env), lfop_(lfop), lfo(lfop.rate, lfop.depth, lfop.timer, sr, lfop.mode)
-{
-  memset(gen_states, 0, sizeof(f32) * OSC_STATE::STATE_COUNT);
-  samples = Interpolator();
-  env_state = ENV_STATE::OFF;
+Oscilator::Oscilator(void) 
+  : gen(), cfg(), phase(0.0f), 
+  time(0.0f) {}
+
+void Oscilator::start(void){
+  phase = 0.0f;
+  time = 0.0f;
 }
 
-void Oscilator::increment_time(f32 inc){
-    gen_states[OSC_STATE::TIME] += inc;
+void Oscilator::increment_time(f32 dt){
+    time += dt;
 }
 
 void Oscilator::increment_phase(f32 inc, f32 max){
-    gen_states[OSC_STATE::PHASE] += inc;
-    if(gen_states[OSC_STATE::PHASE] >= max){
-        gen_states[OSC_STATE::PHASE] -= max;
+    phase += inc;
+    if(phase >= max){
+        phase -= max;
     }
 }
 
-void Oscilator::adsr(i32 samplerate, f32 atk, f32 dec, f32 sus, f32 rel){
+Voice::Voice(void) 
+  : active_oscilators(0), freq(0.0f), midi_key(0), env_state(ENV_STATE::OFF), 
+  envelope(0.0f), oscs(1, Oscilator()), lfo(), lpf() {}
+
+bool Voice::done(void) const {
+  return env_state == ENV_STATE::OFF;
+}
+
+bool Voice::releasing(void) const {
+  return env_state == ENV_STATE::REL;
+}
+
+void Voice::adsr(i32 samplerate, f32 atk, f32 dec, f32 sus, f32 rel){
     switch(env_state){
         default: return;
         case ENV_STATE::ATK: {
-            gen_states[OSC_STATE::ENVELOPE] += ATTACK_INCREMENT((f32)samplerate, atk);
-            if(gen_states[OSC_STATE::ENVELOPE] >= 1.0f){
-                gen_states[OSC_STATE::ENVELOPE] = 1.0f;
+            envelope += ATTACK_INCREMENT((f32)samplerate, atk);
+            if(envelope >= 1.0f){
+                envelope = 1.0f;
                 env_state = ENV_STATE::DEC;
             }
         } break;
 
         case ENV_STATE::DEC: {
-            gen_states[OSC_STATE::ENVELOPE] -= DECAY_INCREMENT((f32)samplerate, dec, sus);
-            if (gen_states[OSC_STATE::ENVELOPE] <= sus) {
-                gen_states[OSC_STATE::ENVELOPE] = sus;
+            envelope -= DECAY_INCREMENT((f32)samplerate, dec, sus);
+            if (envelope <= sus) {
+                envelope = sus;
                 env_state = ENV_STATE::SUS;
             }       
         }break;
 
         case ENV_STATE::REL: {
-            gen_states[OSC_STATE::ENVELOPE] -= RELEASE_INCREMENT((f32)samplerate, rel);
-            if (gen_states[OSC_STATE::ENVELOPE] <= 0.0f) {
-                gen_states[OSC_STATE::ENVELOPE] = 0.0f;
+            envelope -= RELEASE_INCREMENT((f32)samplerate, rel);
+            if (envelope <= 0.0f) {
+                envelope = 0.0f;
                 env_state = ENV_STATE::OFF;
             }
         }break;
     }
 }
 
-void Oscilator::ar(i32 samplerate, f32 atk, f32 rel){
+void Voice::ar(i32 samplerate, f32 atk, f32 rel){
     switch(env_state){
       default: break;
       case ENV_STATE::ATK:{
-        gen_states[OSC_STATE::ENVELOPE] += ATTACK_INCREMENT((f32)samplerate, atk);
-        if(gen_states[OSC_STATE::ENVELOPE] >= 1.0f){
-            gen_states[OSC_STATE::ENVELOPE] = 1.0f;
+        envelope += ATTACK_INCREMENT((f32)samplerate, atk);
+        if(envelope >= 1.0f){
+            envelope = 1.0f;
             env_state = ENV_STATE::REL;
         }
       }break;
       case ENV_STATE::REL:{
-        gen_states[OSC_STATE::ENVELOPE] -= RELEASE_INCREMENT((f32)samplerate, rel);
-        if (gen_states[OSC_STATE::ENVELOPE] <= 0.0f) {
-            gen_states[OSC_STATE::ENVELOPE] = 0.0f;
+        envelope -= RELEASE_INCREMENT((f32)samplerate, rel);
+        if (envelope <= 0.0f) {
+            envelope = 0.0f;
             env_state = ENV_STATE::OFF;
         }
       }break;
     }
 }
 
-Interpolator::Interpolator(void){
-  for(size_t c = 0; c < MAX::CHANNEL_MAX; c++){
-    unfiltered[c] = 0.0f;
+LPF::LPF(void){
+  for(size_t c = 0; c < SIZES::CHANNEL_MAX; c++){
     high[c] = 0.0f;
     low[c] = 0.0f;
-    filtered[c] = 0.0f;
   }
 }
 
-void Interpolator::lerp(f32 alpha_low, f32 alpha_high, i32 c){
-  high[c] = high[c] + (unfiltered[c] - high[c]) * alpha_high;
-  low[c] = low[c] + (unfiltered[c] - low[c]) * alpha_low;
+
+void LPF::lerp(f32 target[SIZES::CHANNEL_MAX], f32 alpha_low, f32 alpha_high, i32 c){
+  high[c] = high[c] + (target[c] - high[c]) * alpha_high;
+  low[c] = low[c] + (target[c] - low[c]) * alpha_low;
 }
 

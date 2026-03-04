@@ -2,6 +2,9 @@
 #include "controller.hpp"
 #include <iostream>
 #include <portmidi.h>
+#include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
 
 static bool initialize(void);
 static bool sdl_check_quit(void);
@@ -67,19 +70,12 @@ int main(int argc, char **argv){
     << SDL_VERSIONNUM_MAJOR(linked) << "." 
     << SDL_VERSIONNUM_MINOR(linked) << "."
     << SDL_VERSIONNUM_MICRO(linked) << "." << std::endl;
-    //parse_config();
 
-    Params params;
-    std::vector<Oscilator_Cfg> templates = { 
-      Oscilator_Cfg(0.0f, "SAW", 1.0f, 0.8f, 1.0f), 
-      Oscilator_Cfg(0.0f, "SAW", 1.0f, 0.6f, 0.5f), 
-      Oscilator_Cfg(0.0f, "SAW", 0.996f, 0.3f, 1.0f), 
-    };
-
-    Audio audio(params, templates);
+    Synth syn;
     Controller controller(name_arg);
+    Audio_Sys audio(syn.get_audio_cfg().channels, syn.get_audio_cfg().sample_rate);
 
-    audio.open();
+    audio.open(&syn);
     controller.open();
 
     const u32 FPS = 120;
@@ -98,11 +94,11 @@ int main(int argc, char **argv){
         switch(buf[INPUT_TYPE::STATUS]){
             default: break;
             case NOTE_ON:{
-                controller.iterate_input_on(audio.get_data(), buf[INPUT_TYPE::MSG_ONE]);
+                syn.loop_voicings_on(buf[INPUT_TYPE::MSG_ONE]);
             }break;
 
             case NOTE_OFF:{
-                controller.iterate_input_off(audio.get_data(), buf[INPUT_TYPE::MSG_ONE]);
+                syn.loop_voicings_off(buf[INPUT_TYPE::MSG_ONE]);
             }break;
         }
 
