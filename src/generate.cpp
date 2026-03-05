@@ -1,7 +1,13 @@
 #include "audio.hpp"
 #include "util.hpp"
+#include <iostream>
 #include <cassert>
 #include <cmath>
+
+static f32 rand_f32_range(f32 min, f32 max) {
+  float scale = (f32)rand() / (f32)RAND_MAX;
+  return min + scale * (max - min);
+}
 
 size_t Wave_Table::index_octave(f32 freq) const {
   for (u8 i = 0; i < SIZES::OCTAVES - 1; i++) {
@@ -26,9 +32,10 @@ const f32 *Wave_Table::get_table(size_t id, size_t index) const {
   return tables[id][index];
 }
 
-Wave_Table::Wave_Table(i32 sample_rate, size_t table_size)
-    : tables(), freq_mapper(), size(table_size) {
+void Wave_Table::generate(i32 sample_rate, size_t table_size){
+  set_size(table_size);
   const size_t N = size;
+  std::cout << "Wave table size: " << size << std::endl;
   // C0 lowest note on the piano realistically possible
   const f32 C0 = 16.35f;
   const f32 C1 = 32.703f;
@@ -52,12 +59,32 @@ Wave_Table::Wave_Table(i32 sample_rate, size_t table_size)
       }
       tables[WAVEFORM_TYPE::SAW][o][n] = -((2.0f * 1.0f) / PI) * sum;
     }
-
+ 
     for (size_t n = 0; n < N; n++) {
       const f32 phase = (f32)n / (f32)N;
       tables[WAVEFORM_TYPE::SINE][o][n] = sinf(2.0f * PI * phase);
     }
   }
+
+  f32 max = 0.0f;
+  for(size_t o = 0; o < OCTAVES; o++){
+    for(size_t n = 0; n < N; n++){
+      if(tables[WAVEFORM_TYPE::SAW][o][n] > max){
+        max = tables[WAVEFORM_TYPE::SAW][o][n];
+      }
+    }
+ 
+    if(max > 0.0f){
+      for(size_t n = 0; n < N; n++){
+        tables[WAVEFORM_TYPE::SAW][o][n] /= max;
+      }
+    }
+  }
+}
+
+Wave_Table::Wave_Table(i32 sample_rate, size_t table_size)
+    : tables(), freq_mapper(), size(0) {
+    generate(sample_rate, table_size);
 }
 
 Synth::Synth(void)
@@ -65,6 +92,20 @@ Synth::Synth(void)
       voices((size_t)cfg.voicings,
              Voice(cfg.filter_cutoff_low, cfg.filter_cutoff_high,
                    cfg.sample_rate)) {}
+
+void Synth::modify_oscilator_cfgs(std::vector<Oscilator_Cfg> osc_cfgs){
+  for(size_t i = 0; i < osc_cfgs.size(); i++){
+    osc_cfgs[i].print();
+  }
+
+  for(size_t i = 0; i < voices.size(); i++){
+    std::vector<Oscilator>& oscs = voices[i].get_osc_array();
+    oscs.resize(osc_cfgs.size());
+    for(size_t j = 0; j < oscs.size(); j++){
+      oscs[j].new_cfg(osc_cfgs[j]);
+    }
+  }
+}
 
 void Synth::loop_voicings_off(i32 midi_key) {
   for (size_t i = 0; i < (size_t)cfg.voicings; i++) {
@@ -110,7 +151,7 @@ void Lfo::increment_lfo(f32 inc) {
 Oscilator::Oscilator(void) : gen(), cfg(), phase(0.0f), time(0.0f) {}
 
 void Oscilator::start(void) {
-  phase = 0.0f;
+  phase = rand_f32_range(0.0f, 1.0f);
   time = 0.0f;
 }
 

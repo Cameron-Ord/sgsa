@@ -60,6 +60,7 @@ public:
   f32 get_phase_val(void) const { return phase; }
   f32 get_time_val(void) const { return time; }
   void start(void);
+  void new_cfg(Oscilator_Cfg c) { cfg = c; }
 
   const Oscilator_Cfg get_cfg(void) const { return cfg; }
 
@@ -112,6 +113,8 @@ private:
 class Wave_Table {
 public:
   Wave_Table(i32 sample_rate, size_t table_size);
+  void generate(i32 sample_rate, size_t table_size);
+  void set_size(size_t table_size) { size = table_size; }
   size_t index_octave(f32 freq) const;
   size_t get_size(void) const { return size; }
   const f32 *get_table(size_t id, size_t index) const;
@@ -130,6 +133,12 @@ private:
 class Synth {
 public:
   Synth(void);
+  void new_cfg(Synth_Cfg c) { 
+    c.print();
+    wave_table.generate(c.sample_rate, (size_t)c.wave_table_size);
+    cfg = c; 
+  }
+  void modify_oscilator_cfgs(std::vector<Oscilator_Cfg> osc_cfgs);
   const Synth_Cfg &get_cfg(void) const { return cfg; }
   const Wave_Table &get_wave_table(void) const { return wave_table; }
   const std::vector<Voice> &get_voices(void) const { return voices; }

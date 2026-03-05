@@ -76,14 +76,18 @@ struct Synth_Cfg {
   i32 lfo_mode = DEFAULTS::LFO_MODE;
   i32 voicings = DEFAULTS::VOICINGS;
   i32 wave_table_size = DEFAULTS::WT_SIZE;
+
+  void print(void) const;
 };
 
 struct Oscilator_Cfg {
   f32 duty_cycle = DEFAULTS::DUTY_CYCLE;
   f32 detune = DEFAULTS::DETUNE;
   f32 volume = DEFAULTS::OSC_VOLUME;
-  f32 step = DEFAULTS::STEP;
+  f32 octave_step = DEFAULTS::STEP;
   i32 waveform = DEFAULTS::WAVEFORM;
+
+  void print(void) const;
 };
 
 #endif

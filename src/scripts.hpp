@@ -68,6 +68,7 @@ public:
   Lua_Cfg(void) : maps(), valid(false) {}
   Lua_Cfg(Cfg_Maps m, bool is_valid) : maps(m), valid(is_valid) {}
   bool get_state(void) { return valid; }
+  Cfg_Maps &get_maps(void) { return maps; }
 
 private:
   Cfg_Maps maps;

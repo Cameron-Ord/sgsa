@@ -46,7 +46,7 @@ std::vector<Oscilator_Cfg> Cfg_Maps::make_internal_osc_cfg(void) {
     COPY_FLOAT(cfgs[i], map, duty_cycle);
     COPY_FLOAT(cfgs[i], map, detune);
     COPY_FLOAT(cfgs[i], map, volume);
-    COPY_FLOAT(cfgs[i], map, step);
+    COPY_FLOAT(cfgs[i], map, octave_step);
     COPY_INT(cfgs[i], map, waveform);
   }
   return cfgs;

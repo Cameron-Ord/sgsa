@@ -2,6 +2,7 @@
 #include "controller.hpp"
 #include "scripts.hpp"
 
+#include <ctime>
 #include <iostream>
 #include <portmidi.h>
 
@@ -54,6 +55,7 @@ int main(int argc, char **argv) {
     std::cout << "Usage: sgsa device-name" << std::endl;
     return 0;
   }
+  srand((unsigned int)time(NULL));
 
   if (!initialize()) {
     return 0;
@@ -69,15 +71,23 @@ int main(int argc, char **argv) {
             << SDL_VERSIONNUM_MINOR(linked) << "."
             << SDL_VERSIONNUM_MICRO(linked) << "." << std::endl;
 
+  Synth syn;
+  Controller controller(name_arg);
+  Audio_Sys audio(syn.get_cfg().channels, syn.get_cfg().sample_rate);
+
   Lua_Container lua;
   Lua_Cfg cfg;
   if (lua.initialize()) {
     cfg = lua.load_cfg("lua/config.lua");
   }
 
-  Synth syn;
-  Controller controller(name_arg);
-  Audio_Sys audio(syn.get_cfg().channels, syn.get_cfg().sample_rate);
+  syn.get_cfg().print();
+
+  if(cfg.get_state()){
+    syn.modify_oscilator_cfgs(cfg.get_maps().make_internal_osc_cfg());
+    syn.new_cfg(cfg.get_maps().make_internal_base_cfg());
+
+  }
 
   audio.open(&syn);
   controller.open();
