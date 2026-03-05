@@ -73,7 +73,8 @@ static void voice_loop(Synth *syn, f32 generated[SIZES::CHANNEL_MAX]) {
 
     for (i32 c = 0; c < p.channels; c++) {
       v.get_lpf().lerp(voice_sums, c);
-      v.adsr(p.sample_rate, p.env_attack, p.env_decay, p.env_sustain, p.env_release);
+      v.adsr(p.sample_rate, p.env_attack, p.env_decay, p.env_sustain,
+             p.env_release);
 
       const f32 mix =
           0.7f * v.get_lpf().get_high()[c] + 0.3f * v.get_lpf().get_low()[c];

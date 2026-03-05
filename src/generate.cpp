@@ -61,8 +61,7 @@ Wave_Table::Wave_Table(i32 sample_rate, size_t table_size)
 }
 
 Synth::Synth(void)
-    : cfg(),
-      wave_table(cfg.sample_rate, (size_t)cfg.wave_table_size),
+    : cfg(), wave_table(cfg.sample_rate, (size_t)cfg.wave_table_size),
       voices((size_t)cfg.voicings,
              Voice(cfg.filter_cutoff_low, cfg.filter_cutoff_high,
                    cfg.sample_rate)) {}

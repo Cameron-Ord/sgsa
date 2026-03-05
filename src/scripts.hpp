@@ -8,13 +8,13 @@ extern "C" {
 #include <lua.h>
 #include <lualib.h>
 }
+#include <string>
 #include <unordered_map>
 #include <vector>
-#include <string>
 
 #define COPY_FLOAT(cfg, map, name) cfg.name = map.cfg_floats[#name]
-#define COPY_INT(cfg, map, name)   cfg.name = map.cfg_ints[#name]
-#define COPY_BOOL(cfg, map, name)  cfg.name = map.cfg_bools[#name]
+#define COPY_INT(cfg, map, name) cfg.name = map.cfg_ints[#name]
+#define COPY_BOOL(cfg, map, name) cfg.name = map.cfg_bools[#name]
 
 class Synth_Cfg;
 class Oscilator_Cfg;
@@ -34,7 +34,8 @@ struct Entry {
 };
 
 struct Literals {
-  Literals(std::vector<Entry> flds, std::vector<std::pair<Entry, std::vector<Entry>>> tbls);
+  Literals(std::vector<Entry> flds,
+           std::vector<std::pair<Entry, std::vector<Entry>>> tbls);
   std::vector<Entry> fields_array;
   std::vector<std::pair<Entry, std::vector<Entry>>> tables_array;
 };
@@ -77,11 +78,12 @@ class Lua_Container;
 
 class Cfg_Builder {
 public:
-  Cfg_Builder(Literals flds, Lua_Container& lc_);
-  Cfg_Builder& loop_fields(void);
+  Cfg_Builder(Literals flds, Lua_Container &lc_);
+  Cfg_Builder &loop_fields(void);
   Lua_Cfg build();
+
 private:
-  Lua_Container& lc_;
+  Lua_Container &lc_;
   Literals fields;
   Cfg_Maps maps;
 };
@@ -90,7 +92,7 @@ class Lua_Container {
 public:
   Lua_Container(void) = default;
   ~Lua_Container(void) = default;
-  Lua_Cfg load_cfg(const char * filepath);
+  Lua_Cfg load_cfg(const char *filepath);
   size_t raw_len(void);
   void raw_geti(i32 i);
   void pop(void);
@@ -104,10 +106,9 @@ public:
   f32 get_float(void);
   bool get_bool(void);
   std::string get_str(void);
+
 private:
   lua_State *L = NULL;
-
 };
-
 
 #endif

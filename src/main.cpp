@@ -71,14 +71,13 @@ int main(int argc, char **argv) {
 
   Lua_Container lua;
   Lua_Cfg cfg;
-  if(lua.initialize()){
+  if (lua.initialize()) {
     cfg = lua.load_cfg("lua/config.lua");
   }
 
   Synth syn;
   Controller controller(name_arg);
-  Audio_Sys audio(syn.get_cfg().channels,
-                  syn.get_cfg().sample_rate);
+  Audio_Sys audio(syn.get_cfg().channels, syn.get_cfg().sample_rate);
 
   audio.open(&syn);
   controller.open();

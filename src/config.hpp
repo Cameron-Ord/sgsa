@@ -56,7 +56,7 @@ inline constexpr bool USE_FILTER = false;
 struct Synth_Cfg {
   bool lfo_on = DEFAULTS::LFO_ON;
   bool use_filter = DEFAULTS::USE_FILTER;
-  
+
   f32 lfo_rate = DEFAULTS::LFO_RATE;
   f32 lfo_depth = DEFAULTS::LFO_DEPTH;
   f32 lfo_timer = DEFAULTS::LFO_TIMER;
@@ -85,6 +85,5 @@ struct Oscilator_Cfg {
   f32 step = DEFAULTS::STEP;
   i32 waveform = DEFAULTS::WAVEFORM;
 };
-
 
 #endif
