@@ -2,82 +2,46 @@
 #include "audio.hpp"
 #include <iostream>
 
-Literals::Literals(std::vector<Entry> flds,
+
+Field_Cluster::Field_Cluster(std::vector<Entry> flds,
                    std::vector<std::pair<Entry, std::vector<Entry>>> tbls)
     : fields_array(flds), tables_array(tbls) {}
 
-const std::vector<Entry> BASE_ENTRIES = {
-    Entry("lfo_on", ENTRY_TYPE::BOOL),
-    Entry("lfo_rate", ENTRY_TYPE::FLOAT),
-    Entry("lfo_depth", ENTRY_TYPE::FLOAT),
-    Entry("lfo_timer", ENTRY_TYPE::FLOAT),
-    Entry("lfo_mode", ENTRY_TYPE::INT),
-    Entry("env_attack", ENTRY_TYPE::FLOAT),
-    Entry("env_decay", ENTRY_TYPE::FLOAT),
-    Entry("env_sustain", ENTRY_TYPE::FLOAT),
-    Entry("env_release", ENTRY_TYPE::FLOAT),
-    Entry("volume", ENTRY_TYPE::FLOAT),
-    Entry("gain", ENTRY_TYPE::FLOAT),
-    Entry("channels", ENTRY_TYPE::INT),
-    Entry("sample_rate", ENTRY_TYPE::INT),
-    Entry("voicings", ENTRY_TYPE::INT),
-    Entry("wave_table_size", ENTRY_TYPE::INT),
-    Entry("tempo", ENTRY_TYPE::FLOAT),
-    Entry("note_duration", ENTRY_TYPE::FLOAT),
-    Entry("filter_cutoff_low", ENTRY_TYPE::FLOAT),
-    Entry("filter_cutoff_high", ENTRY_TYPE::FLOAT),
-    Entry("use_filter", ENTRY_TYPE::BOOL),
+const std::vector<Entry> BASE_FIELDS = {
+    Entry("lfo_on", ENTRY_TYPE::BOOL, offsetof(Synth_Cfg, lfo_on)),
+    Entry("lfo_rate", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, lfo_rate)),
+    Entry("lfo_depth", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, lfo_depth)),
+    Entry("lfo_timer", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, lfo_timer)),
+    Entry("lfo_mode", ENTRY_TYPE::INT, offsetof(Synth_Cfg, lfo_mode)),
+    Entry("env_attack", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, env_attack)),
+    Entry("env_decay", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, env_decay)),
+    Entry("env_sustain", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, env_sustain)),
+    Entry("env_release", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, env_release)),
+    Entry("volume", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, volume)),
+    Entry("gain", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, gain)),
+    Entry("channels", ENTRY_TYPE::INT, offsetof(Synth_Cfg, channels)),
+    Entry("sample_rate", ENTRY_TYPE::INT, offsetof(Synth_Cfg, sample_rate)),
+    Entry("voicings", ENTRY_TYPE::INT, offsetof(Synth_Cfg, voicings)),
+    Entry("wave_table_size", ENTRY_TYPE::INT, offsetof(Synth_Cfg, wave_table_size)),
+    Entry("tempo", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, tempo)),
+    Entry("note_duration", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, note_duration)),
+    Entry("filter_cutoff_low", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, filter_cutoff_low)),
+    Entry("filter_cutoff_high", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, filter_cutoff_high)),
+    Entry("use_filter", ENTRY_TYPE::BOOL, offsetof(Synth_Cfg, use_filter))
 };
 
-const std::vector<Entry> OSC_TABLE_ENTRIES = {
-    Entry("duty_cycle", ENTRY_TYPE::FLOAT), Entry("detune", ENTRY_TYPE::FLOAT),
-    Entry("volume", ENTRY_TYPE::FLOAT), Entry("octave_step", ENTRY_TYPE::FLOAT),
-    Entry("waveform", ENTRY_TYPE::INT)};
+const std::vector<Entry> OSC_TABLE_FIELDS = {
+    Entry("duty_cycle", ENTRY_TYPE::FLOAT, offsetof(Oscilator_Cfg, duty_cycle)), 
+    Entry("detune", ENTRY_TYPE::FLOAT, offsetof(Oscilator_Cfg, detune)),
+    Entry("volume", ENTRY_TYPE::FLOAT, offsetof(Oscilator_Cfg, volume)), 
+    Entry("octave_step", ENTRY_TYPE::FLOAT, offsetof(Oscilator_Cfg, octave_step)),
+    Entry("waveform", ENTRY_TYPE::INT, offsetof(Oscilator_Cfg, waveform))};
 
-std::vector<std::pair<Entry, std::vector<Entry>>> TABLE_ENTRIES = {
-    {Entry("oscilators", ENTRY_TYPE::LUA_TABLE), OSC_TABLE_ENTRIES}};
+std::vector<std::pair<Entry, std::vector<Entry>>> TABLES = {
+    { Entry("oscilators", ENTRY_TYPE::LUA_TABLE), OSC_TABLE_FIELDS } 
+};
 
-const Literals FIELDS(BASE_ENTRIES, TABLE_ENTRIES);
-
-std::vector<Oscilator_Cfg> Cfg_Maps::make_internal_osc_cfg(void) {
-  std::vector<Oscilator_Cfg> cfgs(osc_maps.size());
-  for (size_t i = 0; i < osc_maps.size(); i++) {
-    Osc_Map &map = osc_maps[i];
-    COPY_FLOAT(cfgs[i], map, duty_cycle);
-    COPY_FLOAT(cfgs[i], map, detune);
-    COPY_FLOAT(cfgs[i], map, volume);
-    COPY_FLOAT(cfgs[i], map, octave_step);
-    COPY_INT(cfgs[i], map, waveform);
-  }
-  return cfgs;
-}
-
-Synth_Cfg Cfg_Maps::make_internal_base_cfg(void) {
-  Synth_Cfg cfgs;
-  COPY_BOOL(cfgs, base_cfg, lfo_on);
-  COPY_BOOL(cfgs, base_cfg, use_filter);
-
-  COPY_FLOAT(cfgs, base_cfg, lfo_rate);
-  COPY_FLOAT(cfgs, base_cfg, lfo_depth);
-  COPY_FLOAT(cfgs, base_cfg, lfo_timer);
-  COPY_FLOAT(cfgs, base_cfg, volume);
-  COPY_FLOAT(cfgs, base_cfg, gain);
-  COPY_FLOAT(cfgs, base_cfg, tempo);
-  COPY_FLOAT(cfgs, base_cfg, note_duration);
-  COPY_FLOAT(cfgs, base_cfg, filter_cutoff_low);
-  COPY_FLOAT(cfgs, base_cfg, filter_cutoff_high);
-  COPY_FLOAT(cfgs, base_cfg, env_attack);
-  COPY_FLOAT(cfgs, base_cfg, env_decay);
-  COPY_FLOAT(cfgs, base_cfg, env_sustain);
-  COPY_FLOAT(cfgs, base_cfg, env_release);
-
-  COPY_INT(cfgs, base_cfg, channels);
-  COPY_INT(cfgs, base_cfg, sample_rate);
-  COPY_INT(cfgs, base_cfg, voicings);
-  COPY_INT(cfgs, base_cfg, wave_table_size);
-  COPY_INT(cfgs, base_cfg, lfo_mode);
-  return cfgs;
-}
+const Field_Cluster FIELDS(BASE_FIELDS, TABLES);
 
 void Lua_Container::pop(void) { lua_pop(L, 1); }
 
@@ -138,88 +102,93 @@ std::string Lua_Container::get_str(void) {
   return val;
 }
 
-Lua_Cfg Lua_Container::load_cfg(const char *filepath) {
+bool Lua_Container::load_cfg(const char *filepath, Synth_Cfg& synth, std::vector<Oscilator_Cfg>& oscs) {
   if (!do_file(filepath)) {
-    return Lua_Cfg(Cfg_Maps(), false);
+    return false;
   }
 
   Cfg_Builder c(FIELDS, *this);
-  return c.loop_fields().build();
+  c.build_base_fields(synth);
+  c.build_oscilator_fields(oscs);
+
+  return true;
 }
 
-Cfg_Builder::Cfg_Builder(Literals flds, Lua_Container &lc)
-    : lc_(lc), fields(flds), maps() {}
+Cfg_Builder::Cfg_Builder(Field_Cluster flds, Lua_Container &lc)
+    : lc_(lc), fields(flds) {}
 
-Lua_Cfg Cfg_Builder::build(void) { return Lua_Cfg(maps, true); }
+void Cfg_Builder::build_base_fields(Synth_Cfg& synth){
+  Synth_Cfg *ptr = &synth;
+  for(size_t i = 0; i < fields.fields_array.size(); i++){
+    if(!lc_.get_field(fields.fields_array[i].name.c_str())){
+      continue; 
+    }
 
-Cfg_Builder &Cfg_Builder::loop_fields(void) {
-
-  for (size_t i = 0; i < fields.fields_array.size(); i++) {
-    if (!lc_.get_field(fields.fields_array[i].name.c_str()))
-      continue;
-
-    switch (lc_.get_type()) {
-    default: {
-      lc_.pop();
-    } break;
-
-    case LUA_TNUMBER: {
-      if (lc_.is_int()) {
-        maps.base_cfg.cfg_ints.emplace(fields.fields_array[i].name,
-                                       lc_.get_int());
+    switch(lc_.get_type()){
+      default: {
         lc_.pop();
-      } else {
-        maps.base_cfg.cfg_floats.emplace(fields.fields_array[i].name,
-                                         lc_.get_float());
+      } break;
+
+      case LUA_TNUMBER: {
+        if(lc_.is_int()){
+          *(i32*)((char*)ptr + fields.fields_array[i].offset) = lc_.get_int();
+          lc_.pop();
+        } else {
+          *(f32*)((char*)ptr + fields.fields_array[i].offset) = lc_.get_float();
+          lc_.pop();
+        }
+      } break;
+
+      case LUA_TBOOLEAN: {
+        *(bool*)((char*)ptr + fields.fields_array[i].offset) = lc_.get_bool();
         lc_.pop();
-      }
-    } break;
-
-    case LUA_TSTRING: {
-      maps.base_cfg.cfg_strings.emplace(fields.fields_array[i].name,
-                                        lc_.get_str());
-      lc_.pop();
-    } break;
-
-    case LUA_TBOOLEAN: {
-      maps.base_cfg.cfg_bools.emplace(fields.fields_array[i].name,
-                                      lc_.get_bool());
-      lc_.pop();
-    } break;
+      }break;
     }
   }
+}
 
-  for (size_t i = 0; i < fields.tables_array.size(); i++) {
-    if (!lc_.get_field(fields.tables_array[i].first.name.c_str()))
+void Cfg_Builder::build_oscilator_fields(std::vector<Oscilator_Cfg>& oscs){
+  for(size_t i = 0; i < fields.tables_array.size(); i++){
+    if(!lc_.get_field(fields.tables_array[i].first.name.c_str())){
       continue;
+    }
 
-    switch (lc_.get_type()) {
-    case LUA_TTABLE: {
-      const size_t len = lc_.raw_len();
-      maps.osc_maps.resize(len);
-      for (size_t j = 1; j <= len; j++) {
-        lc_.raw_geti((i32)j);
-        for (size_t k = 0; k < fields.tables_array[i].second.size(); k++) {
-          if (lc_.get_field(fields.tables_array[i].second[k].name.c_str())) {
-            if (lc_.get_type() != LUA_TNUMBER) {
-              lc_.pop();
+    switch(lc_.get_type()){
+      default: {
+        lc_.pop();
+      } break;
+
+      case LUA_TTABLE: {
+        const size_t len = lc_.raw_len();
+        oscs.resize(len);
+        for(size_t j = 1; j <= len; j++){
+          lc_.raw_geti((i32)j);
+          Oscilator_Cfg *ptr = &oscs[j - 1];
+          for(size_t k = 0; k < fields.tables_array[i].second.size(); k++){
+            if(!lc_.get_field(fields.tables_array[i].second[k].name.c_str())){
               continue;
             }
-            if (lc_.is_int()) {
-              maps.osc_maps[j - 1].cfg_ints.emplace(
-                  fields.tables_array[i].second[k].name, lc_.get_int());
-            } else {
-              maps.osc_maps[j - 1].cfg_floats.emplace(
-                  fields.tables_array[i].second[k].name, lc_.get_float());
+            
+            switch(lc_.get_type()){
+              default: {
+                lc_.pop();
+              } break;
+              case LUA_TNUMBER:{
+                if(lc_.is_int()){
+                  *(i32*)((char*)ptr + fields.tables_array[i].second[k].offset) = lc_.get_int();
+                  lc_.pop();
+                } else {
+                  *(f32*)((char*)ptr + fields.tables_array[i].second[k].offset) = lc_.get_float();
+                  lc_.pop();
+                }
+              } break;
             }
-            lc_.pop();
-          }
-        }
-        lc_.pop();
-      }
-    } break;
-    }
-  }
 
-  return *this;
+          }
+          lc_.pop();
+        }
+      } break;
+    } 
+  }
 }
+

@@ -76,18 +76,21 @@ int main(int argc, char **argv) {
   Audio_Sys audio(syn.get_cfg().channels, syn.get_cfg().sample_rate);
 
   Lua_Container lua;
-  Lua_Cfg cfg;
-  if (lua.initialize()) {
-    cfg = lua.load_cfg("lua/config.lua");
+  if (!lua.initialize()) {
+    return 1;
   }
-
+  
+  {
+    Synth_Cfg synth_cfg;
+    std::vector<Oscilator_Cfg> osc_configs(1, Oscilator_Cfg());
+    if(lua.load_cfg("lua/config.lua", synth_cfg, osc_configs)){
+      syn.set_cfg(synth_cfg);
+      syn.get_wave_table().re_generate(synth_cfg.sample_rate, (size_t)synth_cfg.wave_table_size);
+      syn.new_oscilators(osc_configs);
+    }
+  }
   syn.get_cfg().print();
 
-  if(cfg.get_state()){
-    syn.modify_oscilator_cfgs(cfg.get_maps().make_internal_osc_cfg());
-    syn.new_cfg(cfg.get_maps().make_internal_base_cfg());
-
-  }
 
   audio.open(&syn);
   controller.open();

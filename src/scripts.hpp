@@ -16,8 +16,8 @@ extern "C" {
 #define COPY_INT(cfg, map, name) cfg.name = map.cfg_ints[#name]
 #define COPY_BOOL(cfg, map, name) cfg.name = map.cfg_bools[#name]
 
-class Synth_Cfg;
-class Oscilator_Cfg;
+struct Synth_Cfg;
+struct Oscilator_Cfg;
 
 enum ENTRY_TYPE {
   BOOL,
@@ -28,13 +28,15 @@ enum ENTRY_TYPE {
 };
 
 struct Entry {
-  Entry(std::string str, ENTRY_TYPE val) : name(str), type(val) {}
+  Entry(std::string str, ENTRY_TYPE val) : name(str), type(val), offset(0) {}
+  Entry(std::string str, ENTRY_TYPE val, size_t _offset) : name(str), type(val), offset(_offset) {}
   std::string name;
   ENTRY_TYPE type;
+  size_t offset;
 };
 
-struct Literals {
-  Literals(std::vector<Entry> flds,
+struct Field_Cluster {
+  Field_Cluster(std::vector<Entry> flds,
            std::vector<std::pair<Entry, std::vector<Entry>>> tbls);
   std::vector<Entry> fields_array;
   std::vector<std::pair<Entry, std::vector<Entry>>> tables_array;
@@ -48,52 +50,24 @@ struct Base_Maps {
   std::unordered_map<std::string, bool> cfg_bools;
 };
 
-struct Osc_Map {
-  Osc_Map(void) : cfg_ints(), cfg_floats() {}
-  std::unordered_map<std::string, i32> cfg_ints;
-  std::unordered_map<std::string, f32> cfg_floats;
-};
-
-struct Cfg_Maps {
-  Cfg_Maps(void) : osc_maps(), base_cfg() {}
-  std::vector<Osc_Map> osc_maps;
-  Base_Maps base_cfg;
-
-  std::vector<Oscilator_Cfg> make_internal_osc_cfg(void);
-  Synth_Cfg make_internal_base_cfg(void);
-};
-
-class Lua_Cfg {
-public:
-  Lua_Cfg(void) : maps(), valid(false) {}
-  Lua_Cfg(Cfg_Maps m, bool is_valid) : maps(m), valid(is_valid) {}
-  bool get_state(void) { return valid; }
-  Cfg_Maps &get_maps(void) { return maps; }
-
-private:
-  Cfg_Maps maps;
-  bool valid;
-};
-
 class Lua_Container;
 
 class Cfg_Builder {
 public:
-  Cfg_Builder(Literals flds, Lua_Container &lc_);
-  Cfg_Builder &loop_fields(void);
-  Lua_Cfg build();
+  Cfg_Builder(Field_Cluster flds, Lua_Container &lc_);
+  void build_base_fields(Synth_Cfg& synth);
+  void build_oscilator_fields(std::vector<Oscilator_Cfg>& oscs);
 
 private:
   Lua_Container &lc_;
-  Literals fields;
-  Cfg_Maps maps;
+  Field_Cluster fields;
 };
 
 class Lua_Container {
 public:
   Lua_Container(void) = default;
   ~Lua_Container(void) = default;
-  Lua_Cfg load_cfg(const char *filepath);
+  bool load_cfg(const char *filepath, Synth_Cfg& synth, std::vector<Oscilator_Cfg>& oscs);
   size_t raw_len(void);
   void raw_geti(i32 i);
   void pop(void);

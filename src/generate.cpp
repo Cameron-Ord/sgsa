@@ -32,10 +32,18 @@ const f32 *Wave_Table::get_table(size_t id, size_t index) const {
   return tables[id][index];
 }
 
-void Wave_Table::generate(i32 sample_rate, size_t table_size){
-  set_size(table_size);
+void Wave_Table::re_generate(i32 sample_rate, size_t table_size){
+  size = table_size;
+  generate(sample_rate);
+}
+
+// Need to break this up into delegated functions and add a square wave
+void Wave_Table::generate(i32 sample_rate){
+  const size_t WAVE_SIZE_MAX = 1 << 12;
+  if(size > WAVE_SIZE_MAX){
+    size = WAVE_SIZE_MAX;
+  }
   const size_t N = size;
-  std::cout << "Wave table size: " << size << std::endl;
   // C0 lowest note on the piano realistically possible
   const f32 C0 = 16.35f;
   const f32 C1 = 32.703f;
@@ -83,8 +91,8 @@ void Wave_Table::generate(i32 sample_rate, size_t table_size){
 }
 
 Wave_Table::Wave_Table(i32 sample_rate, size_t table_size)
-    : tables(), freq_mapper(), size(0) {
-    generate(sample_rate, table_size);
+    : tables(), freq_mapper(), size(table_size) {
+    generate(sample_rate);
 }
 
 Synth::Synth(void)
@@ -93,16 +101,12 @@ Synth::Synth(void)
              Voice(cfg.filter_cutoff_low, cfg.filter_cutoff_high,
                    cfg.sample_rate)) {}
 
-void Synth::modify_oscilator_cfgs(std::vector<Oscilator_Cfg> osc_cfgs){
-  for(size_t i = 0; i < osc_cfgs.size(); i++){
-    osc_cfgs[i].print();
-  }
-
+void Synth::new_oscilators(std::vector<Oscilator_Cfg> osc_cfgs){
   for(size_t i = 0; i < voices.size(); i++){
     std::vector<Oscilator>& oscs = voices[i].get_osc_array();
     oscs.resize(osc_cfgs.size());
     for(size_t j = 0; j < oscs.size(); j++){
-      oscs[j].new_cfg(osc_cfgs[j]);
+      oscs[j] = Oscilator(osc_cfgs[j]);
     }
   }
 }
