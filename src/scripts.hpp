@@ -13,9 +13,9 @@ extern "C" {
 #include <string>
 
 struct Literals {
-  Literals(std::string n, std::vector<std::string> f);
-  std::string name;
+  Literals(std::vector<std::string> f, std::vector<std::string> sf);
   std::vector<std::string> fields_array;
+  std::vector<std::string> osc_subfields_array;
 };
 
 struct Cfg_Maps {
@@ -24,6 +24,8 @@ struct Cfg_Maps {
   std::unordered_map<std::string, f32> cfg_floats;
   std::unordered_map<std::string, i32> cfg_ints;
   std::unordered_map<std::string, std::string> cfg_strings;
+  std::vector<std::unordered_map<std::string, f32>> cfg_osc_floats;
+  std::vector<std::unordered_map<std::string, i32>> cfg_osc_ints;
 };
 
 class Lua_Cfg {
@@ -40,14 +42,13 @@ class Lua_Container;
 
 class Cfg_Builder {
 public:
-  Cfg_Builder(std::vector<Literals> flds, Lua_Container& lc_);
-  Cfg_Builder& loop_tables(void);
+  Cfg_Builder(Literals flds, Lua_Container& lc_);
+  Cfg_Builder& loop_fields(void);
   Lua_Cfg build();
 private:
   Lua_Container& lc_;
-  std::vector<Literals> fields;
+  Literals fields;
   Cfg_Maps maps;
-  void loop_field_array(const std::vector<std::string>& fields_array);
 };
 
 class Lua_Container {
@@ -55,6 +56,9 @@ public:
   Lua_Container(void) = default;
   ~Lua_Container(void) = default;
   Lua_Cfg load_cfg(const char * filepath);
+  size_t raw_len(void);
+  void raw_geti(i32 i);
+  void pop(void);
   bool initialize(void);
   bool do_file(const char *filepath);
   bool get_field(const char *key);

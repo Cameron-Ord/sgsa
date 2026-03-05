@@ -74,7 +74,6 @@ int main(int argc, char **argv) {
   if(lua.initialize()){
     cfg = lua.load_cfg("lua/config.lua");
   }
-  std::cout << cfg.get_state() << std::endl;
 
   Synth syn;
   Controller controller(name_arg);
