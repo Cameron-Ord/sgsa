@@ -77,8 +77,8 @@ int main(int argc, char **argv) {
 
   Synth syn;
   Controller controller(name_arg);
-  Audio_Sys audio(syn.get_audio_cfg().channels,
-                  syn.get_audio_cfg().sample_rate);
+  Audio_Sys audio(syn.get_cfg().channels,
+                  syn.get_cfg().sample_rate);
 
   audio.open(&syn);
   controller.open();

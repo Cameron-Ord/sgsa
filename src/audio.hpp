@@ -129,8 +129,7 @@ private:
 class Synth {
 public:
   Synth(void);
-  const Audio_Params &get_audio_cfg(void) const { return audio_cfg; }
-  const Env_Params &get_env_cfg(void) const { return env_cfg; }
+  const Synth_Cfg &get_cfg(void) const { return cfg; }
   const Wave_Table &get_wave_table(void) const { return wave_table; }
   const std::vector<Voice> &get_voices(void) const { return voices; }
   std::vector<Voice> &get_voices(void) { return voices; }
@@ -138,9 +137,7 @@ public:
   void loop_voicings_on(i32 midi_key);
 
 private:
-  Lfo_Params lfo_cfg;
-  Env_Params env_cfg;
-  Audio_Params audio_cfg;
+  Synth_Cfg cfg;
   Wave_Table wave_table;
   std::vector<Voice> voices;
 };

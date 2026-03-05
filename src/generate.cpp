@@ -61,14 +61,14 @@ Wave_Table::Wave_Table(i32 sample_rate, size_t table_size)
 }
 
 Synth::Synth(void)
-    : lfo_cfg(), env_cfg(), audio_cfg(),
-      wave_table(audio_cfg.sample_rate, audio_cfg.wave_table_size),
-      voices(audio_cfg.voicings,
-             Voice(audio_cfg.filter_cutoff_low, audio_cfg.filter_cutoff_high,
-                   audio_cfg.sample_rate)) {}
+    : cfg(),
+      wave_table(cfg.sample_rate, (size_t)cfg.wave_table_size),
+      voices((size_t)cfg.voicings,
+             Voice(cfg.filter_cutoff_low, cfg.filter_cutoff_high,
+                   cfg.sample_rate)) {}
 
 void Synth::loop_voicings_off(i32 midi_key) {
-  for (size_t i = 0; i < audio_cfg.voicings; i++) {
+  for (size_t i = 0; i < (size_t)cfg.voicings; i++) {
     Voice *v = &voices[i];
     if (v->get_key() == midi_key) {
       for (size_t o = 0; o < v->get_osc_count(); o++) {
@@ -80,7 +80,7 @@ void Synth::loop_voicings_off(i32 midi_key) {
 }
 
 void Synth::loop_voicings_on(i32 midi_key) {
-  for (size_t i = 0; i < audio_cfg.voicings; i++) {
+  for (size_t i = 0; i < (size_t)cfg.voicings; i++) {
     Voice *v = &voices[i];
     if (v->get_active_count() <= 0 && v->done()) {
       v->set_active_count(0);

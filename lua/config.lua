@@ -1,14 +1,11 @@
-local modes = { "TREMOLO", "VIBRATO" }
-
-local SAW = 0
-local SINE = 1
-
+local waves = { SAW = 0, SINE = 1 }
+local modes = { TREMOLO = 0, VIBRATO = 1 }
 return {
   lfo_on = false,
   lfo_rate = 1.0,
   lfo_depth = 1.0,
   lfo_timer = 0.3,
-  lfo_mode = modes[1],
+  lfo_mode = modes["TREMOLO"],
   env_attack = 0.1,
   env_decay = 0.1,
   env_sustain = 0.1,
@@ -30,7 +27,7 @@ return {
       detune = 1.0,
       volume = 1.0,
       octave_step = 1.0,
-      waveform = SAW
+      waveform = waves["SAW"]
     },
   },
 }

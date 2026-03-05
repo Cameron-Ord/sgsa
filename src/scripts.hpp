@@ -12,20 +12,54 @@ extern "C" {
 #include <vector>
 #include <string>
 
-struct Literals {
-  Literals(std::vector<std::string> f, std::vector<std::string> sf);
-  std::vector<std::string> fields_array;
-  std::vector<std::string> osc_subfields_array;
+#define COPY_FLOAT(cfg, map, name) cfg.name = map.cfg_floats[#name]
+#define COPY_INT(cfg, map, name)   cfg.name = map.cfg_ints[#name]
+#define COPY_BOOL(cfg, map, name)  cfg.name = map.cfg_bools[#name]
+
+class Synth_Cfg;
+class Oscilator_Cfg;
+
+enum ENTRY_TYPE {
+  BOOL,
+  INT,
+  FLOAT,
+  STRING,
+  LUA_TABLE,
 };
 
-struct Cfg_Maps {
-  Cfg_Maps(void) : cfg_floats(), cfg_ints(), cfg_strings() {}
-  bool valid;
+struct Entry {
+  Entry(std::string str, ENTRY_TYPE val) : name(str), type(val) {}
+  std::string name;
+  ENTRY_TYPE type;
+};
+
+struct Literals {
+  Literals(std::vector<Entry> flds, std::vector<std::pair<Entry, std::vector<Entry>>> tbls);
+  std::vector<Entry> fields_array;
+  std::vector<std::pair<Entry, std::vector<Entry>>> tables_array;
+};
+
+struct Base_Maps {
+  Base_Maps(void) : cfg_floats(), cfg_ints(), cfg_strings() {}
   std::unordered_map<std::string, f32> cfg_floats;
   std::unordered_map<std::string, i32> cfg_ints;
   std::unordered_map<std::string, std::string> cfg_strings;
-  std::vector<std::unordered_map<std::string, f32>> cfg_osc_floats;
-  std::vector<std::unordered_map<std::string, i32>> cfg_osc_ints;
+  std::unordered_map<std::string, bool> cfg_bools;
+};
+
+struct Osc_Map {
+  Osc_Map(void) : cfg_ints(), cfg_floats() {}
+  std::unordered_map<std::string, i32> cfg_ints;
+  std::unordered_map<std::string, f32> cfg_floats;
+};
+
+struct Cfg_Maps {
+  Cfg_Maps(void) : osc_maps(), base_cfg() {}
+  std::vector<Osc_Map> osc_maps;
+  Base_Maps base_cfg;
+
+  std::vector<Oscilator_Cfg> make_internal_osc_cfg(void);
+  Synth_Cfg make_internal_base_cfg(void);
 };
 
 class Lua_Cfg {
@@ -33,6 +67,7 @@ public:
   Lua_Cfg(void) : maps(), valid(false) {}
   Lua_Cfg(Cfg_Maps m, bool is_valid) : maps(m), valid(is_valid) {}
   bool get_state(void) { return valid; }
+
 private:
   Cfg_Maps maps;
   bool valid;
@@ -67,6 +102,7 @@ public:
   i32 get_type(void) const;
   i32 get_int(void);
   f32 get_float(void);
+  bool get_bool(void);
   std::string get_str(void);
 private:
   lua_State *L = NULL;

@@ -41,9 +41,9 @@ static f32 generate(const Wave_Table *wt, f32 phase, size_t table_id,
 
 static void voice_loop(Synth *syn, f32 generated[SIZES::CHANNEL_MAX]) {
   f32 sums[SIZES::CHANNEL_MAX] = {0.0f, 0.0f};
-  const Audio_Params &ap = syn->get_audio_cfg();
+  const Synth_Cfg &p = syn->get_cfg();
 
-  for (size_t i = 0; i < ap.voicings && i < SIZES::VOICES; i++) {
+  for (size_t i = 0; i < (size_t)p.voicings && i < SIZES::VOICES; i++) {
     Voice &v = syn->get_voices()[i];
     if (!(v.get_active_count() > 0) && !v.releasing()) {
       continue;
@@ -53,46 +53,45 @@ static void voice_loop(Synth *syn, f32 generated[SIZES::CHANNEL_MAX]) {
     for (size_t o = 0; o < v.get_osc_count(); o++) {
       Oscilator &osc = v.get_osc_array()[o];
 
-      const size_t wt_size = ap.wave_table_size;
+      const size_t wt_size = (size_t)p.wave_table_size;
       const f32 freq = v.get_freq() * osc.get_cfg().detune * osc.get_cfg().step;
-      const f32 dt = 1.0f / (f32)ap.sample_rate;
-      const f32 inc = (f32)wt_size * freq / (f32)ap.sample_rate;
+      const f32 dt = 1.0f / (f32)p.sample_rate;
+      const f32 inc = (f32)wt_size * freq / (f32)p.sample_rate;
 
       osc.increment_time(dt);
       osc.increment_phase(inc, (f32)wt_size);
 
-      for (i32 c = 0; c < ap.channels; c++) {
+      for (i32 c = 0; c < p.channels; c++) {
         osc.get_sample_array()[c] =
             generate(&syn->get_wave_table(), osc.get_phase_val(),
-                     osc.get_cfg().table_id, freq);
+                     (size_t)osc.get_cfg().waveform, freq);
         osc.get_sample_array()[c] *= osc.get_cfg().volume;
         osc.get_sample_array()[c] /= sqrtf((f32)v.get_osc_count());
         voice_sums[c] += osc.get_sample_array()[c];
       }
     }
 
-    const Env_Params &e = syn->get_env_cfg();
-    for (i32 c = 0; c < ap.channels; c++) {
+    for (i32 c = 0; c < p.channels; c++) {
       v.get_lpf().lerp(voice_sums, c);
-      v.adsr(ap.sample_rate, e.attack, e.decay, e.sustain, e.release);
+      v.adsr(p.sample_rate, p.env_attack, p.env_decay, p.env_sustain, p.env_release);
 
       const f32 mix =
           0.7f * v.get_lpf().get_high()[c] + 0.3f * v.get_lpf().get_low()[c];
-      sums[c] += (mix / sqrtf((f32)ap.voicings)) * ap.volume * v.get_envelope();
+      sums[c] += (mix / sqrtf((f32)p.voicings)) * p.volume * v.get_envelope();
     }
   }
 
-  for (i32 c = 0; c < ap.channels; c++) {
-    generated[c] = tanhf(sums[c] * ap.gain);
+  for (i32 c = 0; c < p.channels; c++) {
+    generated[c] = tanhf(sums[c] * p.gain);
   }
 }
 
 static void generate_loop(Synth *syn, size_t count, f32 *sample_buffer) {
-  for (i32 n = 0; n < (i32)count / syn->get_audio_cfg().channels; n++) {
+  for (i32 n = 0; n < (i32)count / syn->get_cfg().channels; n++) {
     f32 generated[SIZES::CHANNEL_MAX] = {0.0f, 0.0f};
     voice_loop(syn, generated);
-    for (i32 c = 0; c < syn->get_audio_cfg().channels; c++) {
-      sample_buffer[n * syn->get_audio_cfg().channels + c] = generated[c];
+    for (i32 c = 0; c < syn->get_cfg().channels; c++) {
+      sample_buffer[n * syn->get_cfg().channels + c] = generated[c];
     }
   }
 }
