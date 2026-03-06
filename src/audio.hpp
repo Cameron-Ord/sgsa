@@ -29,16 +29,15 @@ enum OSC_STATE : size_t { ENVELOPE, PHASE, TIME, STATE_COUNT };
 
 class LPF {
 public:
-  LPF(f32 cutoff_low, f32 cutoff_high, i32 sample_rate);
+  LPF(f32 cutoff, i32 sample_rate);
   void lerp(f32 target[SIZES::CHANNEL_MAX], i32 c);
-
+  f32 get_alpha(void) const { return alpha; }
   f32 derive_alpha(f32 cutoff, i32 sample_rate);
-  const f32 *get_low(void) const { return low; }
-  const f32 *get_high(void) const { return high; }
+  const f32 *get_array(void) const { return low; }
+  f32 *get_array(void) { return low; }
 
 private:
-  f32 alpha_low, alpha_high;
-  f32 high[SIZES::CHANNEL_MAX];
+  f32 alpha;
   f32 low[SIZES::CHANNEL_MAX];
 };
 
@@ -78,7 +77,7 @@ private:
 
 class Voice {
 public:
-  Voice(f32 cutoff_low, f32 cutoff_high, i32 sample_rate);
+  Voice(f32 cutoff_low, i32 sample_rate);
   bool done(void) const;
   bool releasing(void) const;
   const std::vector<Oscilator> &get_osc_array(void) const { return oscs; }

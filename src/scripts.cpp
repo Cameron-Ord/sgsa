@@ -27,10 +27,8 @@ const std::vector<Entry> BASE_FIELDS = {
     Entry("tempo", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, tempo)),
     Entry("note_duration", ENTRY_TYPE::FLOAT,
           offsetof(Synth_Cfg, note_duration)),
-    Entry("filter_cutoff_low", ENTRY_TYPE::FLOAT,
-          offsetof(Synth_Cfg, filter_cutoff_low)),
-    Entry("filter_cutoff_high", ENTRY_TYPE::FLOAT,
-          offsetof(Synth_Cfg, filter_cutoff_high)),
+    Entry("low_pass_cutoff", ENTRY_TYPE::FLOAT,
+          offsetof(Synth_Cfg, low_pass_cutoff)),
     Entry("use_filter", ENTRY_TYPE::BOOL, offsetof(Synth_Cfg, use_filter)),
     Entry("duty_cycle", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, duty_cycle))};
 

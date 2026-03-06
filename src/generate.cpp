@@ -139,7 +139,7 @@ Synth::Synth(void)
     : cfg(),
       wave_table(cfg.sample_rate, (size_t)cfg.wave_table_size, cfg.duty_cycle),
       voices((size_t)cfg.voicings,
-             Voice(cfg.filter_cutoff_low, cfg.filter_cutoff_high,
+             Voice(cfg.low_pass_cutoff,
                    cfg.sample_rate)) {}
 
 void Synth::new_oscilators(std::vector<Oscilator_Cfg> osc_cfgs) {
@@ -209,10 +209,10 @@ void Oscilator::increment_phase(f32 inc, f32 max) {
   }
 }
 
-Voice::Voice(f32 cutoff_low, f32 cutoff_high, i32 sample_rate)
+Voice::Voice(f32 cutoff, i32 sample_rate)
     : active_oscilators(0), freq(0.0f), midi_key(0), env_state(ENV_STATE::OFF),
       envelope(0.0f), oscs(1, Oscilator()), lfo(),
-      lpf(cutoff_low, cutoff_high, sample_rate) {}
+      lpf(cutoff, sample_rate) {}
 
 bool Voice::done(void) const { return env_state == ENV_STATE::OFF; }
 
@@ -269,14 +269,9 @@ void Voice::ar(i32 samplerate, f32 atk, f32 rel) {
   }
 }
 
-LPF::LPF(f32 cutoff_low, f32 cutoff_high, i32 sample_rate)
-    : alpha_low(0.0f), alpha_high(0.0f) {
-  for (size_t c = 0; c < SIZES::CHANNEL_MAX; c++) {
-    high[c] = 0.0f;
-    low[c] = 0.0f;
-  }
-  alpha_low = derive_alpha(cutoff_low, sample_rate);
-  alpha_high = derive_alpha(cutoff_high, sample_rate);
+LPF::LPF(f32 cutoff, i32 sample_rate)
+    : alpha(0.0f) {
+  alpha = derive_alpha(cutoff, sample_rate);
 }
 
 f32 LPF::derive_alpha(f32 cutoff, i32 sample_rate) {
@@ -286,6 +281,6 @@ f32 LPF::derive_alpha(f32 cutoff, i32 sample_rate) {
 }
 
 void LPF::lerp(f32 target[SIZES::CHANNEL_MAX], i32 c) {
-  high[c] = high[c] + (target[c] - high[c]) * alpha_high;
-  low[c] = low[c] + (target[c] - low[c]) * alpha_low;
+  low[c] = low[c] + (target[c] - low[c]) * alpha;
 }
+

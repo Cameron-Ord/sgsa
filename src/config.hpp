@@ -44,8 +44,7 @@ inline constexpr f32 TEMPO = 120.0f;
 inline constexpr f32 NOTE_DURATION = 1.0f;
 inline constexpr f32 MAIN_VOLUME = 1.0f;
 inline constexpr f32 GAIN_LEVEL = 3.0f;
-inline constexpr f32 FILTER_CUTOFF_HIGH = (f32)SAMPLE_RATE / 2.0f;
-inline constexpr f32 FILTER_CUTOFF_LOW = 40.0f;
+inline constexpr f32 LOW_PASS_CUTOFF = 2000.0f;
 inline constexpr f32 FILTER_UNSET = 1.0f;
 
 inline constexpr f32 DUTY_CYCLE = 0.5f;
@@ -67,8 +66,7 @@ struct Synth_Cfg {
   f32 gain = DEFAULTS::GAIN_LEVEL;
   f32 tempo = DEFAULTS::TEMPO;
   f32 note_duration = DEFAULTS::NOTE_DURATION;
-  f32 filter_cutoff_low = DEFAULTS::FILTER_CUTOFF_LOW;
-  f32 filter_cutoff_high = DEFAULTS::FILTER_CUTOFF_HIGH;
+  f32 low_pass_cutoff = DEFAULTS::LOW_PASS_CUTOFF;
   f32 env_attack = DEFAULTS::ATK;
   f32 env_decay = DEFAULTS::DEC;
   f32 env_sustain = DEFAULTS::SUS;

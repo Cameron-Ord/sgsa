@@ -73,18 +73,21 @@ static void voice_loop(Synth *syn, f32 generated[SIZES::CHANNEL_MAX]) {
     }
 
     for (i32 c = 0; c < p.channels; c++) {
+      // Saturate
+      voice_sums[c] = tanhf(voice_sums[c] * p.gain);
       v.get_lpf().lerp(voice_sums, c);
+
+      const f32 mix = v.get_lpf().get_array()[c];
+
       v.adsr(p.sample_rate, p.env_attack, p.env_decay, p.env_sustain,
              p.env_release);
 
-      const f32 mix =
-          0.7f * v.get_lpf().get_high()[c] + 0.3f * v.get_lpf().get_low()[c];
       sums[c] += (mix / sqrtf((f32)p.voicings)) * p.volume * v.get_envelope();
     }
   }
 
   for (i32 c = 0; c < p.channels; c++) {
-    generated[c] = tanhf(sums[c] * p.gain);
+    generated[c] = sums[c];
   }
 }
 

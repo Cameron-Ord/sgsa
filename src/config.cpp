@@ -9,8 +9,7 @@ void Synth_Cfg::print(void) const {
 
   std::cout << "volume: (" << volume << "), "
             << "gain: (" << gain << "), "
-            << "filter low: (" << filter_cutoff_low << "), "
-            << "filer high: (" << filter_cutoff_high << "), "
+            << "filter cutoff: (" << low_pass_cutoff << "), "
             << "attack: (" << env_attack << "), "
             << "decay: (" << env_decay << "), "
             << "sustain: (" << env_sustain << "), "
