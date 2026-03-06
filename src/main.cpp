@@ -79,18 +79,19 @@ int main(int argc, char **argv) {
   if (!lua.initialize()) {
     return 1;
   }
-  
+
   {
     Synth_Cfg synth_cfg;
     std::vector<Oscilator_Cfg> osc_configs(1, Oscilator_Cfg());
-    if(lua.load_cfg("lua/config.lua", synth_cfg, osc_configs)){
+    if (lua.load_cfg("lua/config.lua", synth_cfg, osc_configs)) {
       syn.set_cfg(synth_cfg);
-      syn.get_wave_table().re_generate(synth_cfg.sample_rate, (size_t)synth_cfg.wave_table_size, synth_cfg.duty_cycle);
+      syn.get_wave_table().re_generate(synth_cfg.sample_rate,
+                                       (size_t)synth_cfg.wave_table_size,
+                                       synth_cfg.duty_cycle);
       syn.new_oscilators(osc_configs);
     }
   }
   syn.get_cfg().print();
-
 
   audio.open(&syn);
   controller.open();

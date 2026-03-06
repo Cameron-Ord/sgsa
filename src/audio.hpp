@@ -123,7 +123,8 @@ public:
   void fourier_saw(f32 buf[SIZES::MAX_TABLE_SIZE], size_t N, size_t harm);
   void fourier_square(f32 buf[SIZES::MAX_TABLE_SIZE], size_t N, size_t harm);
   void fourier_triangle(f32 buf[SIZES::MAX_TABLE_SIZE], size_t N, size_t harm);
-  void fourier_pulse(f32 buf[SIZES::MAX_TABLE_SIZE], size_t N, size_t harm, f32 duty_cycle);
+  void fourier_pulse(f32 buf[SIZES::MAX_TABLE_SIZE], size_t N, size_t harm,
+                     f32 duty_cycle);
 
 private:
   f32 tables[WAVEFORM_TYPE::WAVEFORM_COUNT][SIZES::OCTAVES]
@@ -140,13 +141,13 @@ class Synth {
 public:
   Synth(void);
   void set_cfg(Synth_Cfg c) { cfg = c; }
-  
+
   const Synth_Cfg &get_cfg(void) const { return cfg; }
   const Wave_Table &get_wave_table(void) const { return wave_table; }
   Wave_Table &get_wave_table(void) { return wave_table; }
   const std::vector<Voice> &get_voices(void) const { return voices; }
   std::vector<Voice> &get_voices(void) { return voices; }
-  
+
   void new_oscilators(std::vector<Oscilator_Cfg> osc_cfgs);
   void loop_voicings_off(i32 midi_key);
   void loop_voicings_on(i32 midi_key);

@@ -29,7 +29,8 @@ enum ENTRY_TYPE {
 
 struct Entry {
   Entry(std::string str, ENTRY_TYPE val) : name(str), type(val), offset(0) {}
-  Entry(std::string str, ENTRY_TYPE val, size_t _offset) : name(str), type(val), offset(_offset) {}
+  Entry(std::string str, ENTRY_TYPE val, size_t _offset)
+      : name(str), type(val), offset(_offset) {}
   std::string name;
   ENTRY_TYPE type;
   size_t offset;
@@ -37,7 +38,7 @@ struct Entry {
 
 struct Field_Cluster {
   Field_Cluster(std::vector<Entry> flds,
-           std::vector<std::pair<Entry, std::vector<Entry>>> tbls);
+                std::vector<std::pair<Entry, std::vector<Entry>>> tbls);
   std::vector<Entry> fields_array;
   std::vector<std::pair<Entry, std::vector<Entry>>> tables_array;
 };
@@ -55,8 +56,8 @@ class Lua_Container;
 class Cfg_Builder {
 public:
   Cfg_Builder(Field_Cluster flds, Lua_Container &lc_);
-  void build_base_fields(Synth_Cfg& synth);
-  void build_oscilator_fields(std::vector<Oscilator_Cfg>& oscs);
+  void build_base_fields(Synth_Cfg &synth);
+  void build_oscilator_fields(std::vector<Oscilator_Cfg> &oscs);
 
 private:
   Lua_Container &lc_;
@@ -67,7 +68,8 @@ class Lua_Container {
 public:
   Lua_Container(void) = default;
   ~Lua_Container(void) = default;
-  bool load_cfg(const char *filepath, Synth_Cfg& synth, std::vector<Oscilator_Cfg>& oscs);
+  bool load_cfg(const char *filepath, Synth_Cfg &synth,
+                std::vector<Oscilator_Cfg> &oscs);
   size_t raw_len(void);
   void raw_geti(i32 i);
   void pop(void);

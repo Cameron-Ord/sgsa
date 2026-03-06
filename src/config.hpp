@@ -79,7 +79,7 @@ struct Synth_Cfg {
   i32 lfo_mode = DEFAULTS::LFO_MODE;
   i32 voicings = DEFAULTS::VOICINGS;
   i32 wave_table_size = DEFAULTS::WT_SIZE;
-  
+
   f32 duty_cycle = DEFAULTS::DUTY_CYCLE;
 
   void print(void) const;

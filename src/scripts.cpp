@@ -2,9 +2,9 @@
 #include "audio.hpp"
 #include <iostream>
 
-
-Field_Cluster::Field_Cluster(std::vector<Entry> flds,
-                   std::vector<std::pair<Entry, std::vector<Entry>>> tbls)
+Field_Cluster::Field_Cluster(
+    std::vector<Entry> flds,
+    std::vector<std::pair<Entry, std::vector<Entry>>> tbls)
     : fields_array(flds), tables_array(tbls) {}
 
 const std::vector<Entry> BASE_FIELDS = {
@@ -22,24 +22,27 @@ const std::vector<Entry> BASE_FIELDS = {
     Entry("channels", ENTRY_TYPE::INT, offsetof(Synth_Cfg, channels)),
     Entry("sample_rate", ENTRY_TYPE::INT, offsetof(Synth_Cfg, sample_rate)),
     Entry("voicings", ENTRY_TYPE::INT, offsetof(Synth_Cfg, voicings)),
-    Entry("wave_table_size", ENTRY_TYPE::INT, offsetof(Synth_Cfg, wave_table_size)),
+    Entry("wave_table_size", ENTRY_TYPE::INT,
+          offsetof(Synth_Cfg, wave_table_size)),
     Entry("tempo", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, tempo)),
-    Entry("note_duration", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, note_duration)),
-    Entry("filter_cutoff_low", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, filter_cutoff_low)),
-    Entry("filter_cutoff_high", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, filter_cutoff_high)),
+    Entry("note_duration", ENTRY_TYPE::FLOAT,
+          offsetof(Synth_Cfg, note_duration)),
+    Entry("filter_cutoff_low", ENTRY_TYPE::FLOAT,
+          offsetof(Synth_Cfg, filter_cutoff_low)),
+    Entry("filter_cutoff_high", ENTRY_TYPE::FLOAT,
+          offsetof(Synth_Cfg, filter_cutoff_high)),
     Entry("use_filter", ENTRY_TYPE::BOOL, offsetof(Synth_Cfg, use_filter)),
-    Entry("duty_cycle", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, duty_cycle))
-};
+    Entry("duty_cycle", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, duty_cycle))};
 
 const std::vector<Entry> OSC_TABLE_FIELDS = {
     Entry("detune", ENTRY_TYPE::FLOAT, offsetof(Oscilator_Cfg, detune)),
-    Entry("volume", ENTRY_TYPE::FLOAT, offsetof(Oscilator_Cfg, volume)), 
-    Entry("octave_step", ENTRY_TYPE::FLOAT, offsetof(Oscilator_Cfg, octave_step)),
+    Entry("volume", ENTRY_TYPE::FLOAT, offsetof(Oscilator_Cfg, volume)),
+    Entry("octave_step", ENTRY_TYPE::FLOAT,
+          offsetof(Oscilator_Cfg, octave_step)),
     Entry("waveform", ENTRY_TYPE::INT, offsetof(Oscilator_Cfg, waveform))};
 
 std::vector<std::pair<Entry, std::vector<Entry>>> TABLES = {
-    { Entry("oscilators", ENTRY_TYPE::LUA_TABLE), OSC_TABLE_FIELDS } 
-};
+    {Entry("oscilators", ENTRY_TYPE::LUA_TABLE), OSC_TABLE_FIELDS}};
 
 const Field_Cluster FIELDS(BASE_FIELDS, TABLES);
 
@@ -102,7 +105,8 @@ std::string Lua_Container::get_str(void) {
   return val;
 }
 
-bool Lua_Container::load_cfg(const char *filepath, Synth_Cfg& synth, std::vector<Oscilator_Cfg>& oscs) {
+bool Lua_Container::load_cfg(const char *filepath, Synth_Cfg &synth,
+                             std::vector<Oscilator_Cfg> &oscs) {
   if (!do_file(filepath)) {
     return false;
   }
@@ -117,78 +121,78 @@ bool Lua_Container::load_cfg(const char *filepath, Synth_Cfg& synth, std::vector
 Cfg_Builder::Cfg_Builder(Field_Cluster flds, Lua_Container &lc)
     : lc_(lc), fields(flds) {}
 
-void Cfg_Builder::build_base_fields(Synth_Cfg& synth){
+void Cfg_Builder::build_base_fields(Synth_Cfg &synth) {
   Synth_Cfg *ptr = &synth;
-  for(size_t i = 0; i < fields.fields_array.size(); i++){
-    if(!lc_.get_field(fields.fields_array[i].name.c_str())){
-      continue; 
-    }
-
-    switch(lc_.get_type()){
-      default: {
-        lc_.pop();
-      } break;
-
-      case LUA_TNUMBER: {
-        if(lc_.is_int()){
-          *(i32*)((char*)ptr + fields.fields_array[i].offset) = lc_.get_int();
-          lc_.pop();
-        } else {
-          *(f32*)((char*)ptr + fields.fields_array[i].offset) = lc_.get_float();
-          lc_.pop();
-        }
-      } break;
-
-      case LUA_TBOOLEAN: {
-        *(bool*)((char*)ptr + fields.fields_array[i].offset) = lc_.get_bool();
-        lc_.pop();
-      }break;
-    }
-  }
-}
-
-void Cfg_Builder::build_oscilator_fields(std::vector<Oscilator_Cfg>& oscs){
-  for(size_t i = 0; i < fields.tables_array.size(); i++){
-    if(!lc_.get_field(fields.tables_array[i].first.name.c_str())){
+  for (size_t i = 0; i < fields.fields_array.size(); i++) {
+    if (!lc_.get_field(fields.fields_array[i].name.c_str())) {
       continue;
     }
 
-    switch(lc_.get_type()){
-      default: {
+    switch (lc_.get_type()) {
+    default: {
+      lc_.pop();
+    } break;
+
+    case LUA_TNUMBER: {
+      if (lc_.is_int()) {
+        *(i32 *)((char *)ptr + fields.fields_array[i].offset) = lc_.get_int();
         lc_.pop();
-      } break;
+      } else {
+        *(f32 *)((char *)ptr + fields.fields_array[i].offset) = lc_.get_float();
+        lc_.pop();
+      }
+    } break;
 
-      case LUA_TTABLE: {
-        const size_t len = lc_.raw_len();
-        oscs.resize(len);
-        for(size_t j = 1; j <= len; j++){
-          lc_.raw_geti((i32)j);
-          Oscilator_Cfg *ptr = &oscs[j - 1];
-          for(size_t k = 0; k < fields.tables_array[i].second.size(); k++){
-            if(!lc_.get_field(fields.tables_array[i].second[k].name.c_str())){
-              continue;
-            }
-            
-            switch(lc_.get_type()){
-              default: {
-                lc_.pop();
-              } break;
-              case LUA_TNUMBER:{
-                if(lc_.is_int()){
-                  *(i32*)((char*)ptr + fields.tables_array[i].second[k].offset) = lc_.get_int();
-                  lc_.pop();
-                } else {
-                  *(f32*)((char*)ptr + fields.tables_array[i].second[k].offset) = lc_.get_float();
-                  lc_.pop();
-                }
-              } break;
-            }
-
-          }
-          lc_.pop();
-        }
-      } break;
-    } 
+    case LUA_TBOOLEAN: {
+      *(bool *)((char *)ptr + fields.fields_array[i].offset) = lc_.get_bool();
+      lc_.pop();
+    } break;
+    }
   }
 }
 
+void Cfg_Builder::build_oscilator_fields(std::vector<Oscilator_Cfg> &oscs) {
+  for (size_t i = 0; i < fields.tables_array.size(); i++) {
+    if (!lc_.get_field(fields.tables_array[i].first.name.c_str())) {
+      continue;
+    }
+
+    switch (lc_.get_type()) {
+    default: {
+      lc_.pop();
+    } break;
+
+    case LUA_TTABLE: {
+      const size_t len = lc_.raw_len();
+      oscs.resize(len);
+      for (size_t j = 1; j <= len; j++) {
+        lc_.raw_geti((i32)j);
+        Oscilator_Cfg *ptr = &oscs[j - 1];
+        for (size_t k = 0; k < fields.tables_array[i].second.size(); k++) {
+          if (!lc_.get_field(fields.tables_array[i].second[k].name.c_str())) {
+            continue;
+          }
+
+          switch (lc_.get_type()) {
+          default: {
+            lc_.pop();
+          } break;
+          case LUA_TNUMBER: {
+            if (lc_.is_int()) {
+              *(i32 *)((char *)ptr + fields.tables_array[i].second[k].offset) =
+                  lc_.get_int();
+              lc_.pop();
+            } else {
+              *(f32 *)((char *)ptr + fields.tables_array[i].second[k].offset) =
+                  lc_.get_float();
+              lc_.pop();
+            }
+          } break;
+          }
+        }
+        lc_.pop();
+      }
+    } break;
+    }
+  }
+}

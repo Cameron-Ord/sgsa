@@ -54,7 +54,8 @@ static void voice_loop(Synth *syn, f32 generated[SIZES::CHANNEL_MAX]) {
       Oscilator &osc = v.get_osc_array()[o];
 
       const size_t wt_size = (size_t)p.wave_table_size;
-      const f32 freq = v.get_freq() * osc.get_cfg().detune * osc.get_cfg().octave_step;
+      const f32 freq =
+          v.get_freq() * osc.get_cfg().detune * osc.get_cfg().octave_step;
       const f32 dt = 1.0f / (f32)p.sample_rate;
       const f32 inc = (f32)wt_size * freq / (f32)p.sample_rate;
 
