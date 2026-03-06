@@ -6,10 +6,10 @@ return {
   lfo_depth = 1.0,
   lfo_timer = 0.3,
   lfo_mode = modes["TREMOLO"],
-  env_attack = 0.3,
+  env_attack = 0.2,
   env_decay = 0.4,
-  env_sustain = 0.8,
-  env_release = 0.4,
+  env_sustain = 0.3,
+  env_release = 0.1,
   volume = 1.0,
   gain = 4.0,
   channels = 2,
@@ -24,7 +24,7 @@ return {
   oscilators = {
     {
       detune = 1.0,
-      volume = 0.8,
+      volume = 1.0,
       octave_step = 1.0,
       waveform = waves["SAW"]
     },
@@ -41,9 +41,15 @@ return {
       waveform = waves["SAW"]
     },
     {
-      detune = 1.,
+      detune = 0.994,
       volume = 0.8,
-      octave_step = 0.75,
+      octave_step = 1.0,
+      waveform = waves["SAW"]
+    },
+    {
+      detune = 1.,
+      volume = 0.5,
+      octave_step = 1.0,
       waveform = waves["TRIANGLE"]
     },
   },

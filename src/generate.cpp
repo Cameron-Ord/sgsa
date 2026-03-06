@@ -171,6 +171,7 @@ void Synth::loop_voicings_on(i32 midi_key) {
       v->set_active_count(0);
       v->set_key(midi_key);
       v->set_freq(midi_to_freq(midi_key));
+      v->get_lpf().reset();
 
       for (size_t o = 0; o < v->get_osc_count(); o++) {
         Oscilator *osc = &v->get_osc_array()[o];
@@ -196,7 +197,7 @@ void Lfo::increment_lfo(f32 inc) {
 Oscilator::Oscilator(void) : gen(), cfg(), phase(0.0f), time(0.0f) {}
 
 void Oscilator::start(void) {
-  phase = 0.0f;
+  phase = rand_f32_range(0.0f, 1.0f);
   time = 0.0f;
 }
 
@@ -271,7 +272,12 @@ void Voice::ar(i32 samplerate, f32 atk, f32 rel) {
 
 LPF::LPF(f32 cutoff, i32 sample_rate)
     : alpha(0.0f) {
+  reset();
   alpha = derive_alpha(cutoff, sample_rate);
+}
+
+void LPF::reset(void){
+  memset(low, 0, sizeof(f32) * SIZES::CHANNEL_MAX);
 }
 
 f32 LPF::derive_alpha(f32 cutoff, i32 sample_rate) {

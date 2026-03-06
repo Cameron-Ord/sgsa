@@ -30,6 +30,8 @@ enum OSC_STATE : size_t { ENVELOPE, PHASE, TIME, STATE_COUNT };
 class LPF {
 public:
   LPF(f32 cutoff, i32 sample_rate);
+  void reset(void);
+
   void lerp(f32 target[SIZES::CHANNEL_MAX], i32 c);
   f32 get_alpha(void) const { return alpha; }
   f32 derive_alpha(f32 cutoff, i32 sample_rate);
