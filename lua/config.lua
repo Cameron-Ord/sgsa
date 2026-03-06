@@ -11,7 +11,7 @@ return {
   env_sustain = 0.8,
   env_release = 0.4,
   volume = 1.0,
-  gain = 1.0,
+  gain = 1.5,
   channels = 2,
   sample_rate = 48000,
   voicings = 8,
@@ -21,13 +21,25 @@ return {
   filter_cutoff_low = 60.0,
   filter_cutoff_high = 14000.0,
   use_filter = true,
-  duty_cycle = 0.125,
+  duty_cycle = 0.38,
   oscilators = {
     {
       detune = 1.0,
       volume = 1.0,
       octave_step = 1.0,
-      waveform = waves["PULSE"]
+      waveform = waves["SAW"]
+    },
+    {
+      detune = 0.998,
+      volume = 0.6,
+      octave_step = 1.0,
+      waveform = waves["SAW"]
+    },
+    {
+      detune = 1.0,
+      volume = 0.8,
+      octave_step = 1.0,
+      waveform = waves["TRIANGLE"]
     },
   },
 }
