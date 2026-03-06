@@ -10,6 +10,9 @@ enum LFO_TYPE : i32 {
 enum WAVEFORM_TYPE : size_t {
   SAW,
   SINE,
+  SQUARE,
+  TRIANGLE,
+  PULSE,
   WAVEFORM_COUNT,
 };
 
@@ -76,12 +79,13 @@ struct Synth_Cfg {
   i32 lfo_mode = DEFAULTS::LFO_MODE;
   i32 voicings = DEFAULTS::VOICINGS;
   i32 wave_table_size = DEFAULTS::WT_SIZE;
+  
+  f32 duty_cycle = DEFAULTS::DUTY_CYCLE;
 
   void print(void) const;
 };
 
 struct Oscilator_Cfg {
-  f32 duty_cycle = DEFAULTS::DUTY_CYCLE;
   f32 detune = DEFAULTS::DETUNE;
   f32 volume = DEFAULTS::OSC_VOLUME;
   f32 octave_step = DEFAULTS::STEP;

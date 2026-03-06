@@ -27,11 +27,11 @@ const std::vector<Entry> BASE_FIELDS = {
     Entry("note_duration", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, note_duration)),
     Entry("filter_cutoff_low", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, filter_cutoff_low)),
     Entry("filter_cutoff_high", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, filter_cutoff_high)),
-    Entry("use_filter", ENTRY_TYPE::BOOL, offsetof(Synth_Cfg, use_filter))
+    Entry("use_filter", ENTRY_TYPE::BOOL, offsetof(Synth_Cfg, use_filter)),
+    Entry("duty_cycle", ENTRY_TYPE::FLOAT, offsetof(Synth_Cfg, duty_cycle))
 };
 
 const std::vector<Entry> OSC_TABLE_FIELDS = {
-    Entry("duty_cycle", ENTRY_TYPE::FLOAT, offsetof(Oscilator_Cfg, duty_cycle)), 
     Entry("detune", ENTRY_TYPE::FLOAT, offsetof(Oscilator_Cfg, detune)),
     Entry("volume", ENTRY_TYPE::FLOAT, offsetof(Oscilator_Cfg, volume)), 
     Entry("octave_step", ENTRY_TYPE::FLOAT, offsetof(Oscilator_Cfg, octave_step)),

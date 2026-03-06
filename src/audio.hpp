@@ -112,12 +112,18 @@ private:
 
 class Wave_Table {
 public:
-  Wave_Table(i32 sample_rate, size_t table_size);
-  void re_generate(i32 sample_rate, size_t table_size);
-  void generate(i32 sample_rate);
+  Wave_Table(i32 sample_rate, size_t table_size, f32 duty_cycle);
+  void re_generate(i32 sample_rate, size_t table_size, f32 duty_cycle);
+  void generate(i32 sample_rate, f32 duty_cycle);
   size_t index_octave(f32 freq) const;
   size_t get_size(void) const { return size; }
   const f32 *get_table(size_t id, size_t index) const;
+
+  void sine(f32 buf[SIZES::MAX_TABLE_SIZE], size_t N);
+  void fourier_saw(f32 buf[SIZES::MAX_TABLE_SIZE], size_t N, size_t harm);
+  void fourier_square(f32 buf[SIZES::MAX_TABLE_SIZE], size_t N, size_t harm);
+  void fourier_triangle(f32 buf[SIZES::MAX_TABLE_SIZE], size_t N, size_t harm);
+  void fourier_pulse(f32 buf[SIZES::MAX_TABLE_SIZE], size_t N, size_t harm, f32 duty_cycle);
 
 private:
   f32 tables[WAVEFORM_TYPE::WAVEFORM_COUNT][SIZES::OCTAVES]

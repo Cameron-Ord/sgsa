@@ -31,7 +31,6 @@ void Synth_Cfg::print (void) const {
 void Oscilator_Cfg::print (void) const {
   std::cout << "====================" << std::endl;
   std::cout 
-  << "duty: (" << duty_cycle << "), " 
   << "detune: (" << detune << "), " 
   << "volume: (" << volume << "), "
   << "octave: (" << octave_step << "), "
