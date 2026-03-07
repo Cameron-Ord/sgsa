@@ -31,9 +31,10 @@ static f32 generate(const Wave_Table *wt, f32 phase, size_t table_id,
                     f32 freq) {
   const size_t i = wt->index_octave(freq);
   if (const f32 *wave = wt->get_table(table_id, i)) {
-    size_t j = (size_t)floorf(phase) % wt->get_size();
+    const size_t base = (size_t)floorf(phase);
+    size_t j = base % wt->get_size();
     size_t k = (j + 1) % wt->get_size();
-    f32 f = phase - (f32)j;
+    f32 f = phase - (f32)base;
     return wave[j] + ((wave[k] - wave[j]) * f);
   }
   return 0.0f;
@@ -45,7 +46,7 @@ static void voice_loop(Synth *syn, f32 generated[SIZES::CHANNEL_MAX]) {
 
   for (size_t i = 0; i < (size_t)p.voicings && i < SIZES::VOICES; i++) {
     Voice &v = syn->get_voices()[i];
-    if (!(v.get_active_count() > 0) && !v.releasing()) {
+    if (v.get_active_count() <= 0 && !v.releasing()) {
       continue;
     }
 
@@ -73,15 +74,14 @@ static void voice_loop(Synth *syn, f32 generated[SIZES::CHANNEL_MAX]) {
     }
 
     for (i32 c = 0; c < p.channels; c++) {
-      // Saturate
       voice_sums[c] = tanhf(voice_sums[c] * p.gain);
       v.get_lpf().lerp(voice_sums, c);
-
+    }
+    v.adsr(p.sample_rate, p.env_attack, p.env_decay, p.env_sustain,
+           p.env_release);
+    for (i32 c = 0; c < p.channels; c++) {
+      // Saturate
       const f32 mix = v.get_lpf().get_array()[c];
-
-      v.adsr(p.sample_rate, p.env_attack, p.env_decay, p.env_sustain,
-             p.env_release);
-
       sums[c] += (mix / sqrtf((f32)p.voicings)) * p.volume * v.get_envelope();
     }
   }

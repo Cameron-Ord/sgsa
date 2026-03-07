@@ -8,11 +8,11 @@ enum LFO_TYPE : i32 {
 };
 
 enum WAVEFORM_TYPE : size_t {
-  SAW,
-  SINE,
-  SQUARE,
-  TRIANGLE,
-  PULSE,
+  SAW = 0,
+  SINE = 1,
+  SQUARE = 2,
+  TRIANGLE = 3,
+  PULSE = 4,
   WAVEFORM_COUNT,
 };
 

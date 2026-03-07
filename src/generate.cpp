@@ -87,7 +87,7 @@ void Wave_Table::fourier_pulse(f32 buf[SIZES::MAX_TABLE_SIZE], size_t N,
       sum += (1.0f / (f32)k) * sinf(PI * (f32)k * duty_cycle) *
              cosf(2.0f * PI * (f32)k * phase);
     }
-    buf[n] = duty_cycle + (2.0f / PI) * sum;
+    buf[n] = (duty_cycle + (2.0f / PI) * sum) - 1.0f;
   }
 }
 
@@ -195,9 +195,10 @@ void Lfo::increment_lfo(f32 inc) {
 }
 
 Oscilator::Oscilator(void) : gen(), cfg(), phase(0.0f), time(0.0f) {}
+Oscilator::Oscilator(Oscilator_Cfg _cfg) : gen(), cfg(_cfg), phase(0.0f), time(0.0f) {}
 
 void Oscilator::start(void) {
-  phase = rand_f32_range(0.0f, 1.0f);
+  phase = 0.0f;
   time = 0.0f;
 }
 

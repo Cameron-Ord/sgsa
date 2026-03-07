@@ -57,7 +57,7 @@ private:
 class Oscilator {
 public:
   Oscilator(void);
-  Oscilator(Oscilator_Cfg c) : cfg(c) {}
+  Oscilator(Oscilator_Cfg c);
 
   f32 get_phase_val(void) const { return phase; }
   f32 get_time_val(void) const { return time; }
