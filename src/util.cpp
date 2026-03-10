@@ -1,5 +1,5 @@
 #include "util.hpp"
-
+#include <iostream>
 #include <cmath>
 #include <cstring>
 

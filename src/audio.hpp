@@ -34,6 +34,7 @@ public:
 
   void lerp(f32 target[SIZES::CHANNEL_MAX], i32 c);
   f32 get_alpha(void) const { return alpha; }
+  void set_alpha(f32 val)  { alpha = val; }
   f32 derive_alpha(f32 cutoff, i32 sample_rate);
   const f32 *get_array(void) const { return low; }
   f32 *get_array(void) { return low; }
@@ -149,6 +150,7 @@ public:
   const std::vector<Voice> &get_voices(void) const { return voices; }
   std::vector<Voice> &get_voices(void) { return voices; }
 
+  void update_lpf(void);
   void new_oscilators(std::vector<Oscilator_Cfg> osc_cfgs);
   void loop_voicings_off(i32 midi_key);
   void loop_voicings_on(i32 midi_key);

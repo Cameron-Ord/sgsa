@@ -107,9 +107,8 @@ void Wave_Table::generate(i32 sample_rate, f32 duty_cycle) {
     size = WAVE_SIZE_MAX;
   }
   const size_t N = size;
-  // C0 lowest note on the piano realistically possible
-  const f32 C0 = 16.35f;
-  const f32 C1 = 32.703f;
+  const f32 C0 = 8.1758f;
+  const f32 C1 = C0 * 2.0f;
 
   for (size_t o = 0; o < OCTAVES; o++) {
     // Calculate the base of the current octave
@@ -149,6 +148,12 @@ void Synth::new_oscilators(std::vector<Oscilator_Cfg> osc_cfgs) {
     for (size_t j = 0; j < oscs.size(); j++) {
       oscs[j] = Oscilator(osc_cfgs[j]);
     }
+  }
+}
+
+void Synth::update_lpf(void){
+  for(size_t i = 0; i < voices.size(); i++){
+    voices[i].get_lpf().set_alpha(voices[i].get_lpf().derive_alpha(cfg.low_pass_cutoff, cfg.sample_rate));
   }
 }
 
@@ -198,7 +203,7 @@ Oscilator::Oscilator(void) : gen(), cfg(), phase(0.0f), time(0.0f) {}
 Oscilator::Oscilator(Oscilator_Cfg _cfg) : gen(), cfg(_cfg), phase(0.0f), time(0.0f) {}
 
 void Oscilator::start(void) {
-  phase = 0.0f;
+  phase = rand_f32_range(0.0f, 0.1f);
   time = 0.0f;
 }
 

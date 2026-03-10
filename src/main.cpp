@@ -89,6 +89,7 @@ int main(int argc, char **argv) {
                                        (size_t)synth_cfg.wave_table_size,
                                        synth_cfg.duty_cycle);
       syn.new_oscilators(osc_configs);
+      syn.update_lpf();
     }
   }
   syn.get_cfg().print();
