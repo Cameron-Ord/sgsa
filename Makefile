@@ -10,7 +10,6 @@ SRCS += src/midi.cpp
 SRCS += src/audio.cpp
 SRCS += src/config.cpp
 SRCS += src/generate.cpp
-SRCS += src/scripts.cpp
 
 all: $(TARGET)
 

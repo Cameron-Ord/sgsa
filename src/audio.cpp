@@ -4,7 +4,7 @@
 
 static bool stream_feed(SDL_AudioStream *stream, const f32 samples[], i32 len);
 static void generate_loop(Synth *syn, size_t count, f32 *sample_buffer);
-static f32 generate(const Wave_Table *wt, f32 phase, size_t table_id, f32 freq);
+static f32 waveform_generate(const Synth *syn, size_t osc_index, f32 phase, f32 freq);
 static void voice_loop(Synth *syn, f32 generated[CHANNEL_MAX]);
 
 const i32 CHUNK_MAX = 128;
@@ -27,15 +27,28 @@ void stream_get(void *data, SDL_AudioStream *stream, i32 add, i32 total) {
   return;
 }
 
-static f32 generate(const Wave_Table *wt, f32 phase, size_t table_id,
+static f32 waveform_generate(const Synth *syn, size_t osc_index, f32 phase,
                     f32 freq) {
-  const size_t i = wt->index_octave(freq);
-  if (const f32 *wave = wt->get_table(table_id, i)) {
+  if(osc_index > syn->get_osc_cfgs().size()){
+    return 0.0f;
+  }
+
+  const size_t octave_index = syn->get_wave_table().index_octave(freq);
+  if (const Waveform_Vec4f* table = syn->get_wave_table().get_table()) {
     const size_t base = (size_t)floorf(phase);
-    size_t j = base % wt->get_size();
-    size_t k = (j + 1) % wt->get_size();
+    
+    size_t j = base % syn->get_cfg().wave_table_size;
+    size_t k = (j + 1) % syn->get_cfg().wave_table_size;
     f32 f = phase - (f32)base;
-    return wave[j] + ((wave[k] - wave[j]) * f);
+
+    const f32 *jval = table->get_at(syn->get_osc_cfgs()[osc_index].waveform, osc_index, octave_index, j);    
+    const f32 *kval = table->get_at(syn->get_osc_cfgs()[osc_index].waveform, osc_index, octave_index, k);    
+
+    if(!jval || !kval) { 
+      return 0.0f;
+    }
+
+    return *jval + ((*kval - *jval) * f);
   }
   return 0.0f;
 }
@@ -51,35 +64,34 @@ static void voice_loop(Synth *syn, f32 generated[SIZES::CHANNEL_MAX]) {
     }
 
     f32 voice_sums[SIZES::CHANNEL_MAX] = {0.0f, 0.0f};
-    for (size_t o = 0; o < v.get_osc_count(); o++) {
+    for (size_t o = 0; o < syn->get_osc_count(); o++) {
       Oscilator &osc = v.get_osc_array()[o];
+      const Oscilator_Cfg& osc_cfg = syn->get_osc_cfgs()[o];
 
-      const size_t wt_size = (size_t)p.wave_table_size;
-      const f32 freq =
-          v.get_freq() * osc.get_cfg().detune * osc.get_cfg().octave_step;
+      const f32 freq = v.get_freq() * osc_cfg.detune; 
+
       const f32 dt = 1.0f / (f32)p.sample_rate;
-      const f32 inc = (f32)wt_size * freq / (f32)p.sample_rate;
+      const f32 inc = (f32)p.wave_table_size * freq / (f32)p.sample_rate;
 
       osc.increment_time(dt);
-      osc.increment_phase(inc, (f32)wt_size);
+      osc.increment_phase(inc, (f32)p.wave_table_size);
 
-      for (i32 c = 0; c < p.channels; c++) {
-        osc.get_sample_array()[c] =
-            generate(&syn->get_wave_table(), osc.get_phase_val(),
-                     (size_t)osc.get_cfg().waveform, freq);
-        osc.get_sample_array()[c] *= osc.get_cfg().volume;
-        osc.get_sample_array()[c] /= sqrtf((f32)v.get_osc_count());
+      for (size_t c = 0; c < (size_t)p.channels; c++) {
+        const f32 sample = waveform_generate(syn, o, osc.get_phase_val(), freq);
+        osc.get_sample_array()[c] = sample;
+        osc.get_sample_array()[c] *= syn->get_osc_cfgs()[o].volume;
+        osc.get_sample_array()[c] /= sqrtf((f32)syn->get_osc_count());
         voice_sums[c] += osc.get_sample_array()[c];
       }
     }
 
-    for (i32 c = 0; c < p.channels; c++) {
+    for (size_t c = 0; c < (size_t)p.channels; c++) {
       voice_sums[c] = tanhf(voice_sums[c] * p.gain);
       v.get_lpf().lerp(voice_sums, c);
     }
     v.adsr(p.sample_rate, p.env_attack, p.env_decay, p.env_sustain,
            p.env_release);
-    for (i32 c = 0; c < p.channels; c++) {
+    for (size_t c = 0; c < (size_t)p.channels; c++) {
       // Saturate
       const f32 mix = v.get_lpf().get_array()[c];
       sums[c] += (mix / sqrtf((f32)p.voicings)) * p.volume * v.get_envelope();

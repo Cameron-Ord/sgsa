@@ -2,7 +2,6 @@
 #include "util.hpp"
 #include <cassert>
 #include <cmath>
-#include <iostream>
 
 static f32 rand_f32_range(f32 min, f32 max) {
   float scale = (f32)rand() / (f32)RAND_MAX;
@@ -11,8 +10,8 @@ static f32 rand_f32_range(f32 min, f32 max) {
 
 size_t Wave_Table::index_octave(f32 freq) const {
   for (u8 i = 0; i < SIZES::OCTAVES - 1; i++) {
-    const f32 base = freq_mapper[i];
-    const f32 next = freq_mapper[i + 1];
+    const f32 base = freq_range[i];
+    const f32 next = freq_range[i + 1];
     if (freq >= base && freq < next) {
       return i;
     }
@@ -20,26 +19,14 @@ size_t Wave_Table::index_octave(f32 freq) const {
   return SIZES::OCTAVES - 1;
 }
 
-const f32 *Wave_Table::get_table(size_t id, size_t index) const {
-  if (index >= SIZES::MAX_TABLE_SIZE) {
-    return NULL;
+void Wave_Table::sine(Waveform_Vec4f& v, size_t osc, size_t octave, size_t N){
+  for (size_t n = 0; n < N; n++) {
+    const f32 phase = (f32)n / (f32)N;
+    v.set_at(SINE, osc, octave, n, sinf(2.0f * PI * phase));
   }
-
-  if (id >= SIZES::OCTAVES) {
-    return NULL;
-  }
-
-  return tables[id][index];
 }
 
-void Wave_Table::re_generate(i32 sample_rate, size_t table_size,
-                             f32 duty_cycle) {
-  size = table_size;
-  generate(sample_rate, duty_cycle);
-}
-
-void Wave_Table::fourier_saw(f32 buf[SIZES::MAX_TABLE_SIZE], size_t N,
-                             size_t harm) {
+void Wave_Table::fourier_saw(Waveform_Vec4f& v, size_t osc, size_t octave, size_t N, size_t harm){
   for (size_t n = 0; n < N; n++) {
     const f32 phase = (f32)n / (f32)N;
     f32 sum = 0.0f;
@@ -47,12 +34,10 @@ void Wave_Table::fourier_saw(f32 buf[SIZES::MAX_TABLE_SIZE], size_t N,
       f32 sign = powf(-1.0f, (f32)k);
       sum += sign * sinf(2.0f * PI * (f32)k * phase) / (f32)k;
     }
-    buf[n] = -(2.0f / PI) * sum;
+    v.set_at(SAW, osc, octave, n, -(2.0f / PI) * sum);
   }
 }
-
-void Wave_Table::fourier_square(f32 buf[SIZES::MAX_TABLE_SIZE], size_t N,
-                                size_t harm) {
+void Wave_Table::fourier_square(Waveform_Vec4f& v, size_t osc, size_t octave, size_t N, size_t harm){
   for (size_t n = 0; n < N; n++) {
     const f32 phase = (f32)n / (f32)N;
     f32 sum = 0.0f;
@@ -60,12 +45,10 @@ void Wave_Table::fourier_square(f32 buf[SIZES::MAX_TABLE_SIZE], size_t N,
       sum += 1.0f * sinf(2.0f * PI * (2.0f * (f32)k - 1.0f) * phase) /
              (2.0f * (f32)k - 1.0f);
     }
-    buf[n] = (4.0f / PI) * sum;
+    v.set_at(SQUARE, osc, octave, n, (4.0f / PI) * sum);
   }
 }
-
-void Wave_Table::fourier_triangle(f32 buf[SIZES::MAX_TABLE_SIZE], size_t N,
-                                  size_t harm) {
+void Wave_Table::fourier_triangle(Waveform_Vec4f& v, size_t osc, size_t octave, size_t N, size_t harm){
   for (size_t n = 0; n < N; n++) {
     const f32 phase = (f32)n / (f32)N;
     f32 sum = 0.0f;
@@ -74,12 +57,11 @@ void Wave_Table::fourier_triangle(f32 buf[SIZES::MAX_TABLE_SIZE], size_t N,
       sum += sign * sinf(2.0f * PI * (2.0f * (f32)k - 1.0f) * phase) /
              powf(2.0f * (f32)k - 1.0f, 2.0f);
     }
-    buf[n] = -(8.0f / powf(PI, 2.0f)) * sum;
+    v.set_at(TRIANGLE, osc, octave, n, -(8.0f / powf(PI, 2.0f)) * sum);
   }
 }
 
-void Wave_Table::fourier_pulse(f32 buf[SIZES::MAX_TABLE_SIZE], size_t N,
-                               size_t harm, f32 duty_cycle) {
+void Wave_Table::fourier_pulse(Waveform_Vec4f& v, size_t osc, size_t octave, size_t N, size_t harm, f32 duty_cycle){
   for (size_t n = 0; n < N; n++) {
     const f32 phase = (f32)n / (f32)N;
     f32 sum = 0.0f;
@@ -87,69 +69,51 @@ void Wave_Table::fourier_pulse(f32 buf[SIZES::MAX_TABLE_SIZE], size_t N,
       sum += (1.0f / (f32)k) * sinf(PI * (f32)k * duty_cycle) *
              cosf(2.0f * PI * (f32)k * phase);
     }
-    buf[n] = (duty_cycle + (2.0f / PI) * sum) - 1.0f;
-  }
-}
-
-// stupid stinky regular sine with no harmonics that gets brutally mogged by
-// sawtooth chad.
-void Wave_Table::sine(f32 buf[SIZES::MAX_TABLE_SIZE], size_t N) {
-  for (size_t n = 0; n < N; n++) {
-    const f32 phase = (f32)n / (f32)N;
-    buf[n] = sinf(2.0f * PI * phase);
+    v.set_at(PULSE, osc, octave, n, (duty_cycle + (2.0f / PI) * sum) - 1.0f);
   }
 }
 
 // Need to break this up into delegated functions and add a square wave
-void Wave_Table::generate(i32 sample_rate, f32 duty_cycle) {
-  const size_t WAVE_SIZE_MAX = 1 << 12;
-  if (size > WAVE_SIZE_MAX) {
-    size = WAVE_SIZE_MAX;
+void Wave_Table::generate(Synth_Cfg scfg, std::vector<Oscilator_Cfg> ocfgs) {
+  if (scfg.wave_table_size > MAX_TABLE_SIZE) {
+    scfg.wave_table_size = MAX_TABLE_SIZE;
   }
-  const size_t N = size;
+  const size_t N = scfg.wave_table_size;
   const f32 C0 = 8.1758f;
-  const f32 C1 = C0 * 2.0f;
 
-  for (size_t o = 0; o < OCTAVES; o++) {
-    // Calculate the base of the current octave
-    // Find the end of the current harmonic content of this octave
-    // by dividing the nyquist by the top of the current octave
-    const f32 base_freq = C0 * powf(2.0f, (f32)o);
-    const f32 last_freq = C1 * powf(2.0f, (f32)o);
-
-    const f32 nyquist = (f32)sample_rate / 2.0f;
-    const size_t harm = (size_t)floorf(nyquist / last_freq);
-    freq_mapper[o] = base_freq;
-
-    fourier_saw(tables[WAVEFORM_TYPE::SAW][o], N, harm);
-    fourier_square(tables[WAVEFORM_TYPE::SQUARE][o], N, harm);
-    fourier_triangle(tables[WAVEFORM_TYPE::TRIANGLE][o], N, harm);
-    fourier_pulse(tables[WAVEFORM_TYPE::PULSE][o], N, harm, duty_cycle);
-    sine(tables[WAVEFORM_TYPE::SINE][o], N);
+  for(size_t octave = 0; octave < OCTAVES; octave++){
+      const f32 base_freq = C0 * powf(2.0f, (f32)octave);
+      freq_range[octave] = base_freq;
   }
-}
 
-Wave_Table::Wave_Table(i32 sample_rate, size_t table_size, f32 duty_cycle)
-    : tables(), freq_mapper(), size(table_size) {
-  generate(sample_rate, duty_cycle);
-}
+  for(size_t osc = 0; osc < ocfgs.size(); osc++){
+    for (size_t octave = 0; octave < OCTAVES; octave++) {
 
-Synth::Synth(void)
-    : cfg(),
-      wave_table(cfg.sample_rate, (size_t)cfg.wave_table_size, cfg.duty_cycle),
-      voices((size_t)cfg.voicings,
-             Voice(cfg.low_pass_cutoff,
-                   cfg.sample_rate)) {}
+      const f32 nyquist = (f32)scfg.sample_rate / 2.0f;
+      const size_t harm = (size_t)floorf(nyquist / freq_range[octave]);
 
-void Synth::new_oscilators(std::vector<Oscilator_Cfg> osc_cfgs) {
-  for (size_t i = 0; i < voices.size(); i++) {
-    std::vector<Oscilator> &oscs = voices[i].get_osc_array();
-    oscs.resize(osc_cfgs.size());
-    for (size_t j = 0; j < oscs.size(); j++) {
-      oscs[j] = Oscilator(osc_cfgs[j]);
+      fourier_saw(table, osc, octave, N, harm);
+      fourier_square(table, osc, octave, N, harm);
+      fourier_triangle(table, osc, octave, N, harm);
+      fourier_pulse(table, osc, octave, N, harm, ocfgs[osc].duty);
+      sine(table, osc, octave, N);
     }
   }
 }
+
+Wave_Table::Wave_Table(Synth_Cfg scfg, std::vector<Oscilator_Cfg> ocfgs)
+    : table(WAVEFORM_COUNT, MAX_OSC_COUNT, OCTAVES, MAX_TABLE_SIZE), freq_range(OCTAVES) {
+  generate(scfg, ocfgs);
+}
+
+Synth::Synth(void)
+    : cfg(), osc_cfgs(1, Oscilator_Cfg()),
+      wave_table(cfg, osc_cfgs),
+      voices((size_t)cfg.voicings,
+             Voice(cfg.low_pass_cutoff,
+                   cfg.sample_rate,
+                   osc_cfgs.size()
+                   )) {}
 
 void Synth::update_lpf(void){
   for(size_t i = 0; i < voices.size(); i++){
@@ -161,7 +125,7 @@ void Synth::loop_voicings_off(i32 midi_key) {
   for (size_t i = 0; i < (size_t)cfg.voicings; i++) {
     Voice *v = &voices[i];
     if (v->get_key() == midi_key) {
-      for (size_t o = 0; o < v->get_osc_count(); o++) {
+      for (size_t o = 0; o < get_osc_count(); o++) {
         v->set_active_count(v->get_active_count() - 1);
       }
       v->set_env_state(ENV_STATE::REL);
@@ -178,7 +142,7 @@ void Synth::loop_voicings_on(i32 midi_key) {
       v->set_freq(midi_to_freq(midi_key));
       v->get_lpf().reset();
 
-      for (size_t o = 0; o < v->get_osc_count(); o++) {
+      for (size_t o = 0; o < get_osc_count(); o++) {
         Oscilator *osc = &v->get_osc_array()[o];
         osc->start();
         v->set_active_count(v->get_active_count() + 1);
@@ -199,8 +163,7 @@ void Lfo::increment_lfo(f32 inc) {
   }
 }
 
-Oscilator::Oscilator(void) : gen(), cfg(), phase(0.0f), time(0.0f) {}
-Oscilator::Oscilator(Oscilator_Cfg _cfg) : gen(), cfg(_cfg), phase(0.0f), time(0.0f) {}
+Oscilator::Oscilator(void) : gen(CHANNEL_MAX), phase(0.0f), time(0.0f) {}
 
 void Oscilator::start(void) {
   phase = rand_f32_range(0.0f, 0.1f);
@@ -216,9 +179,9 @@ void Oscilator::increment_phase(f32 inc, f32 max) {
   }
 }
 
-Voice::Voice(f32 cutoff, i32 sample_rate)
+Voice::Voice(f32 cutoff, i32 sample_rate, size_t osc_count)
     : active_oscilators(0), freq(0.0f), midi_key(0), env_state(ENV_STATE::OFF),
-      envelope(0.0f), oscs(1, Oscilator()), lfo(),
+      envelope(0.0f), oscs(osc_count, Oscilator()), lfo(),
       lpf(cutoff, sample_rate) {}
 
 bool Voice::done(void) const { return env_state == ENV_STATE::OFF; }
@@ -277,13 +240,13 @@ void Voice::ar(i32 samplerate, f32 atk, f32 rel) {
 }
 
 LPF::LPF(f32 cutoff, i32 sample_rate)
-    : alpha(0.0f) {
+    : alpha(0.0f), low(CHANNEL_MAX) {
   reset();
   alpha = derive_alpha(cutoff, sample_rate);
 }
 
 void LPF::reset(void){
-  memset(low, 0, sizeof(f32) * SIZES::CHANNEL_MAX);
+  std::fill(low.begin(), low.end(), 0.0f);
 }
 
 f32 LPF::derive_alpha(f32 cutoff, i32 sample_rate) {
@@ -292,7 +255,7 @@ f32 LPF::derive_alpha(f32 cutoff, i32 sample_rate) {
   return dt / (rc + dt);
 }
 
-void LPF::lerp(f32 target[SIZES::CHANNEL_MAX], i32 c) {
+void LPF::lerp(f32 target[SIZES::CHANNEL_MAX], size_t c) {
   low[c] = low[c] + (target[c] - low[c]) * alpha;
 }
 

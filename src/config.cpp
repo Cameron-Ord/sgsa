@@ -27,7 +27,6 @@ void Oscilator_Cfg::print(void) const {
   std::cout << "====================" << std::endl;
   std::cout << "detune: (" << detune << "), "
             << "volume: (" << volume << "), "
-            << "octave: (" << octave_step << "), "
             << "waveform: (" << waveform << ") " << std::endl;
   std::cout << "====================" << std::endl;
 }
