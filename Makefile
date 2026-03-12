@@ -8,7 +8,6 @@ SRCS = src/main.cpp
 SRCS += src/util.cpp
 SRCS += src/midi.cpp
 SRCS += src/audio.cpp
-SRCS += src/config.cpp
 SRCS += src/generate.cpp
 
 all: $(TARGET)

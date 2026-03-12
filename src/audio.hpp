@@ -31,40 +31,11 @@ struct Waveform_Vec4f {
   size_t waveforms, oscillators, octaves, samples;
   std::vector<f32> data;
 
-  Waveform_Vec4f(size_t _waveforms, size_t _oscillators, size_t _octaves, size_t _samples) 
-    : waveforms(_waveforms), oscillators(_oscillators), octaves(_octaves), samples(_samples) {
-    data.resize(waveforms * oscillators * octaves * samples);
-    std::cout << "Created buffer with " << waveforms * oscillators * octaves * samples << " elements" << std::endl;
-    std::fill(data.begin(), data.end(), 0.0f);
-  }
-
-  size_t index(size_t wave_p, size_t osc_p, size_t oct_p, size_t sample_p) const {
-    return wave_p * (oscillators * octaves * samples) + osc_p * (octaves * samples) + oct_p * samples + sample_p;
-  }
-
-  bool valid(size_t pos) const {
-    if(pos >= (waveforms * oscillators * octaves * samples)){
-      return false;
-    }
-    return true;
-  }
-
-  const f32 *get_at(size_t wave_p, size_t osc_p, size_t oct_p, size_t sample_p) const {
-    const size_t i = index(wave_p, osc_p, oct_p, sample_p);
-    if(valid(i)){
-      return &data[i];
-    }
-    return nullptr;
-  }
-
-  bool set_at(size_t wave_p, size_t osc_p, size_t oct_p, size_t sample_p, f32 val){
-    const size_t i = index(wave_p, osc_p, oct_p, sample_p);
-    if(valid(i)){
-      data[i] = val;
-      return true;
-    }
-    return false;
-  }
+  Waveform_Vec4f(size_t _waveforms, size_t _oscillators, size_t _octaves, size_t _samples);
+  bool set_at(size_t wave_p, size_t osc_p, size_t oct_p, size_t sample_p, f32 val);
+  bool valid(size_t pos) const;
+  const f32 *get_at(size_t wave_p, size_t osc_p, size_t oct_p, size_t sample_p) const;
+  size_t index(size_t wave_p, size_t osc_p, size_t oct_p, size_t sample_p) const;
 };
 
 
@@ -73,7 +44,7 @@ public:
   LPF(f32 cutoff, i32 sample_rate);
   void reset(void);
   void set_alpha(f32 val)  { alpha = val; }
-  void lerp(f32 target[SIZES::CHANNEL_MAX], size_t c);
+  void lerp(const std::vector<f32>& target, size_t c);
  
   f32 get_alpha(void) const { return alpha; }
   f32 derive_alpha(f32 cutoff, i32 sample_rate);
@@ -116,7 +87,7 @@ private:
 
 class Voice {
 public:
-  Voice(f32 cutoff_low, i32 sample_rate, size_t osc_count);
+  Voice(f32 cutoff_low, i32 sample_rate, size_t osc_count, size_t lfo_count);
   LPF &get_lpf(void) { return lpf; }
 
   i32 get_key(void) const { return midi_key; }
@@ -125,13 +96,15 @@ public:
  
   f32 get_envelope(void) const { return envelope; }
   f32 get_freq(void) const { return freq; }
+  std::vector<f32>& get_sum_array(void) { return voice_sums; }
 
   std::vector<Oscilator> &get_osc_array(void) { return oscs; }
   const std::vector<Oscilator> &get_osc_array(void) const { return oscs; }
   
   bool done(void) const;
   bool releasing(void) const;
-  
+
+  void zero_voice_sums(void);
   void set_key(i32 key) { midi_key = key; }
   void set_freq(f32 val) { freq = val; }
   void set_active_count(i32 val) { active_oscilators = val; }
@@ -142,12 +115,13 @@ public:
 
 private:
   i32 active_oscilators;
-  f32 freq;
   i32 midi_key;
   u8 env_state;
+  f32 freq;
   f32 envelope;
   std::vector<Oscilator> oscs;
-  Lfo lfo;
+  std::vector<Lfo> lfos;
+  std::vector<f32> voice_sums;
   LPF lpf;
 };
 
@@ -173,17 +147,24 @@ private:
 class Synth {
 public:
   Synth(void);
-  const Synth_Cfg &get_cfg(void) const { return cfg; }
-  const std::vector<Oscilator_Cfg>& get_osc_cfgs(void) const { return osc_cfgs; }
-  const Wave_Table &get_wave_table(void) const { return wave_table; }
-  const std::vector<Voice> &get_voices(void) const { return voices; }
 
+  void zero_loop_sums(void);
+  std::vector<f32>& get_sum_array(void) { return loop_sums; }
+
+  const Synth_Cfg &get_synth_cfg(void) const { return synth_cfg; }
+  const Envelope_Cfg &get_env_cfg(void) const { return env_cfg; }
+  
+  const std::vector<Lfo_Cfg> &get_lfo_cfgs(void) { return lfo_cfgs; }
+  const std::vector<Oscilator_Cfg>& get_osc_cfgs(void) const { return osc_cfgs; }
+  const std::vector<Voice> &get_voices(void) const { return voices; }
   std::vector<Voice> &get_voices(void) { return voices; }
+ 
   Wave_Table &get_wave_table(void) { return wave_table; }
+  const Wave_Table &get_wave_table(void) const { return wave_table; }
   
   size_t get_osc_count(void) const { return osc_cfgs.size(); }
   
-  void set_cfg(Synth_Cfg c) { cfg = c; }
+  void set_cfg(Synth_Cfg c) { synth_cfg = c; }
   void set_osc_cfgs(std::vector<Oscilator_Cfg> ocfgs){ osc_cfgs = ocfgs; }
   void update_lpf(void);
   void new_oscilators(std::vector<Oscilator_Cfg> osc_cfgs);
@@ -191,10 +172,13 @@ public:
   void loop_voicings_on(i32 midi_key);
 
 private:
-  Synth_Cfg cfg;
+  Synth_Cfg synth_cfg;
+  Envelope_Cfg env_cfg;
   std::vector<Oscilator_Cfg> osc_cfgs;
-  Wave_Table wave_table;
+  std::vector<Lfo_Cfg> lfo_cfgs;
   std::vector<Voice> voices;
+  Wave_Table wave_table;
+  std::vector<f32> loop_sums;
 };
 
 class Audio_Sys {

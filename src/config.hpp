@@ -49,32 +49,30 @@ inline constexpr f32 DUTY_CYCLE = 0.5f;
 inline constexpr f32 DETUNE = 1.0f;
 inline constexpr f32 OSC_VOLUME = 1.0f;
 inline constexpr i32 WAVEFORM = WAVEFORM_TYPE::SAW;
-inline constexpr bool USE_FILTER = false;
 } // namespace DEFAULTS
 
 struct Synth_Cfg {
-  bool lfo_on = DEFAULTS::LFO_ON;
-  bool use_filter = DEFAULTS::USE_FILTER;
-
-  f32 lfo_rate = DEFAULTS::LFO_RATE;
-  f32 lfo_depth = DEFAULTS::LFO_DEPTH;
-  f32 lfo_timer = DEFAULTS::LFO_TIMER;
   f32 volume = DEFAULTS::MAIN_VOLUME;
   f32 gain = DEFAULTS::GAIN_LEVEL;
   f32 low_pass_cutoff = DEFAULTS::LOW_PASS_CUTOFF;
+  i32 channels = DEFAULTS::CHANNELS;
+  i32 sample_rate = DEFAULTS::SAMPLE_RATE;
+  size_t voicings = DEFAULTS::VOICINGS;
+  size_t wave_table_size = DEFAULTS::WT_SIZE;
+};
+
+struct Envelope_Cfg {
   f32 env_attack = DEFAULTS::ATK;
   f32 env_decay = DEFAULTS::DEC;
   f32 env_sustain = DEFAULTS::SUS;
   f32 env_release = DEFAULTS::REL;
+};
 
-  i32 channels = DEFAULTS::CHANNELS;
-  i32 sample_rate = DEFAULTS::SAMPLE_RATE;
-  i32 lfo_mode = DEFAULTS::LFO_MODE;
-
-  size_t voicings = DEFAULTS::VOICINGS;
-  size_t wave_table_size = DEFAULTS::WT_SIZE;
-
-  void print(void) const;
+struct Lfo_Cfg {
+  bool lfo_on = DEFAULTS::LFO_ON;
+  f32 lfo_rate = DEFAULTS::LFO_RATE;
+  f32 lfo_depth = DEFAULTS::LFO_DEPTH;
+  f32 lfo_timer = DEFAULTS::LFO_TIMER;
 };
 
 struct Oscilator_Cfg {
@@ -82,8 +80,6 @@ struct Oscilator_Cfg {
   f32 detune = DEFAULTS::DETUNE;
   f32 volume = DEFAULTS::OSC_VOLUME;
   size_t waveform = DEFAULTS::WAVEFORM;
-
-  void print(void) const;
 };
 
 #endif

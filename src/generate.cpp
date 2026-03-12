@@ -8,6 +8,42 @@ static f32 rand_f32_range(f32 min, f32 max) {
   return min + scale * (max - min);
 }
 
+Waveform_Vec4f::Waveform_Vec4f(size_t _waveforms, size_t _oscillators, size_t _octaves, size_t _samples) 
+  : waveforms(_waveforms), oscillators(_oscillators), octaves(_octaves), samples(_samples) {
+  data.resize(waveforms * oscillators * octaves * samples);
+  std::cout << "Created wavetable buffer with " << waveforms * oscillators * octaves * samples << " elements" << std::endl;
+  std::fill(data.begin(), data.end(), 0.0f);
+}
+
+size_t Waveform_Vec4f::index(size_t wave_p, size_t osc_p, size_t oct_p, size_t sample_p) const {
+  return wave_p * (oscillators * octaves * samples) + osc_p * (octaves * samples) + oct_p * samples + sample_p;
+}
+
+bool Waveform_Vec4f::valid(size_t pos) const {
+  if(pos >= (waveforms * oscillators * octaves * samples)){
+    return false;
+  }
+  return true;
+}
+
+const f32 *Waveform_Vec4f::get_at(size_t wave_p, size_t osc_p, size_t oct_p, size_t sample_p) const {
+  const size_t i = index(wave_p, osc_p, oct_p, sample_p);
+  if(valid(i)){
+    return &data[i];
+  }
+  return nullptr;
+}
+
+bool Waveform_Vec4f::set_at(size_t wave_p, size_t osc_p, size_t oct_p, size_t sample_p, f32 val){
+  const size_t i = index(wave_p, osc_p, oct_p, sample_p);
+  if(valid(i)){
+    data[i] = val;
+    return true;
+  }
+  return false;
+}
+
+
 size_t Wave_Table::index_octave(f32 freq) const {
   for (u8 i = 0; i < SIZES::OCTAVES - 1; i++) {
     const f32 base = freq_range[i];
@@ -107,22 +143,25 @@ Wave_Table::Wave_Table(Synth_Cfg scfg, std::vector<Oscilator_Cfg> ocfgs)
 }
 
 Synth::Synth(void)
-    : cfg(), osc_cfgs(1, Oscilator_Cfg()),
-      wave_table(cfg, osc_cfgs),
-      voices((size_t)cfg.voicings,
-             Voice(cfg.low_pass_cutoff,
-                   cfg.sample_rate,
-                   osc_cfgs.size()
-                   )) {}
+    : synth_cfg(), env_cfg(), osc_cfgs(1, Oscilator_Cfg()), lfo_cfgs(1, Lfo_Cfg()),
+      voices(synth_cfg.voicings, Voice(synth_cfg.low_pass_cutoff, synth_cfg.sample_rate, osc_cfgs.size(), lfo_cfgs.size())), 
+      wave_table(synth_cfg, osc_cfgs), loop_sums(CHANNEL_MAX, 0.0f) {}
+
+
+void Synth::zero_loop_sums(void){
+   for(size_t i = 0; i < loop_sums.size(); i++){
+      loop_sums[i] = 0.0f;
+   }
+}
 
 void Synth::update_lpf(void){
   for(size_t i = 0; i < voices.size(); i++){
-    voices[i].get_lpf().set_alpha(voices[i].get_lpf().derive_alpha(cfg.low_pass_cutoff, cfg.sample_rate));
+    voices[i].get_lpf().set_alpha(voices[i].get_lpf().derive_alpha(synth_cfg.low_pass_cutoff, synth_cfg.sample_rate));
   }
 }
 
 void Synth::loop_voicings_off(i32 midi_key) {
-  for (size_t i = 0; i < (size_t)cfg.voicings; i++) {
+  for (size_t i = 0; i < synth_cfg.voicings; i++) {
     Voice *v = &voices[i];
     if (v->get_key() == midi_key) {
       for (size_t o = 0; o < get_osc_count(); o++) {
@@ -134,7 +173,7 @@ void Synth::loop_voicings_off(i32 midi_key) {
 }
 
 void Synth::loop_voicings_on(i32 midi_key) {
-  for (size_t i = 0; i < (size_t)cfg.voicings; i++) {
+  for (size_t i = 0; i < synth_cfg.voicings; i++) {
     Voice *v = &voices[i];
     if (v->get_active_count() <= 0 && v->done()) {
       v->set_active_count(0);
@@ -179,10 +218,16 @@ void Oscilator::increment_phase(f32 inc, f32 max) {
   }
 }
 
-Voice::Voice(f32 cutoff, i32 sample_rate, size_t osc_count)
-    : active_oscilators(0), freq(0.0f), midi_key(0), env_state(ENV_STATE::OFF),
-      envelope(0.0f), oscs(osc_count, Oscilator()), lfo(),
-      lpf(cutoff, sample_rate) {}
+Voice::Voice(f32 cutoff, i32 sample_rate, size_t osc_count, size_t lfo_count)
+    : active_oscilators(0), midi_key(0), env_state(ENV_STATE::OFF), freq(0.0f),
+      envelope(0.0f), oscs(osc_count, Oscilator()), lfos(lfo_count, Lfo()),
+      voice_sums(CHANNEL_MAX, 0.0f), lpf(cutoff, sample_rate) {}
+
+void Voice::zero_voice_sums(void){
+  for(size_t i = 0; i < voice_sums.size(); i++){
+    voice_sums[i] = 0.0f;
+  }
+}
 
 bool Voice::done(void) const { return env_state == ENV_STATE::OFF; }
 
@@ -255,7 +300,7 @@ f32 LPF::derive_alpha(f32 cutoff, i32 sample_rate) {
   return dt / (rc + dt);
 }
 
-void LPF::lerp(f32 target[SIZES::CHANNEL_MAX], size_t c) {
+void LPF::lerp(const std::vector<f32>& target, size_t c) {
   low[c] = low[c] + (target[c] - low[c]) * alpha;
 }
 
