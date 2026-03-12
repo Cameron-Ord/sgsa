@@ -11,7 +11,6 @@ SRCS += src/core/audio.cpp
 SRCS += src/core/synth.cpp
 SRCS += src/core/oscillator.cpp
 SRCS += src/core/voice.cpp
-SRCS += src/core/lfo.cpp
 SRCS += src/core/filter.cpp
 SRCS += src/core/wavetable.cpp
 SRCS += src/core/delay.cpp

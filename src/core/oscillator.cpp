@@ -3,6 +3,15 @@
 
 Oscillator::Oscillator(void) : gen(), phase(0.0f), time(0.0f) {}
 
+f32 Oscillator::phase_clamp(f32 phase_val, f32 max) {
+  if(phase_val < 0.0f){
+    phase_val += max;
+  } else if(phase_val > max){
+    phase_val -= max;
+  }
+  return phase_val;
+}
+
 f32 Oscillator::get_sample_at(size_t pos) const {
   if(pos >= gen.size()){
     return 0.0f;

@@ -8,7 +8,7 @@ static void delay_loop(Synth *syn, size_t count, f32 *sample_buffer);
 static f32 waveform_generate(const Wave_Table *wt, const Oscillator_Cfg *cfg, size_t osc_index, f32 phase,
                     f32 freq, size_t wave_table_size);
 static void voice_loop(Synth *syn, f32 generated[CHANNEL_MAX]);
-static f32 run_lfo(const Lfo_Cfg *cfg, Lfo *lfo, i32 sample_rate);
+static f32 run_lfo(const Lfo_Cfg *cfg, Lfo *lfo, f32 depth, i32 sample_rate);
 
 const i32 CHUNK_MAX = 128;
 const f32 DELAY_MIX = 0.2f;
@@ -33,12 +33,12 @@ void stream_get(void *data, SDL_AudioStream *stream, i32 add, i32 total) {
   return;
 }
 
-static f32 run_lfo(const Lfo_Cfg *cfg, Lfo *lfo, i32 sample_rate){
+static f32 run_lfo(const Lfo_Cfg *cfg, Lfo *lfo, f32 depth, i32 sample_rate){
   if(!cfg || !lfo) {
     return 1.0f;
   }
   lfo->increment(cfg->lfo_rate, sample_rate);
-  return lfo->lfo_sine(cfg->lfo_depth);
+  return lfo->lfo_sine(depth);
 }
 
 static void delay_loop(Synth *syn, size_t count, f32 *sample_buffer){
@@ -95,7 +95,8 @@ static void voice_loop(Synth *syn, f32 generated[SIZES::CHANNEL_MAX]) {
         continue;
       }
 
-      const f32 freq = v.get_freq() * osc_cfg->detune * m.get_pitch_bend(); 
+      const f32 vibrato = run_lfo(m.lfo_cfg_at(LFO_1), v.lfo_at(LFO_1), m.get_vibrato_depth(), p.sample_rate);
+      const f32 freq = v.get_freq() * osc_cfg->detune * m.get_pitch_bend() * vibrato; 
 
       const f32 dt = 1.0f / (f32)p.sample_rate;
       const f32 inc = (f32)p.wave_table_size * freq / (f32)p.sample_rate;

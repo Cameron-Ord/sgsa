@@ -95,9 +95,17 @@ int main(int argc, char **argv) {
         continue;
       }
       Midi_Input_Msg msg = controller.parse_event(*ev);
-
       
       switch(msg.status){
+        case CONTROL:{
+          switch(msg.msg1){
+            case CONTROL_MOD_WHEEL:{
+              Modulations& mods = syn.get_mods();
+              mods.set_vibrato_depth(mods.map_vibrato_depth(controller.normalize_mod_input(msg.msg2)));   
+            } break;
+          }
+        }break;
+
         case PITCH_BEND:{
           Modulations& mods = syn.get_mods();
           mods.set_pitch_bend(mods.calculate_pitch_bend(TWO_SEMITONE_CENTS, controller.normalize_pitch_bend(msg.msg2)));

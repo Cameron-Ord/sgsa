@@ -28,9 +28,7 @@ enum SIZES : size_t {
 
 namespace DEFAULTS {
 inline constexpr bool LFO_ON = false;
-inline constexpr f32 LFO_RATE = 4.25f;
-inline constexpr f32 LFO_DEPTH = 0.0012f;
-inline constexpr f32 LFO_TIMER = 0.33f;
+inline constexpr f32 LFO_RATE = 4.0f;
 
 inline constexpr f32 ATK = 0.1f;
 inline constexpr f32 DEC = 0.2f;
@@ -48,7 +46,7 @@ inline constexpr f32 LOW_PASS_CUTOFF = 5000.0f;
 inline constexpr f32 DUTY_CYCLE = 0.44f;
 inline constexpr f32 DETUNE = 1.0f;
 inline constexpr f32 OSC_VOLUME = 1.0f;
-inline constexpr i32 WAVEFORM = WAVEFORM_TYPE::PULSE;
+inline constexpr i32 WAVEFORM = WAVEFORM_TYPE::SAW;
 } // namespace DEFAULTS
 
 struct Synth_Cfg {
@@ -71,8 +69,6 @@ struct Envelope_Cfg {
 struct Lfo_Cfg {
   bool lfo_on = DEFAULTS::LFO_ON;
   f32 lfo_rate = DEFAULTS::LFO_RATE;
-  f32 lfo_depth = DEFAULTS::LFO_DEPTH;
-  f32 lfo_timer = DEFAULTS::LFO_TIMER;
 };
 
 struct Oscillator_Cfg {

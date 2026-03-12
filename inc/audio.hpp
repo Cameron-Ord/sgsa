@@ -60,13 +60,22 @@ private:
 
 class Modulations {
 public:
-  Modulations(void) : pitch_bend(1.0f) {}
+  Modulations(void);
   
   f32 calculate_pitch_bend(f32 cents, f32 normalized_event);
+  f32 map_vibrato_depth(f32 normalized_event);
   void set_pitch_bend(f32 val) { pitch_bend = val; }
   f32 get_pitch_bend(void) const { return pitch_bend; }
+  void set_vibrato_depth(f32 val) { vibrato_depth = val; }
+  f32 get_vibrato_depth(void) const { return vibrato_depth; }
+
+  const std::array<Lfo_Cfg, LFO_COUNT> &get_lfo_cfgs(void) { return lfo_cfgs; }
+  const Lfo_Cfg* lfo_cfg_at(size_t pos) const;
 private:
   f32 pitch_bend;
+  f32 vibrato_depth;
+  const f32 vibrato_max;
+  std::array<Lfo_Cfg, LFO_COUNT> lfo_cfgs;
 };
 
 class LPF {
@@ -105,6 +114,7 @@ public:
   std::array<f32, CHANNEL_MAX>& get_sample_array(void) { return gen; }
   f32 get_sample_at(size_t pos) const;
   
+  f32 phase_clamp(f32 phase_val, f32 max);
   void mult_sample_at(size_t pos, f32 factor);
   void set_sample_at(size_t pos, f32 value); 
   void start(void);
@@ -138,7 +148,7 @@ public:
   bool done(void) const;
   bool releasing(void) const;
 
-  Lfo* get_lfo_at(size_t pos);
+  Lfo* lfo_at(size_t pos);
 
   void add_sum_at(size_t pos, f32 sample);
   void zero_voice_sums(void);
@@ -193,8 +203,6 @@ public:
   const Envelope_Cfg &get_env_cfg(void) const { return env_cfg; }
  
   Modulations& get_mods(void) { return mods; }
-  const std::array<Lfo_Cfg, LFO_COUNT> &get_lfo_cfgs(void) { return lfo_cfgs; }
-  const Lfo_Cfg *get_lfo_cfg_at(size_t pos);
   const std::vector<Oscillator_Cfg>& get_osc_cfgs(void) const { return osc_cfgs; }
   const std::vector<Voice> &get_voices(void) const { return voices; }
   std::vector<Voice> &get_voices(void) { return voices; }
@@ -217,7 +225,6 @@ private:
   Synth_Cfg synth_cfg;
   Envelope_Cfg env_cfg;
   std::vector<Oscillator_Cfg> osc_cfgs;
-  std::array<Lfo_Cfg, LFO_COUNT> lfo_cfgs;
   std::vector<Voice> voices;
   Wave_Table wave_table;
   Delay delay;

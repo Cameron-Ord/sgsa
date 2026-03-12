@@ -11,7 +11,7 @@ void Voice::zero_voice_sums(void){
   }
 }
 
-Lfo* Voice::get_lfo_at(size_t pos) {
+Lfo* Voice::lfo_at(size_t pos) {
   if(pos < lfos.size()){
     return &lfos[pos];
   }

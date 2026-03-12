@@ -16,6 +16,8 @@ enum EVENT_TYPE : size_t {
   CONTROL = 0xB0,
   CONTROL_ON = 0x7F,
   CONTROL_OFF = 0x0,
+  CONTROL_MOD_WHEEL = 1,
+  CONTROL_VOLUME_KNOB = 7,
 };
 
 struct Midi_Input_Msg {
@@ -41,6 +43,7 @@ public:
   const std::array<PmEvent, INPUT_BUFFER_MAX>& get_input_buffer(void) const { return input_buffer; }
   Midi_Input_Msg parse_event(PmEvent event);
   f32 normalize_pitch_bend(i32 value);
+  f32 normalize_mod_input(i32 value);
 
 private:
   std::string input_name;

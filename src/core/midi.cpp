@@ -10,7 +10,11 @@ Controller::Controller(const char *name)
 }
 
 f32 Controller::normalize_pitch_bend(i32 value){
-  return ((f32)value - (128.0f / 2.0f)) / (128.0f / 2.0f);
+  return ((f32)value / (INT8_MAX + 1)) * 2.0f - 1.0f;
+}
+
+f32 Controller::normalize_mod_input(i32 value){
+  return ((f32)value / INT8_MAX);
 }
 
 bool Controller::open(void) {
