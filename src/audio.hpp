@@ -37,6 +37,18 @@ struct Waveform_Vec4f {
   size_t index(size_t wave_p, size_t osc_p, size_t oct_p, size_t sample_p) const;
 };
 
+class Delay {
+public:
+  Delay(i32 sample_rate, f32 delay_time_s, f32 _feedback);
+  void delay_write(f32 sample);
+  f32 delay_read(void);
+  void increment(size_t read_inc, size_t write_inc);
+private:
+  std::vector<f32> buffer;
+  size_t read, write;
+  size_t start, end;
+  f32 feedback;
+};
 
 class LPF {
 public:
@@ -159,6 +171,7 @@ public:
   const Wave_Table &get_wave_table(void) const { return wave_table; }
   
   size_t get_osc_count(void) const { return osc_cfgs.size(); }
+  Delay& get_delay(void) { return delay; }
   
   void set_cfg(Synth_Cfg c) { synth_cfg = c; }
   void set_osc_cfgs(std::vector<Oscilator_Cfg> ocfgs){ osc_cfgs = ocfgs; }
@@ -174,6 +187,7 @@ private:
   std::vector<Lfo_Cfg> lfo_cfgs;
   std::vector<Voice> voices;
   Wave_Table wave_table;
+  Delay delay;
   std::vector<f32> loop_sums;
 };
 

@@ -14,6 +14,7 @@ SRCS += src/voice.cpp
 SRCS += src/lfo.cpp
 SRCS += src/filter.cpp
 SRCS += src/wavetable.cpp
+SRCS += src/delay.cpp
 
 all: $(TARGET)
 

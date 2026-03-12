@@ -4,10 +4,13 @@
 
 static bool stream_feed(SDL_AudioStream *stream, const f32 samples[], i32 len);
 static void generate_loop(Synth *syn, size_t count, f32 *sample_buffer);
+static void delay_loop(Synth *syn, size_t count, f32 *sample_buffer);
 static f32 waveform_generate(const Synth *syn, size_t osc_index, f32 phase, f32 freq);
 static void voice_loop(Synth *syn, f32 generated[CHANNEL_MAX]);
 
 const i32 CHUNK_MAX = 128;
+const f32 DELAY_MIX = 0.2f;
+const f32 SAMPLE_MIX = 0.8f;
 
 void stream_get(void *data, SDL_AudioStream *stream, i32 add, i32 total) {
   Synth *syn = static_cast<Synth *>(data);
@@ -21,10 +24,21 @@ void stream_get(void *data, SDL_AudioStream *stream, i32 add, i32 total) {
     memset(samples, 0, sizeof(f32) * CHUNK_MAX);
     const size_t actual_samples = SDL_min(sample_count, SDL_arraysize(samples));
     generate_loop(syn, actual_samples, samples);
+    delay_loop(syn, actual_samples, samples);
     stream_feed(stream, samples, (i32)actual_samples * (i32)sizeof(f32));
     sample_count -= actual_samples;
   }
   return;
+}
+
+
+static void delay_loop(Synth *syn, size_t count, f32 *sample_buffer){
+  for(size_t i = 0; i < count; i++){
+    f32 delayed = syn->get_delay().delay_read();
+    const f32 mixed = SAMPLE_MIX * sample_buffer[i] + DELAY_MIX * tanhf(sample_buffer[i] + delayed);
+    sample_buffer[i] = mixed;
+    syn->get_delay().delay_write(sample_buffer[i]);
+  }
 }
 
 static f32 waveform_generate(const Synth *syn, size_t osc_index, f32 phase,
