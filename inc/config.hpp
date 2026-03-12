@@ -21,14 +21,13 @@ enum SIZES : size_t {
   VOICES = 12,
   CONTROLLER_NAME_MAX = 256,
   CHANNEL_MAX = 2,
-  MAX_TABLE_SIZE = 2048,
   MAX_OSC_COUNT = 8,
   OCTAVES = 12,
 };
 
 namespace DEFAULTS {
 inline constexpr bool LFO_ON = false;
-inline constexpr f32 LFO_RATE = 7.0f;
+inline constexpr f32 LFO_RATE = 6.0f;
 
 inline constexpr f32 ATK = 0.1f;
 inline constexpr f32 DEC = 0.2f;
@@ -38,15 +37,14 @@ inline constexpr f32 REL = 0.1f;
 inline constexpr i32 CHANNELS = SIZES::CHANNEL_MAX;
 inline constexpr i32 SAMPLE_RATE = 48000;
 inline constexpr i32 VOICINGS = SIZES::VOICES;
-inline constexpr i32 WT_SIZE = SIZES::MAX_TABLE_SIZE;
 inline constexpr f32 MAIN_VOLUME = 1.0f;
-inline constexpr f32 GAIN_LEVEL = 1.5f;
-inline constexpr f32 LOW_PASS_CUTOFF = 4000.0f;
+inline constexpr f32 GAIN_LEVEL = 1.0f;
+inline constexpr f32 LOW_PASS_CUTOFF = 1000.0f;
 
 inline constexpr f32 DUTY_CYCLE = 0.25f;
 inline constexpr f32 DETUNE = 1.0f;
 inline constexpr f32 OSC_VOLUME = 1.0f;
-inline constexpr i32 WAVEFORM = WAVEFORM_TYPE::PULSE;
+inline constexpr i32 WAVEFORM = WAVEFORM_TYPE::SQUARE;
 } // namespace DEFAULTS
 
 struct Synth_Cfg {
@@ -56,7 +54,6 @@ struct Synth_Cfg {
   i32 channels = DEFAULTS::CHANNELS;
   i32 sample_rate = DEFAULTS::SAMPLE_RATE;
   size_t voicings = DEFAULTS::VOICINGS;
-  size_t wave_table_size = DEFAULTS::WT_SIZE;
 };
 
 struct Envelope_Cfg {

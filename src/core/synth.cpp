@@ -4,7 +4,7 @@
 Synth::Synth(void)
     : synth_cfg(), env_cfg(), osc_cfgs(1, Oscillator_Cfg()),
       voices(synth_cfg.voicings, Voice(synth_cfg.low_pass_cutoff, synth_cfg.sample_rate, osc_cfgs.size())), 
-      wave_table(synth_cfg, osc_cfgs), delay(synth_cfg.sample_rate, 0.5f, 0.5f), mods(), loop_sums() {}
+      delay(synth_cfg.sample_rate, 0.5f, 0.5f), mods(), loop_sums() {}
 
 
 void Synth::zero_loop_sums(void){

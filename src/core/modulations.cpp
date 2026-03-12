@@ -2,7 +2,7 @@
 #include <cmath>
 
 Modulations::Modulations(void) 
-  : pitch_bend(1.0f), vibrato_depth(0.0f), vibrato_max(50.0f) {}
+  : pitch_bend(1.0f), vibrato_depth(0.0f), vibrato_max(30.0f) {}
 
 f32 Modulations::calculate_pitch_bend(f32 cents, f32 normalized_midi_event){
   const f32 bend = normalized_midi_event * cents;

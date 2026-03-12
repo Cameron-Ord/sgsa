@@ -172,23 +172,16 @@ private:
   LPF lpf;
 };
 
-class Wave_Table {
+
+class Generator {
 public:
-  Wave_Table(Synth_Cfg scfg, std::vector<Oscillator_Cfg> ocfgs);
-
-  size_t index_octave(f32 freq) const;
-  const Waveform_Vec4f* get_table(void) const { return &table; }
-
-  void generate(Synth_Cfg scfg, std::vector<Oscillator_Cfg> ocfgs);
- 
-  void sine(Waveform_Vec4f& v, size_t osc, size_t octave, size_t N);
-  void fourier_saw(Waveform_Vec4f& v, size_t osc, size_t octave, size_t N, size_t harm);
-  void fourier_square(Waveform_Vec4f& v, size_t osc, size_t octave, size_t N, size_t harm);
-  void fourier_triangle(Waveform_Vec4f& v, size_t osc, size_t octave, size_t N, size_t harm);
-  void fourier_pulse(Waveform_Vec4f& v, size_t osc, size_t octave, size_t N, size_t harm, f32 duty_cycle);
+  Generator(void) = default;
+  f32 polyblep(f32 inc, f32 phase);
+  f32 poly_square(f32 inc, f32 phase, f32 duty);
+  f32 poly_saw(f32 inc, f32 phase);
+  f32 square(f32 phase, f32 duty);
+  f32 sawtooth(f32 phase);
 private:
-  Waveform_Vec4f table;
-  std::vector<f32> freq_range;
 };
 
 class Synth {
@@ -199,6 +192,8 @@ public:
   void add_sum_at(size_t pos, f32 sum);
   f32 get_sum_at(size_t pos);
 
+  Generator& get_generator(void) { return generator; }
+
   const Synth_Cfg &get_synth_cfg(void) const { return synth_cfg; }
   const Envelope_Cfg &get_env_cfg(void) const { return env_cfg; }
  
@@ -207,9 +202,6 @@ public:
   const std::vector<Voice> &get_voices(void) const { return voices; }
   std::vector<Voice> &get_voices(void) { return voices; }
  
-  Wave_Table &get_wave_table(void) { return wave_table; }
-  const Wave_Table &get_wave_table(void) const { return wave_table; }
-
   const Oscillator_Cfg *get_osc_cfg_at(size_t pos) const;
   size_t get_osc_count(void) const { return osc_cfgs.size(); }
   Delay& get_delay(void) { return delay; }
@@ -226,7 +218,7 @@ private:
   Envelope_Cfg env_cfg;
   std::vector<Oscillator_Cfg> osc_cfgs;
   std::vector<Voice> voices;
-  Wave_Table wave_table;
+  Generator generator;
   Delay delay;
   Modulations mods;
   std::array<f32, CHANNEL_MAX> loop_sums;
