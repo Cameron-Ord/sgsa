@@ -26,3 +26,5 @@ f32 LPF::derive_alpha(f32 cutoff, i32 sample_rate) {
 void LPF::lerp(const std::array<f32, CHANNEL_MAX>& target, size_t c) {
   low[c] = low[c] + (target[c] - low[c]) * alpha;
 }
+
+

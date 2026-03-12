@@ -12,6 +12,7 @@ enum EVENT_CONSTANTS : size_t {
 enum EVENT_TYPE : size_t {
   NOTE_ON = 0x90,
   NOTE_OFF = 0x80,
+  PITCH_BEND = 0xE0,
   CONTROL = 0xB0,
   CONTROL_ON = 0x7F,
   CONTROL_OFF = 0x0,
@@ -39,6 +40,7 @@ public:
   const PmEvent *get_event_at(i32 pos) const;
   const std::array<PmEvent, INPUT_BUFFER_MAX>& get_input_buffer(void) const { return input_buffer; }
   Midi_Input_Msg parse_event(PmEvent event);
+  f32 normalize_pitch_bend(i32 value);
 
 private:
   std::string input_name;

@@ -15,6 +15,7 @@ SRCS += src/core/lfo.cpp
 SRCS += src/core/filter.cpp
 SRCS += src/core/wavetable.cpp
 SRCS += src/core/delay.cpp
+SRCS += src/core/modulations.cpp
 
 all: $(TARGET)
 

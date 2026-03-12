@@ -95,8 +95,14 @@ int main(int argc, char **argv) {
         continue;
       }
       Midi_Input_Msg msg = controller.parse_event(*ev);
+
       
       switch(msg.status){
+        case PITCH_BEND:{
+          Modulations& mods = syn.get_mods();
+          mods.set_pitch_bend(mods.calculate_pitch_bend(TWO_SEMITONE_CENTS, controller.normalize_pitch_bend(msg.msg2)));
+        } break;
+
         case NOTE_ON: {
           syn.loop_voicings_on(msg.msg1);
         }break;

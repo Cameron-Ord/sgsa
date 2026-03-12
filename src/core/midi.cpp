@@ -1,11 +1,16 @@
 #include "../../inc/controller.hpp"
 #include <iostream>
 #include <cstring>
+#include <cmath>
 
 Controller::Controller(const char *name)
     : input_name(name), input_id(-1), stream(NULL), input_buffer() {
   clear_msg_buf();
   list_available_controllers();
+}
+
+f32 Controller::normalize_pitch_bend(i32 value){
+  return ((f32)value - (128.0f / 2.0f)) / (128.0f / 2.0f);
 }
 
 bool Controller::open(void) {

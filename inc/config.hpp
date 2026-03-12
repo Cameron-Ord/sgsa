@@ -45,10 +45,10 @@ inline constexpr f32 MAIN_VOLUME = 1.0f;
 inline constexpr f32 GAIN_LEVEL = 1.5f;
 inline constexpr f32 LOW_PASS_CUTOFF = 5000.0f;
 
-inline constexpr f32 DUTY_CYCLE = 0.5f;
+inline constexpr f32 DUTY_CYCLE = 0.44f;
 inline constexpr f32 DETUNE = 1.0f;
 inline constexpr f32 OSC_VOLUME = 1.0f;
-inline constexpr i32 WAVEFORM = WAVEFORM_TYPE::TRIANGLE;
+inline constexpr i32 WAVEFORM = WAVEFORM_TYPE::PULSE;
 } // namespace DEFAULTS
 
 struct Synth_Cfg {

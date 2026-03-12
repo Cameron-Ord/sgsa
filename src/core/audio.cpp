@@ -78,6 +78,7 @@ static void voice_loop(Synth *syn, f32 generated[SIZES::CHANNEL_MAX]) {
   syn->zero_loop_sums();
   const Synth_Cfg &p = syn->get_synth_cfg();
   const Envelope_Cfg &e = syn->get_env_cfg();
+  const Modulations& m = syn->get_mods();
 
   for (size_t i = 0; i < (size_t)p.voicings && i < SIZES::VOICES; i++) {
     Voice &v = syn->get_voices()[i];
@@ -94,8 +95,7 @@ static void voice_loop(Synth *syn, f32 generated[SIZES::CHANNEL_MAX]) {
         continue;
       }
 
-      f32 mod = run_lfo(syn->get_lfo_cfg_at(LFO_1), v.get_lfo_at(LFO_1), p.sample_rate);
-      const f32 freq = v.get_freq() * osc_cfg->detune * mod; 
+      const f32 freq = v.get_freq() * osc_cfg->detune * m.get_pitch_bend(); 
 
       const f32 dt = 1.0f / (f32)p.sample_rate;
       const f32 inc = (f32)p.wave_table_size * freq / (f32)p.sample_rate;

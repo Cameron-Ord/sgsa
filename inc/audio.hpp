@@ -9,6 +9,13 @@
 
 #include <SDL3/SDL.h>
 
+
+#define CENTS_TO_OCTAVE 1.0f / 1200.0f
+#define ONE_SEMITONE_CENTS 100.0f
+#define TWO_SEMITONE_CENTS 200.0f
+
+f32 cent_freq_mod(f32 cents);
+
 #define PI 3.141592653589793f
 // (VALUE - VALUE) / SAMPLES
 #define ATTACK_INCREMENT(samplerate, ATK)                                      \
@@ -49,6 +56,17 @@ private:
   size_t read, write;
   size_t start, end;
   f32 feedback;
+};
+
+class Modulations {
+public:
+  Modulations(void) : pitch_bend(1.0f) {}
+  
+  f32 calculate_pitch_bend(f32 cents, f32 normalized_event);
+  void set_pitch_bend(f32 val) { pitch_bend = val; }
+  f32 get_pitch_bend(void) const { return pitch_bend; }
+private:
+  f32 pitch_bend;
 };
 
 class LPF {
@@ -173,7 +191,8 @@ public:
 
   const Synth_Cfg &get_synth_cfg(void) const { return synth_cfg; }
   const Envelope_Cfg &get_env_cfg(void) const { return env_cfg; }
-  
+ 
+  Modulations& get_mods(void) { return mods; }
   const std::array<Lfo_Cfg, LFO_COUNT> &get_lfo_cfgs(void) { return lfo_cfgs; }
   const Lfo_Cfg *get_lfo_cfg_at(size_t pos);
   const std::vector<Oscillator_Cfg>& get_osc_cfgs(void) const { return osc_cfgs; }
@@ -202,6 +221,7 @@ private:
   std::vector<Voice> voices;
   Wave_Table wave_table;
   Delay delay;
+  Modulations mods;
   std::array<f32, CHANNEL_MAX> loop_sums;
 };
 
