@@ -3,6 +3,11 @@
 #include "typedef.hpp"
 #include <portmidi.h>
 #include <string>
+#include <array>
+
+enum EVENT_CONSTANTS : size_t {
+  INPUT_BUFFER_MAX = 64
+};
 
 enum EVENT_TYPE : size_t {
   NOTE_ON = 0x90,
@@ -12,9 +17,12 @@ enum EVENT_TYPE : size_t {
   CONTROL_OFF = 0x0,
 };
 
-enum INPUT_TYPE : size_t { STATUS, MSG_ONE, MSG_TWO, INPUT_END };
+struct Midi_Input_Msg {
+  Midi_Input_Msg(i32 _status, i32 _msg1, i32 _msg2) : status(_status), msg1(_msg1), msg2(_msg2) {}
+  i32 status;
+  i32 msg1, msg2;
+};
 
-class Synth;
 class Controller {
 public:
   Controller(const char *name_arg);
@@ -26,15 +34,17 @@ public:
   void get_midi_device_by_name(void);
   bool open_stream(i32 bufsize);
   bool close_stream(void);
-  void read_input(i32 len);
+  i32 read_input(void);
   void clear_msg_buf(void);
-  const i32 *get_msgbuf(void) const { return msgbuf; }
+  const PmEvent *get_event_at(i32 pos) const;
+  const std::array<PmEvent, INPUT_BUFFER_MAX>& get_input_buffer(void) const { return input_buffer; }
+  Midi_Input_Msg parse_event(PmEvent event);
 
 private:
   std::string input_name;
   i32 input_id;
   PortMidiStream *stream;
-  i32 msgbuf[INPUT_END];
+  std::array<PmEvent, INPUT_BUFFER_MAX> input_buffer;
 };
 
 #endif

@@ -1,7 +1,6 @@
 #ifndef AUDIO_HPP
 #define AUDIO_HPP
 
-#include <iostream>
 #include "config.hpp"
 #include "typedef.hpp"
 
@@ -59,10 +58,7 @@ private:
 class Lfo {
 public:
   Lfo(void) = default;
-
-  f32 vibrato(f32 depth);
   void increment_lfo(f32 inc);
-
 private:
   f32 phase;
 };

@@ -87,19 +87,23 @@ int main(int argc, char **argv) {
     }
 
     controller.clear_msg_buf();
-    controller.read_input(1);
-    const i32 *buf = controller.get_msgbuf();
+    const i32 event_count = controller.read_input();
 
-    switch (buf[INPUT_TYPE::STATUS]) {
-    default:
-      break;
-    case NOTE_ON: {
-      syn.loop_voicings_on(buf[INPUT_TYPE::MSG_ONE]);
-    } break;
-
-    case NOTE_OFF: {
-      syn.loop_voicings_off(buf[INPUT_TYPE::MSG_ONE]);
-    } break;
+    for(i32 i = 0; i < event_count; i++){
+      const PmEvent *ev = controller.get_event_at(i);
+      if(!ev){
+        continue;
+      }
+      Midi_Input_Msg msg = controller.parse_event(*ev);
+      
+      switch(msg.status){
+        case NOTE_ON: {
+          syn.loop_voicings_on(msg.msg1);
+        }break;
+        case NOTE_OFF: {
+          syn.loop_voicings_off(msg.msg1);
+        }break;
+      }
     }
 
     const u64 FT = SDL_GetTicks() - START;

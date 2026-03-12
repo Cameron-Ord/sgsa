@@ -1,7 +1,11 @@
 #include "util.hpp"
-#include <iostream>
 #include <cmath>
 #include <cstring>
+
+f32 rand_f32_range(f32 min, f32 max) {
+  float scale = (f32)rand() / (f32)RAND_MAX;
+  return min + scale * (max - min);
+}
 
 f32 midi_to_freq(i32 n) {
   const i32 A4 = 69;

@@ -8,7 +8,12 @@ SRCS = src/main.cpp
 SRCS += src/util.cpp
 SRCS += src/midi.cpp
 SRCS += src/audio.cpp
-SRCS += src/generate.cpp
+SRCS += src/synth.cpp
+SRCS += src/oscillator.cpp
+SRCS += src/voice.cpp
+SRCS += src/lfo.cpp
+SRCS += src/filter.cpp
+SRCS += src/wavetable.cpp
 
 all: $(TARGET)
 

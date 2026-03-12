@@ -1,11 +1,10 @@
-#include "audio.hpp"
 #include "controller.hpp"
-#include "util.hpp"
 #include <iostream>
+#include <cstring>
 
 Controller::Controller(const char *name)
-    : input_name(name), input_id(-1), stream(NULL), msgbuf() {
-  memset(msgbuf, 0, INPUT_TYPE::INPUT_END * sizeof(i32));
+    : input_name(name), input_id(-1), stream(NULL), input_buffer() {
+  clear_msg_buf();
   list_available_controllers();
 }
 
@@ -79,18 +78,28 @@ void Controller::get_midi_device_by_name(void) {
   std::cout << "Failed to find specified device" << std::endl;
 }
 
+
+Midi_Input_Msg Controller::parse_event(PmEvent event){
+  return Midi_Input_Msg(
+    Pm_MessageStatus(event.message),
+    Pm_MessageData1(event.message),
+    Pm_MessageData2(event.message)
+  );
+}
+
 void Controller::clear_msg_buf(void) {
-  for (size_t i = 0; i < INPUT_TYPE::INPUT_END; i++) {
-    msgbuf[i] = 0;
+  for (size_t i = 0; i < input_buffer.size(); i++) {
+    memset(&input_buffer[i], 0, sizeof(PmEvent));
   }
 }
 
-void Controller::read_input(i32 len) {
-  PmEvent event;
-  i32 count = Pm_Read(stream, &event, len);
-  if (count > 0) {
-    msgbuf[INPUT_TYPE::STATUS] = Pm_MessageStatus(event.message);
-    msgbuf[INPUT_TYPE::MSG_ONE] = Pm_MessageData1(event.message);
-    msgbuf[INPUT_TYPE::MSG_TWO] = Pm_MessageData2(event.message);
+const PmEvent *Controller::get_event_at(i32 pos) const {
+  if((size_t)pos >= input_buffer.size() || pos < 0){
+    return nullptr;
   }
+  return &input_buffer[(size_t)pos];
+}
+
+i32 Controller::read_input(void) {
+  return Pm_Read(stream, input_buffer.data(), (i32)input_buffer.size());
 }
