@@ -1,5 +1,5 @@
-#include "audio.hpp"
-#include "controller.hpp"
+#include "../inc/audio.hpp"
+#include "../inc/controller.hpp"
 
 #include <ctime>
 #include <iostream>

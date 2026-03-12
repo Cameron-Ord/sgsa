@@ -1,5 +1,4 @@
-#include "audio.hpp"
-#include <cmath>
+#include "../../inc/audio.hpp"
 
 void Lfo::increment_lfo(f32 inc) {
   phase += inc;

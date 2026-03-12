@@ -1,4 +1,4 @@
-#include "audio.hpp"
+#include "../../inc/audio.hpp"
 #include <cmath>
 #include <iostream>
 
@@ -80,41 +80,45 @@ static void voice_loop(Synth *syn, f32 generated[SIZES::CHANNEL_MAX]) {
     
     v.zero_voice_sums();
     for (size_t o = 0; o < syn->get_osc_count(); o++) {
-      Oscilator &osc = v.get_osc_array()[o];
-      const Oscilator_Cfg& osc_cfg = syn->get_osc_cfgs()[o];
+      Oscillator *osc = v.get_osc_at(o);
+      const Oscillator_Cfg *osc_cfg = syn->get_osc_cfg_at(o);
 
-      const f32 freq = v.get_freq() * osc_cfg.detune; 
+      if(!osc || !osc_cfg) {
+        continue;
+      }
+
+      const f32 freq = v.get_freq() * osc_cfg->detune; 
 
       const f32 dt = 1.0f / (f32)p.sample_rate;
       const f32 inc = (f32)p.wave_table_size * freq / (f32)p.sample_rate;
 
-      osc.increment_time(dt);
-      osc.increment_phase(inc, (f32)p.wave_table_size);
+      osc->increment_time(dt);
+      osc->increment_phase(inc, (f32)p.wave_table_size);
 
       for (size_t c = 0; c < (size_t)p.channels; c++) {
-        const f32 sample = waveform_generate(syn, o, osc.get_phase_val(), freq);
-        osc.get_sample_array()[c] = sample;
-        osc.get_sample_array()[c] *= syn->get_osc_cfgs()[o].volume;
-        osc.get_sample_array()[c] /= sqrtf((f32)syn->get_osc_count());
-        v.get_sum_array()[c] += osc.get_sample_array()[c];
+        const f32 sample = waveform_generate(syn, o, osc->get_phase_val(), freq);
+        osc->set_sample_at(c, sample);
+        osc->mult_sample_at(c, osc_cfg->volume);
+        osc->mult_sample_at(c, 1.0f/ sqrtf((f32)syn->get_osc_count()));
+        v.add_sum_at(c, osc->get_sample_at(c));
       }
     }
 
     for (size_t c = 0; c < (size_t)p.channels; c++) {
-      v.get_sum_array()[c] = tanhf(v.get_sum_array()[c] * p.gain);
+      v.get_sum_array()[c] = tanhf(v.get_sum_at(c) * p.gain);
       v.get_lpf().lerp(v.get_sum_array(), c);
     }
     v.adsr(p.sample_rate, e.env_attack, e.env_decay, e.env_sustain,
            e.env_release);
     for (size_t c = 0; c < (size_t)p.channels; c++) {
       // Saturate
-      const f32 mix = v.get_lpf().get_array()[c];
-      syn->get_sum_array()[c] += (mix / sqrtf((f32)p.voicings)) * p.volume * v.get_envelope();
+      const f32 mix = v.get_lpf().get_value_at(c);
+      syn->add_sum_at(c, (mix / sqrtf((f32)p.voicings)) * p.volume * v.get_envelope());
     }
   }
 
   for (size_t c = 0; c < (size_t)p.channels; c++) {
-    generated[c] = syn->get_sum_array()[c];
+    generated[c] = syn->get_sum_at(c);
   }
 }
 

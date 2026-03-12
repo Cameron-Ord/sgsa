@@ -5,16 +5,16 @@ CFLAGS  = -Wall -Wextra -Wpedantic -O3 -std=c++17
 DEBUG_CFLAGS = -Wshadow -Wconversion -Wnull-dereference -Wdouble-promotion -g
 
 SRCS = src/main.cpp
-SRCS += src/util.cpp
-SRCS += src/midi.cpp
-SRCS += src/audio.cpp
-SRCS += src/synth.cpp
-SRCS += src/oscillator.cpp
-SRCS += src/voice.cpp
-SRCS += src/lfo.cpp
-SRCS += src/filter.cpp
-SRCS += src/wavetable.cpp
-SRCS += src/delay.cpp
+SRCS += src/core/util.cpp
+SRCS += src/core/midi.cpp
+SRCS += src/core/audio.cpp
+SRCS += src/core/synth.cpp
+SRCS += src/core/oscillator.cpp
+SRCS += src/core/voice.cpp
+SRCS += src/core/lfo.cpp
+SRCS += src/core/filter.cpp
+SRCS += src/core/wavetable.cpp
+SRCS += src/core/delay.cpp
 
 all: $(TARGET)
 

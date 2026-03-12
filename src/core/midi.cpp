@@ -1,4 +1,4 @@
-#include "controller.hpp"
+#include "../../inc/controller.hpp"
 #include <iostream>
 #include <cstring>
 

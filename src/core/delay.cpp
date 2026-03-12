@@ -1,4 +1,4 @@
-#include "audio.hpp"
+#include "../../inc/audio.hpp"
 
 Delay::Delay(i32 sample_rate, f32 delay_time_s, f32 _feedback) 
   : buffer((size_t)((f32)sample_rate * delay_time_s), 0.0f), 

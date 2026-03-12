@@ -1,16 +1,36 @@
-#include "audio.hpp"
-#include "util.hpp"
+#include "../../inc/audio.hpp"
+#include "../../inc/util.hpp"
 
 Synth::Synth(void)
-    : synth_cfg(), env_cfg(), osc_cfgs(1, Oscilator_Cfg()), lfo_cfgs(1, Lfo_Cfg()),
+    : synth_cfg(), env_cfg(), osc_cfgs(1, Oscillator_Cfg()), lfo_cfgs(1, Lfo_Cfg()),
       voices(synth_cfg.voicings, Voice(synth_cfg.low_pass_cutoff, synth_cfg.sample_rate, osc_cfgs.size(), lfo_cfgs.size())), 
-      wave_table(synth_cfg, osc_cfgs), delay(synth_cfg.sample_rate, 0.5f, 0.5f), loop_sums(CHANNEL_MAX, 0.0f) {}
+      wave_table(synth_cfg, osc_cfgs), delay(synth_cfg.sample_rate, 0.5f, 0.5f), loop_sums() {}
 
 
 void Synth::zero_loop_sums(void){
    for(size_t i = 0; i < loop_sums.size(); i++){
       loop_sums[i] = 0.0f;
    }
+}
+
+f32 Synth::get_sum_at(size_t pos){
+  if(pos < loop_sums.size()){
+    return loop_sums[pos];
+  }
+  return 0.0f;
+}
+
+void Synth::add_sum_at(size_t pos, f32 sum){
+  if(pos < loop_sums.size()){
+    loop_sums[pos] = loop_sums[pos] + sum;
+  }
+}
+
+const Oscillator_Cfg *Synth::get_osc_cfg_at(size_t pos) const {
+  if(pos < osc_cfgs.size()){
+    return &osc_cfgs[pos];
+  }
+  return nullptr;
 }
 
 void Synth::update_lpf(void){
@@ -41,7 +61,7 @@ void Synth::loop_voicings_on(i32 midi_key) {
       v->get_lpf().reset();
 
       for (size_t o = 0; o < get_osc_count(); o++) {
-        Oscilator *osc = &v->get_osc_array()[o];
+        Oscillator *osc = &v->get_osc_array()[o];
         osc->start();
         v->set_active_count(v->get_active_count() + 1);
       }

@@ -1,14 +1,34 @@
-#include "audio.hpp"
+#include "../../inc/audio.hpp"
 
 Voice::Voice(f32 cutoff, i32 sample_rate, size_t osc_count, size_t lfo_count)
-    : active_oscilators(0), midi_key(0), env_state(ENV_STATE::OFF), freq(0.0f),
-      envelope(0.0f), oscs(osc_count, Oscilator()), lfos(lfo_count, Lfo()),
-      voice_sums(CHANNEL_MAX, 0.0f), lpf(cutoff, sample_rate) {}
+    : active_oscillators(0), midi_key(0), env_state(ENV_STATE::OFF), freq(0.0f),
+      envelope(0.0f), oscs(osc_count, Oscillator()), lfos(lfo_count, Lfo()),
+      voice_sums(), lpf(cutoff, sample_rate) {}
 
 void Voice::zero_voice_sums(void){
   for(size_t i = 0; i < voice_sums.size(); i++){
     voice_sums[i] = 0.0f;
   }
+}
+
+f32 Voice::get_sum_at(size_t pos) const {
+  if(pos < voice_sums.size()){
+    return voice_sums[pos];
+  }
+  return 0.0f;
+}
+
+void Voice::add_sum_at(size_t pos, f32 sample){
+  if(pos < voice_sums.size()){
+    voice_sums[pos] = voice_sums[pos] + sample;
+  }
+}
+
+Oscillator *Voice::get_osc_at(size_t pos){
+  if(pos < oscs.size()){
+    return &oscs[pos];
+  }
+  return nullptr;
 }
 
 bool Voice::done(void) const { return env_state == ENV_STATE::OFF; }

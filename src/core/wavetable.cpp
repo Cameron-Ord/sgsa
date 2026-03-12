@@ -1,4 +1,4 @@
-#include "audio.hpp"
+#include "../../inc/audio.hpp"
 #include <cmath>
 #include <iostream>
 
@@ -103,7 +103,7 @@ void Wave_Table::fourier_pulse(Waveform_Vec4f& v, size_t osc, size_t octave, siz
 }
 
 // Need to break this up into delegated functions and add a square wave
-void Wave_Table::generate(Synth_Cfg scfg, std::vector<Oscilator_Cfg> ocfgs) {
+void Wave_Table::generate(Synth_Cfg scfg, std::vector<Oscillator_Cfg> ocfgs) {
   if (scfg.wave_table_size > MAX_TABLE_SIZE) {
     scfg.wave_table_size = MAX_TABLE_SIZE;
   }
@@ -130,7 +130,7 @@ void Wave_Table::generate(Synth_Cfg scfg, std::vector<Oscilator_Cfg> ocfgs) {
   }
 }
 
-Wave_Table::Wave_Table(Synth_Cfg scfg, std::vector<Oscilator_Cfg> ocfgs)
+Wave_Table::Wave_Table(Synth_Cfg scfg, std::vector<Oscillator_Cfg> ocfgs)
     : table(WAVEFORM_COUNT, MAX_OSC_COUNT, OCTAVES, MAX_TABLE_SIZE), freq_range(OCTAVES) {
   generate(scfg, ocfgs);
 }
