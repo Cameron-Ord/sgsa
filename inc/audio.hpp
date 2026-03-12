@@ -71,8 +71,9 @@ private:
 
 class Lfo {
 public:
-  Lfo(void) = default;
-  void increment_lfo(f32 inc);
+  Lfo(void) : phase(0.0f) {}
+  void increment(f32 rate, i32 sample_rate);
+  f32 lfo_sine(f32 depth);
 private:
   f32 phase;
 };
@@ -100,7 +101,7 @@ private:
 
 class Voice {
 public:
-  Voice(f32 cutoff_low, i32 sample_rate, size_t osc_count, size_t lfo_count);
+  Voice(f32 cutoff_low, i32 sample_rate, size_t osc_count);
   LPF &get_lpf(void) { return lpf; }
 
   i32 get_key(void) const { return midi_key; }
@@ -119,6 +120,8 @@ public:
   bool done(void) const;
   bool releasing(void) const;
 
+  Lfo* get_lfo_at(size_t pos);
+
   void add_sum_at(size_t pos, f32 sample);
   void zero_voice_sums(void);
   void set_key(i32 key) { midi_key = key; }
@@ -136,7 +139,7 @@ private:
   f32 freq;
   f32 envelope;
   std::vector<Oscillator> oscs;
-  std::vector<Lfo> lfos;
+  std::array<Lfo, LFO_COUNT> lfos;
   std::array<f32, CHANNEL_MAX> voice_sums;
   LPF lpf;
 };
@@ -171,7 +174,8 @@ public:
   const Synth_Cfg &get_synth_cfg(void) const { return synth_cfg; }
   const Envelope_Cfg &get_env_cfg(void) const { return env_cfg; }
   
-  const std::vector<Lfo_Cfg> &get_lfo_cfgs(void) { return lfo_cfgs; }
+  const std::array<Lfo_Cfg, LFO_COUNT> &get_lfo_cfgs(void) { return lfo_cfgs; }
+  const Lfo_Cfg *get_lfo_cfg_at(size_t pos);
   const std::vector<Oscillator_Cfg>& get_osc_cfgs(void) const { return osc_cfgs; }
   const std::vector<Voice> &get_voices(void) const { return voices; }
   std::vector<Voice> &get_voices(void) { return voices; }
@@ -194,7 +198,7 @@ private:
   Synth_Cfg synth_cfg;
   Envelope_Cfg env_cfg;
   std::vector<Oscillator_Cfg> osc_cfgs;
-  std::vector<Lfo_Cfg> lfo_cfgs;
+  std::array<Lfo_Cfg, LFO_COUNT> lfo_cfgs;
   std::vector<Voice> voices;
   Wave_Table wave_table;
   Delay delay;

@@ -2,9 +2,10 @@
 #define CONFIG_H
 #include "typedef.hpp"
 
-enum LFO_TYPE : i32 {
-  VIBRATO,
-  TREMOLO,
+enum LFO_ACCESS : i32 {
+  LFO_1,
+  LFO_2,
+  LFO_COUNT
 };
 
 enum WAVEFORM_TYPE : size_t {
@@ -27,8 +28,8 @@ enum SIZES : size_t {
 
 namespace DEFAULTS {
 inline constexpr bool LFO_ON = false;
-inline constexpr f32 LFO_RATE = 1.0f;
-inline constexpr f32 LFO_DEPTH = 1.0f;
+inline constexpr f32 LFO_RATE = 4.25f;
+inline constexpr f32 LFO_DEPTH = 0.0012f;
 inline constexpr f32 LFO_TIMER = 0.33f;
 
 inline constexpr f32 ATK = 0.1f;

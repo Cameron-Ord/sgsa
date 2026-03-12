@@ -2,8 +2,8 @@
 #include "../../inc/util.hpp"
 
 Synth::Synth(void)
-    : synth_cfg(), env_cfg(), osc_cfgs(1, Oscillator_Cfg()), lfo_cfgs(1, Lfo_Cfg()),
-      voices(synth_cfg.voicings, Voice(synth_cfg.low_pass_cutoff, synth_cfg.sample_rate, osc_cfgs.size(), lfo_cfgs.size())), 
+    : synth_cfg(), env_cfg(), osc_cfgs(1, Oscillator_Cfg()), lfo_cfgs(),
+      voices(synth_cfg.voicings, Voice(synth_cfg.low_pass_cutoff, synth_cfg.sample_rate, osc_cfgs.size())), 
       wave_table(synth_cfg, osc_cfgs), delay(synth_cfg.sample_rate, 0.5f, 0.5f), loop_sums() {}
 
 
@@ -37,6 +37,13 @@ void Synth::update_lpf(void){
   for(size_t i = 0; i < voices.size(); i++){
     voices[i].get_lpf().set_alpha(voices[i].get_lpf().derive_alpha(synth_cfg.low_pass_cutoff, synth_cfg.sample_rate));
   }
+}
+
+const Lfo_Cfg *Synth::get_lfo_cfg_at(size_t pos){
+  if(pos < lfo_cfgs.size()){
+    return &lfo_cfgs[pos];
+  }
+  return nullptr;
 }
 
 void Synth::loop_voicings_off(i32 midi_key) {
