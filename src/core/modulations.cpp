@@ -3,7 +3,7 @@
 #include <iostream>
 
 // Time to HZ forumla: f = 1.0 / T where f is the freq in HZ and T is the period in seconds
-Amp_Modulator::Amp_Modulator(void) : tremolo_rate(0.0f), tremolo_depth(0.25f), lfo() {
+Amp_Modulator::Amp_Modulator(void) : tremolo_rate(1.0f), tremolo_depth(0.25f), lfo() {
   const f32 note_time = 60.0f / 120.0f * 1.0f;
   const f32  hz = 1.0f / note_time;
   std::cout << "Tremolo HZ: " << hz << std::endl;
