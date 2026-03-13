@@ -22,7 +22,6 @@ enum SIZES : size_t {
   CONTROLLER_NAME_MAX = 256,
   CHANNEL_MAX = 2,
   MAX_OSC_COUNT = 8,
-  OCTAVES = 12,
 };
 
 namespace DEFAULTS {
@@ -38,13 +37,13 @@ inline constexpr i32 CHANNELS = SIZES::CHANNEL_MAX;
 inline constexpr i32 SAMPLE_RATE = 48000;
 inline constexpr i32 VOICINGS = SIZES::VOICES;
 inline constexpr f32 MAIN_VOLUME = 1.0f;
-inline constexpr f32 GAIN_LEVEL = 1.0f;
-inline constexpr f32 LOW_PASS_CUTOFF = 1000.0f;
+inline constexpr f32 GAIN_LEVEL = 2.5f;
+inline constexpr f32 LOW_PASS_CUTOFF = 4000.0f;
 
-inline constexpr f32 DUTY_CYCLE = 0.25f;
+inline constexpr f32 DUTY_CYCLE = 0.5f;
 inline constexpr f32 DETUNE = 1.0f;
 inline constexpr f32 OSC_VOLUME = 1.0f;
-inline constexpr i32 WAVEFORM = WAVEFORM_TYPE::SQUARE;
+inline constexpr i32 WAVEFORM = WAVEFORM_TYPE::SAW;
 } // namespace DEFAULTS
 
 struct Synth_Cfg {

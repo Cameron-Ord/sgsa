@@ -6,7 +6,6 @@ static bool stream_feed(SDL_AudioStream *stream, const f32 samples[], i32 len);
 static void generate_loop(Synth *syn, size_t count, f32 *sample_buffer);
 static void delay_loop(Synth *syn, size_t count, f32 *sample_buffer);
 static void voice_loop(Synth *syn, f32 generated[CHANNEL_MAX]);
-static f32 run_lfo(const Lfo_Cfg *cfg, Lfo *lfo, f32 depth, i32 sample_rate);
 
 const i32 CHUNK_MAX = 128;
 const f32 DELAY_MIX = 0.2f;
@@ -31,14 +30,6 @@ void stream_get(void *data, SDL_AudioStream *stream, i32 add, i32 total) {
   return;
 }
 
-static f32 run_lfo(const Lfo_Cfg *cfg, Lfo *lfo, f32 depth, i32 sample_rate){
-  if(!cfg || !lfo) {
-    return 1.0f;
-  }
-  lfo->increment(cfg->lfo_rate, sample_rate);
-  return lfo->lfo_sine(depth);
-}
-
 static void delay_loop(Synth *syn, size_t count, f32 *sample_buffer){
   for(size_t i = 0; i < count; i++){
     f32 delayed = syn->get_delay().delay_read();
@@ -52,7 +43,6 @@ static void voice_loop(Synth *syn, f32 generated[SIZES::CHANNEL_MAX]) {
   syn->zero_loop_sums();
   const Synth_Cfg &p = syn->get_synth_cfg();
   const Envelope_Cfg &e = syn->get_env_cfg();
-  const Modulations& m = syn->get_mods();
 
   for (size_t i = 0; i < (size_t)p.voicings && i < SIZES::VOICES; i++) {
     Voice &v = syn->get_voices()[i];
@@ -61,6 +51,15 @@ static void voice_loop(Synth *syn, f32 generated[SIZES::CHANNEL_MAX]) {
     }
     
     v.zero_voice_sums();
+    Freq_Modulator& m = v.get_fmod();
+    Amp_Modulator& a = v.get_amod();
+
+    m.get_lfo().increment(m.get_vibrato_rate(), p.sample_rate);
+    const f32 vib = m.create_vibrato(m.get_lfo().lfo_sine(), m.get_vibrato_depth());
+
+    a.get_lfo().increment(a.get_trem_rate(), p.sample_rate);
+    const f32 trem = 1.0f + (a.get_lfo().lfo_sine() * a.get_trem_depth());
+
     for (size_t o = 0; o < syn->get_osc_count(); o++) {
       Oscillator *osc = v.get_osc_at(o);
       const Oscillator_Cfg *osc_cfg = syn->get_osc_cfg_at(o);
@@ -68,29 +67,30 @@ static void voice_loop(Synth *syn, f32 generated[SIZES::CHANNEL_MAX]) {
       if(!osc || !osc_cfg) {
         continue;
       }
-
-      const f32 vibrato = run_lfo(m.lfo_cfg_at(LFO_1), v.lfo_at(LFO_1), m.get_vibrato_depth(), p.sample_rate);
-      const f32 freq = v.get_freq() * osc_cfg->detune * m.get_pitch_bend() * vibrato; 
+      const f32 freq = v.get_freq() * osc_cfg->detune * m.get_pitch_bend() * vib; 
 
       const f32 dt = 1.0f / (f32)p.sample_rate;
       const f32 inc = freq / (f32)p.sample_rate;
 
+      f32 alpha = 1.0f - expf(-dt / 0.001f);
+      osc->get_inc() += (inc - osc->get_inc()) * alpha;
+
       osc->increment_time(dt);
-      osc->increment_phase(inc, 1.0f);
+      osc->increment_phase(1.0f);
 
       for (size_t c = 0; c < (size_t)p.channels; c++) {
         f32 sample = 0.0f;
         switch(osc_cfg->waveform){
           case SAW:{
-            sample = syn->get_generator().poly_saw(inc, osc->get_phase_val());
+            sample = syn->get_generator().poly_saw(osc->get_inc(), osc->get_phase_val());
           }break;
           case SQUARE:{
-            sample = syn->get_generator().poly_square(inc, osc->get_phase_val(), osc_cfg->duty);
+            sample = syn->get_generator().poly_square(osc->get_inc(), osc->get_phase_val(), osc_cfg->duty);
           }break;
         }
         //const f32 sample = waveform_generate(&syn->get_wave_table(), osc_cfg, o, osc->get_phase_val(), freq, v.get_freq(), p.wave_table_size);
         osc->set_sample_at(c, sample);
-        osc->mult_sample_at(c, osc_cfg->volume);
+        osc->mult_sample_at(c, osc_cfg->volume * trem * v.get_vol_mult());
         osc->mult_sample_at(c, 1.0f/ sqrtf((f32)syn->get_osc_count()));
         v.add_sum_at(c, osc->get_sample_at(c));
       }
@@ -103,9 +103,8 @@ static void voice_loop(Synth *syn, f32 generated[SIZES::CHANNEL_MAX]) {
     v.adsr(p.sample_rate, e.env_attack, e.env_decay, e.env_sustain,
            e.env_release);
     for (size_t c = 0; c < (size_t)p.channels; c++) {
-      // Saturate
-      const f32 mix = v.get_lpf().get_value_at(c);
-      syn->add_sum_at(c, (mix / sqrtf((f32)p.voicings)) * p.volume * v.get_envelope());
+      const f32 mix = v.get_lpf().get_value_at(c) * v.get_envelope();
+      syn->add_sum_at(c, (mix / sqrtf((f32)p.voicings)));
     }
   }
 

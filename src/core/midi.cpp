@@ -9,11 +9,11 @@ Controller::Controller(const char *name)
   list_available_controllers();
 }
 
-f32 Controller::normalize_pitch_bend(i32 value){
+f32 Controller::normalize_event_bipolar(i32 value){
   return ((f32)value / (INT8_MAX + 1)) * 2.0f - 1.0f;
 }
 
-f32 Controller::normalize_mod_input(i32 value){
+f32 Controller::normalize_event(i32 value){
   return ((f32)value / INT8_MAX);
 }
 

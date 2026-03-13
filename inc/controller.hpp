@@ -42,8 +42,8 @@ public:
   const PmEvent *get_event_at(i32 pos) const;
   const std::array<PmEvent, INPUT_BUFFER_MAX>& get_input_buffer(void) const { return input_buffer; }
   Midi_Input_Msg parse_event(PmEvent event);
-  f32 normalize_pitch_bend(i32 value);
-  f32 normalize_mod_input(i32 value);
+  f32 normalize_event_bipolar(i32 value);
+  f32 normalize_event(i32 value);
 
 private:
   std::string input_name;

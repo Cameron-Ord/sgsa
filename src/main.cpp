@@ -100,19 +100,17 @@ int main(int argc, char **argv) {
         case CONTROL:{
           switch(msg.msg1){
             case CONTROL_MOD_WHEEL:{
-              Modulations& mods = syn.get_mods();
-              mods.set_vibrato_depth(mods.map_vibrato_depth(controller.normalize_mod_input(msg.msg2)));   
+              syn.loop_voicings_fmod(controller.normalize_event(msg.msg2), CONTROL_MOD_WHEEL);
             } break;
           }
         }break;
 
         case PITCH_BEND:{
-          Modulations& mods = syn.get_mods();
-          mods.set_pitch_bend(mods.calculate_pitch_bend(TWO_SEMITONE_CENTS, controller.normalize_pitch_bend(msg.msg2)));
+          syn.loop_voicings_fmod(controller.normalize_event_bipolar(msg.msg2), PITCH_BEND);
         } break;
 
         case NOTE_ON: {
-          syn.loop_voicings_on(msg.msg1);
+          syn.loop_voicings_on(msg.msg1, controller.normalize_event(msg.msg2));
         }break;
         case NOTE_OFF: {
           syn.loop_voicings_off(msg.msg1);

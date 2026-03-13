@@ -34,17 +34,6 @@ enum ENV_STATE : size_t { ATK, DEC, REL, SUS, OFF };
 //    STATE_DC_X,
 //    STATE_DC_Y,
 
-struct Waveform_Vec4f {
-  size_t waveforms, oscillators, octaves, samples;
-  std::vector<f32> data;
-
-  Waveform_Vec4f(size_t _waveforms, size_t _oscillators, size_t _octaves, size_t _samples);
-  bool set_at(size_t wave_p, size_t osc_p, size_t oct_p, size_t sample_p, f32 val);
-  bool valid(size_t pos) const;
-  const f32 *get_at(size_t wave_p, size_t osc_p, size_t oct_p, size_t sample_p) const;
-  size_t index(size_t wave_p, size_t osc_p, size_t oct_p, size_t sample_p) const;
-};
-
 class Delay {
 public:
   Delay(i32 sample_rate, f32 delay_time_s, f32 _feedback);
@@ -58,24 +47,49 @@ private:
   f32 feedback;
 };
 
-class Modulations {
+class Lfo {
 public:
-  Modulations(void);
-  
-  f32 calculate_pitch_bend(f32 cents, f32 normalized_event);
-  f32 map_vibrato_depth(f32 normalized_event);
-  void set_pitch_bend(f32 val) { pitch_bend = val; }
-  f32 get_pitch_bend(void) const { return pitch_bend; }
-  void set_vibrato_depth(f32 val) { vibrato_depth = val; }
-  f32 get_vibrato_depth(void) const { return vibrato_depth; }
+  Lfo(void) : phase(0.0f) {}
+  void increment(f32 rate, i32 sample_rate);
+  f32 lfo_sine(void);
+private:
+  f32 phase;
+};
 
-  const std::array<Lfo_Cfg, LFO_COUNT> &get_lfo_cfgs(void) { return lfo_cfgs; }
-  const Lfo_Cfg* lfo_cfg_at(size_t pos) const;
+class Amp_Modulator {
+public:
+  Amp_Modulator(void);
+  f32 get_trem_rate(void) const { return tremolo_rate; } 
+  f32 get_trem_depth(void) const { return tremolo_depth; } 
+  void set_trem_depth(f32 val) { tremolo_depth = val; }
+  Lfo& get_lfo(void) { return lfo; }
+private:
+  f32 tremolo_rate;
+  f32 tremolo_depth;
+  Lfo lfo;
+};
+
+class Freq_Modulator {
+public:
+  Freq_Modulator(void);
+  
+  void set_pitch_bend(f32 val) { pitch_bend = val; }
+  f32 calculate_pitch_bend(f32 cents, f32 normalized_event);
+  f32 get_pitch_bend(void) const { return pitch_bend; }
+
+  void set_vibrato_depth(f32 val) { vibrato_depth = val; }
+  f32 map_vibrato_depth(f32 normalized_event);
+  f32 get_vibrato_depth(void) const { return vibrato_depth; }
+  f32 get_vibrato_rate(void) const { return vibrato_rate; }
+  f32 create_vibrato(f32 sine, f32 cents) const;
+
+  Lfo& get_lfo(void) { return lfo; }
 private:
   f32 pitch_bend;
+  f32 vibrato_rate;
   f32 vibrato_depth;
   const f32 vibrato_max;
-  std::array<Lfo_Cfg, LFO_COUNT> lfo_cfgs;
+  Lfo lfo;
 };
 
 class LPF {
@@ -96,14 +110,6 @@ private:
   std::array<f32, CHANNEL_MAX> low;
 };
 
-class Lfo {
-public:
-  Lfo(void) : phase(0.0f) {}
-  void increment(f32 rate, i32 sample_rate);
-  f32 lfo_sine(f32 depth);
-private:
-  f32 phase;
-};
 
 class Oscillator {
 public:
@@ -118,11 +124,13 @@ public:
   void mult_sample_at(size_t pos, f32 factor);
   void set_sample_at(size_t pos, f32 value); 
   void start(void);
-  void increment_phase(f32 inc, f32 max);
+  void increment_phase(f32 max);
   void increment_time(f32 dt);
+  f32& get_inc(void) { return inc; }
 
 private:
   std::array<f32, CHANNEL_MAX> gen;
+  f32 inc;
   f32 phase;
   f32 time;
 };
@@ -148,8 +156,6 @@ public:
   bool done(void) const;
   bool releasing(void) const;
 
-  Lfo* lfo_at(size_t pos);
-
   void add_sum_at(size_t pos, f32 sample);
   void zero_voice_sums(void);
   void set_key(i32 key) { midi_key = key; }
@@ -160,6 +166,15 @@ public:
   void ar(i32 samplerate, f32 atk, f32 rel);
   void adsr(i32 samplerate, f32 atk, f32 dec, f32 sus, f32 rel);
 
+  Amp_Modulator& get_amod(void) { return amod; }
+  Freq_Modulator& get_fmod(void) { return fmod; }
+
+  void update_fmod(f32 normalized_event, i32 type);
+  void update_amod(f32 normalized_velocity);
+
+  void set_vol_mult(f32 val) { volume_multiplier = val; }
+  f32 get_vol_mult(void) { return volume_multiplier; }
+
 private:
   i32 active_oscillators;
   i32 midi_key;
@@ -167,8 +182,10 @@ private:
   f32 freq;
   f32 envelope;
   std::vector<Oscillator> oscs;
-  std::array<Lfo, LFO_COUNT> lfos;
   std::array<f32, CHANNEL_MAX> voice_sums;
+  Freq_Modulator fmod;
+  Amp_Modulator amod;
+  f32 volume_multiplier;
   LPF lpf;
 };
 
@@ -197,7 +214,6 @@ public:
   const Synth_Cfg &get_synth_cfg(void) const { return synth_cfg; }
   const Envelope_Cfg &get_env_cfg(void) const { return env_cfg; }
  
-  Modulations& get_mods(void) { return mods; }
   const std::vector<Oscillator_Cfg>& get_osc_cfgs(void) const { return osc_cfgs; }
   const std::vector<Voice> &get_voices(void) const { return voices; }
   std::vector<Voice> &get_voices(void) { return voices; }
@@ -211,7 +227,8 @@ public:
   void update_lpf(void);
   void new_Oscillators(std::vector<Oscillator_Cfg> osc_cfgs);
   void loop_voicings_off(i32 midi_key);
-  void loop_voicings_on(i32 midi_key);
+  void loop_voicings_on(i32 midi_key, f32 norm_velocity);
+  void loop_voicings_fmod(f32 normalized_event, i32 type);
 
 private:
   Synth_Cfg synth_cfg;
@@ -220,7 +237,6 @@ private:
   std::vector<Voice> voices;
   Generator generator;
   Delay delay;
-  Modulations mods;
   std::array<f32, CHANNEL_MAX> loop_sums;
 };
 

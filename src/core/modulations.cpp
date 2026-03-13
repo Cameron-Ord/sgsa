@@ -1,24 +1,24 @@
 #include "../../inc/audio.hpp"
 #include <cmath>
 
-Modulations::Modulations(void) 
-  : pitch_bend(1.0f), vibrato_depth(0.0f), vibrato_max(30.0f) {}
+Amp_Modulator::Amp_Modulator(void) : tremolo_rate(3.0f), tremolo_depth(0.35f), lfo() {}
 
-f32 Modulations::calculate_pitch_bend(f32 cents, f32 normalized_midi_event){
+Freq_Modulator::Freq_Modulator(void) 
+  : pitch_bend(1.0f), vibrato_rate(6.0f), vibrato_depth(0.0f), 
+  vibrato_max(40.0f), lfo() {}
+
+f32 Freq_Modulator::calculate_pitch_bend(f32 cents, f32 normalized_midi_event){
   const f32 bend = normalized_midi_event * cents;
   return powf(2.0f, bend * CENTS_TO_OCTAVE);
 }
 
 
-f32 Modulations::map_vibrato_depth(f32 normalized_midi_event){
+f32 Freq_Modulator::map_vibrato_depth(f32 normalized_midi_event){
   return normalized_midi_event * vibrato_max;
 }
 
-const Lfo_Cfg *Modulations::lfo_cfg_at(size_t pos) const {
-  if(pos < lfo_cfgs.size()){
-    return &lfo_cfgs[pos];
-  }
-  return nullptr;
+f32 Freq_Modulator::create_vibrato(f32 sine, f32 cents) const {
+  return powf(2.0f, sine * cents * CENTS_TO_OCTAVE);
 }
 
 void Lfo::increment(f32 rate, i32 sample_rate) {
@@ -28,6 +28,6 @@ void Lfo::increment(f32 rate, i32 sample_rate) {
   }
 }
 
-f32 Lfo::lfo_sine(f32 depth_cents){
-  return powf(2.0f, sinf(2.0f * PI * phase) * depth_cents * CENTS_TO_OCTAVE);
+f32 Lfo::lfo_sine(void){
+  return sinf(2.0f * PI * phase);
 }

@@ -4,7 +4,7 @@
 Synth::Synth(void)
     : synth_cfg(), env_cfg(), osc_cfgs(1, Oscillator_Cfg()),
       voices(synth_cfg.voicings, Voice(synth_cfg.low_pass_cutoff, synth_cfg.sample_rate, osc_cfgs.size())), 
-      delay(synth_cfg.sample_rate, 0.5f, 0.5f), mods(), loop_sums() {}
+      delay(synth_cfg.sample_rate, 0.5f, 0.5f), loop_sums() {}
 
 
 void Synth::zero_loop_sums(void){
@@ -39,8 +39,14 @@ void Synth::update_lpf(void){
   }
 }
 
+void Synth::loop_voicings_fmod(f32 normalized_event, i32 type){
+  for(size_t i = 0; i < voices.size(); i++){
+    voices[i].update_fmod(normalized_event, type);
+  }
+}
+
 void Synth::loop_voicings_off(i32 midi_key) {
-  for (size_t i = 0; i < synth_cfg.voicings; i++) {
+  for (size_t i = 0; i < voices.size(); i++) {
     Voice *v = &voices[i];
     if (v->get_key() == midi_key) {
       for (size_t o = 0; o < get_osc_count(); o++) {
@@ -51,8 +57,8 @@ void Synth::loop_voicings_off(i32 midi_key) {
   }
 }
 
-void Synth::loop_voicings_on(i32 midi_key) {
-  for (size_t i = 0; i < synth_cfg.voicings; i++) {
+void Synth::loop_voicings_on(i32 midi_key, f32 normalized_velocity) {
+  for (size_t i = 0; i < voices.size(); i++) {
     Voice *v = &voices[i];
     if (v->get_active_count() <= 0 && v->done()) {
       v->set_active_count(0);
@@ -67,6 +73,7 @@ void Synth::loop_voicings_on(i32 midi_key) {
       }
       v->set_envelope(0.0f);
       v->set_env_state(ENV_STATE::ATK);
+      v->set_vol_mult(normalized_velocity);
       return;
     }
   }

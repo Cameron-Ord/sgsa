@@ -1,7 +1,7 @@
 #include "../../inc/audio.hpp"
 #include "../../inc/util.hpp"
 
-Oscillator::Oscillator(void) : gen(), phase(0.0f), time(0.0f) {}
+Oscillator::Oscillator(void) : gen(), inc(0.0f), phase(0.0f), time(0.0f) {}
 
 f32 Oscillator::phase_clamp(f32 phase_val, f32 max) {
   if(phase_val < 0.0f){
@@ -38,7 +38,7 @@ void Oscillator::start(void) {
 
 void Oscillator::increment_time(f32 dt) { time += dt; }
 
-void Oscillator::increment_phase(f32 inc, f32 max) {
+void Oscillator::increment_phase(f32 max) {
   phase += inc;
   if (phase >= max) {
     phase -= max;
