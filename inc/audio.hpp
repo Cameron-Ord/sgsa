@@ -14,7 +14,8 @@
 #define ONE_SEMITONE_CENTS 100.0f
 #define TWO_SEMITONE_CENTS 200.0f
 
-f32 cent_freq_mod(f32 cents);
+f32 exp_hard_clip(f32 sample, f32 gain, f32 mix);
+f32 polynomial_soft_clip(f32 sample, f32 gain);
 
 #define PI 3.141592653589793f
 // (VALUE - VALUE) / SAMPLES

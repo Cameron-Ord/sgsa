@@ -73,7 +73,7 @@ void Synth::loop_voicings_on(i32 midi_key, f32 normalized_velocity) {
       }
       v->set_envelope(0.0f);
       v->set_env_state(ENV_STATE::ATK);
-      v->set_vol_mult(normalized_velocity);
+      v->set_vol_mult(1.0f + normalized_velocity );
       return;
     }
   }

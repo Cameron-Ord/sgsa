@@ -11,6 +11,44 @@ const i32 CHUNK_MAX = 128;
 const f32 DELAY_MIX = 0.2f;
 const f32 SAMPLE_MIX = 0.8f;
 
+
+//Source: DAFX page 127
+f32 exp_hard_clip(f32 sample, f32 gain, f32 mix){
+  f32 q = sample * gain;
+  f32 z = copysignf(1.0f - expf(-fabsf(q)), q);
+  return mix * z + (1.0f - mix) * sample;
+}
+
+//Source: DAFX page 125
+f32 polynomial_soft_clip(f32 sample, f32 gain){
+  f32 threshold = 1.0f / 3.0f;
+  f32 x = sample * gain;
+  f32 y = 0.0f;
+  if(fabsf(x) < threshold){
+    y = 2.0f * x;
+  }
+
+  if(fabsf(x) >= threshold){
+    if(x > 0.0f){
+      y = (3.0f - powf(2.0f - x * 3.0f, 2.0f)) / 3.0f;
+    } else {
+      y = -(3.0f - powf(2.0f - fabsf(x) * 3.0f, 2.0f)) / 3.0f;
+    }
+  }
+
+  if(fabsf(x) > 2.0f * threshold){
+    if(x > 0.0f) {
+      y = 1.0f;
+    }
+
+    if(x < 0.0f){
+      y = -1.0f;
+    }
+  }
+
+  return y;
+}
+
 void stream_get(void *data, SDL_AudioStream *stream, i32 add, i32 total) {
   Synth *syn = static_cast<Synth *>(data);
   if (!syn)
@@ -89,7 +127,8 @@ static void voice_loop(Synth *syn, f32 generated[SIZES::CHANNEL_MAX]) {
           }break;
         }
         //const f32 sample = waveform_generate(&syn->get_wave_table(), osc_cfg, o, osc->get_phase_val(), freq, v.get_freq(), p.wave_table_size);
-        osc->set_sample_at(c, sample);
+        osc->set_sample_at(c, polynomial_soft_clip(sample, p.gain));
+        osc->set_sample_at(c, exp_hard_clip(osc->get_sample_at(c), p.gain, 1.0f));
         osc->mult_sample_at(c, osc_cfg->volume * trem * v.get_vol_mult());
         osc->mult_sample_at(c, 1.0f/ sqrtf((f32)syn->get_osc_count()));
         v.add_sum_at(c, osc->get_sample_at(c));
@@ -97,14 +136,15 @@ static void voice_loop(Synth *syn, f32 generated[SIZES::CHANNEL_MAX]) {
     }
 
     for (size_t c = 0; c < (size_t)p.channels; c++) {
-      v.get_sum_array()[c] = tanhf(v.get_sum_at(c) * p.gain);
       v.get_lpf().lerp(v.get_sum_array(), c);
     }
+
     v.adsr(p.sample_rate, e.env_attack, e.env_decay, e.env_sustain,
            e.env_release);
+
     for (size_t c = 0; c < (size_t)p.channels; c++) {
-      const f32 mix = v.get_lpf().get_value_at(c) * v.get_envelope();
-      syn->add_sum_at(c, (mix / sqrtf((f32)p.voicings)));
+      const f32 sample = v.get_lpf().get_value_at(c) * v.get_envelope();
+      syn->add_sum_at(c, sample / sqrtf((f32)p.voicings));
     }
   }
 
