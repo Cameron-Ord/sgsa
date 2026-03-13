@@ -37,8 +37,8 @@ inline constexpr i32 CHANNELS = SIZES::CHANNEL_MAX;
 inline constexpr i32 SAMPLE_RATE = 48000;
 inline constexpr i32 VOICINGS = SIZES::VOICES;
 inline constexpr f32 MAIN_VOLUME = 1.0f;
-inline constexpr f32 GAIN_LEVEL = 1.25f;
-inline constexpr f32 LOW_PASS_CUTOFF = 8000.0f;
+inline constexpr f32 GAIN_LEVEL = 1.0f;
+inline constexpr f32 LOW_PASS_CUTOFF = 5000.0f;
 
 inline constexpr f32 DUTY_CYCLE = 0.5f;
 inline constexpr f32 DETUNE = 1.0f;
