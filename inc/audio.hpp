@@ -147,17 +147,29 @@ public:
  
   f32 get_envelope(void) const { return envelope; }
   f32 get_freq(void) const { return freq; }
-  std::array<f32, CHANNEL_MAX>& get_sum_array(void) { return voice_sums; }
 
   std::vector<Oscillator> &get_osc_array(void) { return oscs; }
   const std::vector<Oscillator> &get_osc_array(void) const { return oscs; }
   Oscillator* get_osc_at(size_t pos);
+
+  std::array<f32, CHANNEL_MAX>& get_sum_array(void) { return voice_sums; }
+  std::array<f32, CHANNEL_MAX>& get_clipped_array(void) { return clipped_sums; }
+  std::array<f32, CHANNEL_MAX>& get_out_array(void) { return voice_out; }
+  std::array<f32, CHANNEL_MAX>& get_filtered_array(void) { return filtered_sums; }
+
+  void add_sum_at(size_t pos, f32 sample);
+  void set_clipped_at(size_t pos, f32 val);
+  void set_filtered_at(size_t pos, f32 val);
+  void set_out_at(size_t pos, f32 val);
+
   f32 get_sum_at(size_t pos) const;
+  f32 get_clipped_at(size_t pos) const;
+  f32 get_filtered_at(size_t pos) const;
+  f32 get_out_at(size_t pos) const;
  
   bool done(void) const;
   bool releasing(void) const;
 
-  void add_sum_at(size_t pos, f32 sample);
   void zero_voice_sums(void);
   void set_key(i32 key) { midi_key = key; }
   void set_freq(f32 val) { freq = val; }
@@ -183,11 +195,15 @@ private:
   f32 freq;
   f32 envelope;
   std::vector<Oscillator> oscs;
-  std::array<f32, CHANNEL_MAX> voice_sums;
   Freq_Modulator fmod;
   Amp_Modulator amod;
   f32 volume_multiplier;
   LPF lpf;
+
+  std::array<f32, CHANNEL_MAX> voice_sums;
+  std::array<f32, CHANNEL_MAX> clipped_sums;
+  std::array<f32, CHANNEL_MAX> filtered_sums;
+  std::array<f32, CHANNEL_MAX> voice_out;
 };
 
 

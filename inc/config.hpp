@@ -28,10 +28,10 @@ namespace DEFAULTS {
 inline constexpr bool LFO_ON = false;
 inline constexpr f32 LFO_RATE = 6.0f;
 
-inline constexpr f32 ATK = 0.1f;
-inline constexpr f32 DEC = 0.2f;
-inline constexpr f32 SUS = 0.5f;
-inline constexpr f32 REL = 0.1f;
+inline constexpr f32 ATK = 0.01f;
+inline constexpr f32 DEC = 0.3f;
+inline constexpr f32 SUS = 0.7f;
+inline constexpr f32 REL = 0.01f;
 
 inline constexpr i32 CHANNELS = SIZES::CHANNEL_MAX;
 inline constexpr i32 SAMPLE_RATE = 48000;

@@ -73,7 +73,13 @@ void Synth::loop_voicings_on(i32 midi_key, f32 normalized_velocity) {
       }
       v->set_envelope(0.0f);
       v->set_env_state(ENV_STATE::ATK);
-      v->set_vol_mult(1.0f + normalized_velocity );
+      v->set_vol_mult(1.0f + normalized_velocity);
+
+      for(size_t c = 0; c < static_cast<size_t>(synth_cfg.channels); c++){
+        v->set_clipped_at(c, 0.0f);
+        v->set_filtered_at(c, 0.0f);
+        v->set_out_at(c, 0.0f);
+      }
       return;
     }
   }

@@ -4,13 +4,67 @@
 Voice::Voice(f32 cutoff, i32 sample_rate, size_t osc_count)
     : active_oscillators(0), midi_key(0), env_state(ENV_STATE::OFF), freq(0.0f),
       envelope(0.0f), oscs(osc_count, Oscillator()), 
-      voice_sums(), fmod(), amod(), volume_multiplier(1.0f), lpf(cutoff, sample_rate) {}
+      fmod(), amod(), volume_multiplier(1.0f), lpf(cutoff, sample_rate), 
+      voice_sums(), clipped_sums(), filtered_sums(), voice_out(){}
+
+f32 Voice::get_filtered_at(size_t pos) const {
+  if(pos < filtered_sums.size()){
+    return filtered_sums[pos];
+  }
+  return 0.0f;
+}
+
+void Voice::set_filtered_at(size_t pos, f32 val) {
+  if(pos < filtered_sums.size()){
+    filtered_sums[pos] = val;
+  } 
+}
 
 void Voice::zero_voice_sums(void){
   for(size_t i = 0; i < voice_sums.size(); i++){
     voice_sums[i] = 0.0f;
   }
 }
+
+void Voice::add_sum_at(size_t pos, f32 sample){
+  if(pos < voice_sums.size()){
+    voice_sums[pos] = voice_sums[pos] + sample;
+  }
+}
+
+void Voice::set_clipped_at(size_t pos, f32 val){
+  if(pos < clipped_sums.size()){
+    clipped_sums[pos] = val;
+  }
+}
+
+void Voice::set_out_at(size_t pos, f32 val){
+  if(pos < voice_out.size()){
+    voice_out[pos] = val;
+  }
+}
+
+f32 Voice::get_sum_at(size_t pos) const {
+  if(pos < voice_sums.size()){
+    return voice_sums[pos];
+  }
+  return 0.0f;
+}
+
+f32 Voice::get_clipped_at(size_t pos) const {
+  if(pos < clipped_sums.size()){
+    return clipped_sums[pos];
+  }
+  return 0.0f;
+}
+
+f32 Voice::get_out_at(size_t pos) const {
+  if(pos < voice_out.size()){
+    return voice_out[pos];
+  }
+  return 0.0f;
+}
+
 
 void Voice::update_fmod(f32 normalized_event, i32 type){
   switch(type){
@@ -26,19 +80,6 @@ void Voice::update_fmod(f32 normalized_event, i32 type){
 
 void Voice::update_amod(f32 normalized_velocity){
   amod.set_trem_depth(normalized_velocity);
-}
-
-f32 Voice::get_sum_at(size_t pos) const {
-  if(pos < voice_sums.size()){
-    return voice_sums[pos];
-  }
-  return 0.0f;
-}
-
-void Voice::add_sum_at(size_t pos, f32 sample){
-  if(pos < voice_sums.size()){
-    voice_sums[pos] = voice_sums[pos] + sample;
-  }
 }
 
 Oscillator *Voice::get_osc_at(size_t pos){
