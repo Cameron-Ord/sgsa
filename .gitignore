@@ -3,3 +3,4 @@ sgsa
 .cache
 .cache/
 compile_commands.json
+*.ttf
