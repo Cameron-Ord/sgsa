@@ -128,7 +128,6 @@ static void voice_loop(Synth *syn, f32 generated[SIZES::CHANNEL_MAX]) {
         }
         //const f32 sample = waveform_generate(&syn->get_wave_table(), osc_cfg, o, osc->get_phase_val(), freq, v.get_freq(), p.wave_table_size);
         osc->set_sample_at(c, polynomial_soft_clip(sample, p.gain));
-        osc->set_sample_at(c, exp_hard_clip(osc->get_sample_at(c), p.gain, 1.0f));
         osc->mult_sample_at(c, osc_cfg->volume * trem * v.get_vol_mult());
         osc->mult_sample_at(c, 1.0f/ sqrtf((f32)syn->get_osc_count()));
         v.add_sum_at(c, osc->get_sample_at(c));
