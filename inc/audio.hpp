@@ -254,6 +254,16 @@ public:
   f32 get_sustain(void) { return sustain; }
   f32 get_release(void) { return release; }
 
+  f32 get_attack_max(void) { return attack_max; }
+  f32 get_decay_max(void) { return decay_max; }
+  f32 get_sustain_max(void) { return sustain_max; }
+  f32 get_release_max(void) { return release_max; }
+
+  f32 get_attack_min(void) { return attack_min; }
+  f32 get_decay_min(void) { return decay_min; }
+  f32 get_sustain_min(void) { return sustain_min; }
+  f32 get_release_min(void) { return release_min; }
+
   void set_volume(f32 val) { volume = val; }
   void set_gain(f32 val) { gain = val; }
   void set_low_pass(f32 val) { low_pass_hz = val; }
@@ -264,6 +274,12 @@ public:
   i32 get_channels(void) { return channels; }
   i32 get_sample_rate(void) { return sample_rate; }
 
+  f32 get_low_pass_max(void) { return low_pass_hz_max; }
+  f32 get_low_pass_min(void) { return low_pass_hz_min; }
+
+  f32 get_gain_max(void) { return gain_max; }
+  f32 get_gain_min(void) { return gain_min; }
+
   f32 get_vibrato_depth(void) const { return vibrato_depth; }
   f32 get_vibrato_rate(void) const { return vibrato_rate; }
   void set_vibrato_depth(f32 val) { vibrato_depth = val; }
@@ -273,6 +289,8 @@ public:
 
   f32 get_trem_rate(void) const { return tremolo_rate; } 
   f32 get_trem_depth(void) const { return tremolo_depth; } 
+  f32 get_trem_depth_min(void) const { return trem_depth_min; } 
+  f32 get_trem_depth_max(void) const { return trem_depth_max; } 
   void set_trem_depth(f32 val) { tremolo_depth = val; }
   
   void update_fmod(f32 normalized_event, i32 type);
@@ -280,23 +298,23 @@ public:
   f32 map_vibrato_depth(f32 normalized_event) const;
 
 private:
-  f32 volume = 1.0f, volume_max = 2.0f;
-  f32 gain = 1.0f, gain_max = 16.0f;
-  f32 low_pass_hz = 2000.0f, low_pass_hz_max = 20000.0f;
+  f32 volume = 1.0f, volume_min = 0.0f, volume_max = 2.0f;
+  f32 gain = 1.0f, gain_min = 0.5f, gain_max = 16.0f;
+  f32 low_pass_hz = 2000.0f, low_pass_hz_min = 200.0f, low_pass_hz_max = 20000.0f;
   i32 channels = 2, channel_max = 2;
   i32 sample_rate = 48000, sample_rate_max = 96000;
 
-  f32 attack = 0.1f, attack_max = 2.5f;
-  f32 decay = 0.1f, decay_max = 2.5f;
-  f32 sustain = 0.1f, sustain_max = 2.5f;
-  f32 release = 0.1f, release_max = 2.5f;
+  f32 attack = 0.1f, attack_min = 0.0f, attack_max = 2.5f;
+  f32 decay = 0.1f, decay_min = 0.0f, decay_max = 2.5f;
+  f32 sustain = 0.1f, sustain_min = 0.0f, sustain_max = 2.5f;
+  f32 release = 0.1f, release_min = 0.0f, release_max = 2.5f;
 
   f32 pitch_bend = 1.0f;
   f32 vibrato_rate = 5.0f, vibrato_rate_max = 15.0f;
   f32 vibrato_depth = 0.0f, vibrato_max = 50.0f;
   
   f32 tremolo_rate = 2.0f, trem_rate_max = 16.0f;
-  f32 tremolo_depth = 0.1f, trem_depth_max = 1.0f;
+  f32 tremolo_depth = 0.1f, trem_depth_min = 0.1f, trem_depth_max = 1.0f;
 
   std::vector<Oscillator> oscs;
   std::array<Voice, VOICES> voices;

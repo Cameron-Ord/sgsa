@@ -13,8 +13,13 @@ class Window;
 class Renderer;
 
 struct Param_Float {
-  std::string param_name;
+  const std::string param_name;
+  const f32& max;
+  const f32& min;
   const f32& value;
+  i32 string_y = 0;
+  i32 box_x = 0, box_y = 0;
+  const i32 box_w = 16, box_h = 8;
 };
 
 enum Glyph_Extra_Params : size_t {
@@ -74,7 +79,10 @@ public:
   void clear(void);
   void clear_colour(u8 r, u8 g, u8 b, u8 a);
   void present(void);
-  void render_float_list(std::vector<Param_Float> params, size_t viewport_index, const Glyphs& g);
+
+  void render_rect_i(i32 x, i32 y, i32 w, i32 h);
+  void param_list_set_positions(std::vector<Param_Float>& params, i32 line_skip);
+  void render_float_list(const std::vector<Param_Float>& params, size_t viewport_index, const Glyphs& g);
   void render_string(const Glyphs& g, const std::string& str, const i32& y);
   void render_char(const Glyph_Entry *glyph, const i32& y, const i32& x);
   void set_viewport(const SDL_Rect& viewport);

@@ -7,7 +7,8 @@
 #include <portmidi.h>
 
 static bool initialize(void);
-static bool sdl_check_quit(void);
+static void sdl_read_event(bool& running);
+static void midi_read_event(Synth& syn, Controller& controller);
 static bool quit(void);
 
 static bool initialize(void) {
@@ -28,19 +29,51 @@ static bool initialize(void) {
   return true;
 }
 
-static bool sdl_check_quit(void) {
+static void sdl_read_event(bool& running) {
   SDL_Event event;
   while (SDL_PollEvent(&event)) {
     switch (event.type) {
-    default:
-      return false;
+    default: break;
 
     case SDL_EVENT_QUIT: {
-      return true;
+      running = false;
     } break;
     }
   }
-  return false;
+}
+
+static void midi_read_event(Synth& syn, Controller& controller){
+  controller.clear_msg_buf();
+  const i32 event_count = controller.read_input();
+
+  for(i32 i = 0; i < event_count; i++){
+    const PmEvent *ev = controller.get_event_at(i);
+    if(!ev){
+      continue;
+    }
+    Midi_Input_Msg msg = controller.parse_event(*ev);
+    
+    switch(msg.status){
+      case CONTROL:{
+        switch(msg.msg1){
+          case CONTROL_MOD_WHEEL:{
+            syn.update_fmod(controller.normalize_event(msg.msg2), CONTROL_MOD_WHEEL);
+          } break;
+        }
+      }break;
+
+      case PITCH_BEND:{
+        syn.update_fmod(controller.normalize_event_bipolar(msg.msg2), PITCH_BEND);
+      } break;
+
+      case NOTE_ON: {
+        syn.loop_voicings_on(msg.msg1, controller.normalize_event(msg.msg2));
+      }break;
+      case NOTE_OFF: {
+        syn.loop_voicings_off(msg.msg1);
+      }break;
+    }
+  }
 }
 
 static bool quit(void) {
@@ -107,7 +140,15 @@ int main(int argc, char **argv) {
 
 
   std::vector<Param_Float> items = {
+    Param_Float{ "Attack", syn.get_attack_max(), syn.get_attack_min(), syn.get_attack() },
+    Param_Float{ "Decay", syn.get_decay_max(), syn.get_decay_min(), syn.get_decay() },
+    Param_Float{ "Sustain", syn.get_sustain_max(), syn.get_sustain_min(), syn.get_sustain() },
+    Param_Float{ "Release", syn.get_release_max(), syn.get_release_min(), syn.get_release() },
+    Param_Float{ "Low-Pass Filter Hz", syn.get_low_pass_max(), syn.get_low_pass_min(), syn.get_low_pass() },
+    Param_Float{ "Gain", syn.get_gain_max(), syn.get_gain_min(), syn.get_gain() },
+    Param_Float{ "Tremolo Depth", syn.get_trem_depth_max(), syn.get_trem_depth_min(), syn.get_trem_depth() }
   };
+  win.get_render_class().param_list_set_positions(items, glyphs.get_line_skip());
 
   audio.open(&syn);
   controller.open();
@@ -121,44 +162,11 @@ int main(int argc, char **argv) {
   
     win.get_render_class().clear_colour(0, 0, 0, 255);
     win.get_render_class().clear();
-
-    if (sdl_check_quit()) {
-      running = false;
-    }
-
-    controller.clear_msg_buf();
-    const i32 event_count = controller.read_input();
-
-    for(i32 i = 0; i < event_count; i++){
-      const PmEvent *ev = controller.get_event_at(i);
-      if(!ev){
-        continue;
-      }
-      Midi_Input_Msg msg = controller.parse_event(*ev);
-      
-      switch(msg.status){
-        case CONTROL:{
-          switch(msg.msg1){
-            case CONTROL_MOD_WHEEL:{
-              syn.update_fmod(controller.normalize_event(msg.msg2), CONTROL_MOD_WHEEL);
-            } break;
-          }
-        }break;
-
-        case PITCH_BEND:{
-          syn.update_fmod(controller.normalize_event_bipolar(msg.msg2), PITCH_BEND);
-        } break;
-
-        case NOTE_ON: {
-          syn.loop_voicings_on(msg.msg1, controller.normalize_event(msg.msg2));
-        }break;
-        case NOTE_OFF: {
-          syn.loop_voicings_off(msg.msg1);
-        }break;
-      }
-    }
     
-
+    sdl_read_event(running);
+    midi_read_event(syn, controller);
+    
+    win.get_render_class().clear_colour(255, 255, 255, 255);
     win.get_render_class().render_float_list(items, SCREEN_LEFT, glyphs);
     win.get_render_class().present();
 
