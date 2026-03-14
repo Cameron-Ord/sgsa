@@ -9,6 +9,7 @@
 #include <array>
 #include <string>
 
+class Synth;
 class Window;
 class Renderer;
 
@@ -32,9 +33,9 @@ struct Event_Command{
   Key_Event key;
 };
 
-struct Param_Float {
+struct Generic_Param {
   const std::string param_name;
-  const f32& max;
+  const f32&  max;
   const f32& min;
   const f32& value;
   i32 string_y = 0;
@@ -101,16 +102,20 @@ public:
   void present(void);
 
   void render_rect_i(i32 x, i32 y, i32 w, i32 h);
-  void param_list_set_positions(std::vector<Param_Float>& params, i32 line_skip);
-  void render_float_list(const std::vector<Param_Float>& params, size_t viewport_index, const Glyphs& g);
+  void generic_list_copy(std::vector<Generic_Param>&& list);
+  void generic_list_set_positions(i32 line_skip);
+  void render_generic_list(size_t viewport_index, const Glyphs& g);
   void render_string(const Glyphs& g, const std::string& str, const i32& y);
   void render_char(const Glyph_Entry *glyph, const i32& y, const i32& x);
   void set_viewport(const SDL_Rect& viewport);
+
+
   const SDL_Rect* get_viewport_at(size_t pos) const;
   SDL_Renderer *get_renderer(void) { return r; }
 
 private:
   std::array<SDL_Rect, SCREEN_SIZE> viewports;
+  std::vector<Generic_Param> generic_list;
   SDL_Renderer *r;
   const i32& window_width;
   const i32& window_height;

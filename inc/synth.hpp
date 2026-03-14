@@ -283,7 +283,6 @@ private:
 class Synth {
 public:
   Synth(void);
-  f32 get_sum_at(size_t pos);
 
   Delay& get_delay(void) { return delay; }
   Generator& get_generator(void) { return generator; }
@@ -291,63 +290,56 @@ public:
   std::array<f32, CHANNEL_MAX>& get_sum_array(void) { return loop_sums; }
   std::array<Voice, VOICES> &get_voices(void) { return voices; }
   const std::array<Voice, VOICES> &get_voices(void) const { return voices; }
+ 
   std::vector<Oscillator>& get_oscillators(void) { return oscs; }
   Oscillator *get_osc_at(size_t pos);
  
   void zero_loop_sums(void);
   void add_sum_at(size_t pos, f32 sum);
-
+  f32 get_sum_at(size_t pos) const;
+  
   void loop_voicings_off(u32 midi_key);
   void loop_voicings_on(u32 midi_key, f32 norm_velocity);
-
+ 
+  const f32& get_attack(void) const { return attack; }
+  const f32& get_decay(void) const { return decay; }
+  const f32& get_sustain(void) const { return sustain; }
+  const f32& get_release(void) const { return release; }
+  const f32& get_attack_max(void) const { return attack_max; }
+  const f32& get_decay_max(void) const { return decay_max; }
+  const f32& get_sustain_max(void) const { return sustain_max; }
+  const f32& get_release_max(void) const { return release_max; }
+  const f32& get_attack_min(void) const { return attack_min; }
+  const f32& get_decay_min(void) const { return decay_min; }
+  const f32& get_sustain_min(void) const { return sustain_min; }
+  const f32& get_release_min(void) const { return release_min; }
+  const f32& get_volume(void) const { return volume; }
+  const f32& get_gain(void) const { return gain; }
+  const f32& get_low_pass(void) const { return low_pass_hz; }
+  const i32& get_channels(void) const { return channels; }
+  const i32& get_sample_rate(void) const { return sample_rate; }
+  const f32& get_low_pass_max(void) const { return low_pass_hz_max; }
+  const f32& get_low_pass_min(void) const { return low_pass_hz_min; }
+  const f32& get_gain_max(void) const { return gain_max; }
+  const f32& get_gain_min(void) const { return gain_min; }
+  const f32& get_trem_rate(void) const { return tremolo_rate; } 
+  const f32& get_trem_depth(void) const { return tremolo_depth; } 
+  const f32& get_trem_depth_min(void) const { return trem_depth_min; } 
+  const f32& get_trem_depth_max(void) const { return trem_depth_max; } 
+  const f32& get_vibrato_depth(void) const { return vibrato_depth; }
+  const f32& get_vibrato_rate(void) const { return vibrato_rate; }
+  const f32& get_pitch_bend(void) const { return pitch_bend; }
+ 
   void set_attack(f32 val) { attack = val; }
   void set_decay(f32 val) { decay = val; }
   void set_sustain(f32 val) { sustain = val; }
   void set_release(f32 val) { release = val; }
-
-  f32 get_attack(void) { return attack; }
-  f32 get_decay(void) { return decay; }
-  f32 get_sustain(void) { return sustain; }
-  f32 get_release(void) { return release; }
-
-  f32 get_attack_max(void) { return attack_max; }
-  f32 get_decay_max(void) { return decay_max; }
-  f32 get_sustain_max(void) { return sustain_max; }
-  f32 get_release_max(void) { return release_max; }
-
-  f32 get_attack_min(void) { return attack_min; }
-  f32 get_decay_min(void) { return decay_min; }
-  f32 get_sustain_min(void) { return sustain_min; }
-  f32 get_release_min(void) { return release_min; }
-
+  void set_pitch_bend(f32 val) { pitch_bend = val; }
+  void set_vibrato_depth(f32 val) { vibrato_depth = val; }
+  void set_trem_depth(f32 val) { tremolo_depth = val; }
   void set_volume(f32 val) { volume = val; }
   void set_gain(f32 val) { gain = val; }
   void set_low_pass(f32 val) { low_pass_hz = val; }
-  
-  f32 get_volume(void) { return volume; }
-  f32 get_gain(void) { return gain; }
-  f32 get_low_pass(void) { return low_pass_hz; }
-  i32 get_channels(void) { return channels; }
-  i32 get_sample_rate(void) { return sample_rate; }
-
-  f32 get_low_pass_max(void) { return low_pass_hz_max; }
-  f32 get_low_pass_min(void) { return low_pass_hz_min; }
-
-  f32 get_gain_max(void) { return gain_max; }
-  f32 get_gain_min(void) { return gain_min; }
-
-  f32 get_vibrato_depth(void) const { return vibrato_depth; }
-  f32 get_vibrato_rate(void) const { return vibrato_rate; }
-  void set_vibrato_depth(f32 val) { vibrato_depth = val; }
-
-  f32 get_pitch_bend(void) const { return pitch_bend; }
-  void set_pitch_bend(f32 val) { pitch_bend = val; }
-
-  f32 get_trem_rate(void) const { return tremolo_rate; } 
-  f32 get_trem_depth(void) const { return tremolo_depth; } 
-  f32 get_trem_depth_min(void) const { return trem_depth_min; } 
-  f32 get_trem_depth_max(void) const { return trem_depth_max; } 
-  void set_trem_depth(f32 val) { tremolo_depth = val; }
   
   f32 calculate_pitch_bend(f32 cents, f32 normalized_event) const;
   f32 map_vibrato_depth(f32 normalized_event) const;

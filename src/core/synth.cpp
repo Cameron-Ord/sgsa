@@ -98,7 +98,7 @@ Oscillator *Synth::get_osc_at(size_t pos){
   return nullptr;
 }
 
-f32 Synth::get_sum_at(size_t pos){
+f32 Synth::get_sum_at(size_t pos) const {
   if(pos < loop_sums.size()){
     return loop_sums[pos];
   }

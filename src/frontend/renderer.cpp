@@ -1,26 +1,31 @@
 #include "../../inc/gui.hpp"
 #include <iostream>
 
-void Renderer::param_list_set_positions(std::vector<Param_Float>& params, i32 line_skip){
-  for(size_t i = 0; i < params.size(); i++){
-    const i32 y = static_cast<i32>(i) * (line_skip + params[i].box_h);
-    const f32 box_x = (params[i].value - params[i].min) / params[i].max; 
-    params[i].string_y = y;
-    params[i].box_y = y + line_skip;
-    params[i].box_x = static_cast<i32>(box_x * ((static_cast<f32>(window_width) / 2.0f)));
+void Renderer::generic_list_set_positions(i32 line_skip){
+  for(size_t i = 0; i < generic_list.size(); i++){
+    const f32&  min = generic_list[i].min;
+    const f32& max = generic_list[i].max;
+    const f32& value = generic_list[i].value;
+
+    const i32 y = static_cast<i32>(i) * (line_skip + generic_list[i].box_h);
+    const f32 box_x = (value - min) / max; 
+
+    generic_list[i].string_y = y;
+    generic_list[i].box_y = y + line_skip;
+    generic_list[i].box_x = static_cast<i32>(box_x * ((static_cast<f32>(window_width) / 2.0f)));
   }
 }
 
-void Renderer::render_float_list(const std::vector<Param_Float>& params, size_t viewport_index, const Glyphs& g){
+void Renderer::render_generic_list(size_t viewport_index, const Glyphs& g){
   const SDL_Rect *view_rect = get_viewport_at(viewport_index);
   if(!view_rect) {
     return;
   }
 
-  for(size_t i = 0; i < params.size(); i++){
-    const std::string& str = params[i].param_name;
-    render_string(g, str, params[i].string_y);
-    render_rect_i(params[i].box_x, params[i].box_y, params[i].box_w, params[i].box_h);
+  for(size_t i = 0; i < generic_list.size(); i++){
+    const std::string& str = generic_list[i].param_name;
+    render_string(g, str, generic_list[i].string_y);
+    render_rect_i(generic_list[i].box_x, generic_list[i].box_y, generic_list[i].box_w, generic_list[i].box_h);
   }
 }
 

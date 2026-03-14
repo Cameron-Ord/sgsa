@@ -13,6 +13,9 @@ void Window::run_events(std::vector<Event_Command>& commands){
   for(size_t i = 0; i < commands.size(); i++){
     switch(commands[i].type){
       default: break;
+      case Event_Command::mouse_down:{
+         
+      } break;
       case Event_Command::quit:{
         set_quit(true);
       } break;
@@ -120,6 +123,10 @@ SDL_Texture *Renderer::create_texture(SDL_Surface *surf){
 
 void Renderer::set_viewport(const SDL_Rect& viewport){
   SDL_SetRenderViewport(r, &viewport);
+}
+
+void Renderer::generic_list_copy(std::vector<Generic_Param>&& list){
+  generic_list = std::move(list);
 }
 
 const SDL_Rect *Renderer::get_viewport_at(size_t pos) const {
