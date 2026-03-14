@@ -1,4 +1,4 @@
-#include "../../inc/audio.hpp"
+#include "../../inc/synth.hpp"
 
 LPF::LPF(void) {
   reset();

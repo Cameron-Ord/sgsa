@@ -1,5 +1,4 @@
-#include "../../inc/audio.hpp"
-#include "../../inc/controller.hpp"
+#include "../../inc/synth.hpp"
 
 Voice::Voice(void)
     : active_oscillators(0), midi_key(0), env_state(ENV_STATE::OFF), freq(0.0f),

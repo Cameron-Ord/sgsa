@@ -1,4 +1,4 @@
-#include "../../inc/audio.hpp"
+#include "../../inc/synth.hpp"
 #include <cmath>
 
 // Time to HZ forumla: f = 1.0 / T where f is the freq in HZ and T is the period in seconds

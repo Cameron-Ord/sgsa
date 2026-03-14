@@ -28,3 +28,12 @@ u8 set_bit(u8 original, u8 pos) { return original |= pos; }
 bool check_bit(u8 original, u8 mask, u8 want) {
   return (original & mask) == want;
 }
+
+f32 normalize_msg_bipolar(u32 value){
+  return ((f32)value / (INT8_MAX + 1)) * 2.0f - 1.0f;
+}
+
+f32 normalize_msg(u32 value){
+  return ((f32)value / INT8_MAX);
+}
+

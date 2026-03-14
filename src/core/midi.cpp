@@ -1,20 +1,11 @@
-#include "../../inc/controller.hpp"
+#include "../../inc/synth.hpp"
 #include <iostream>
 #include <cstring>
-#include <cmath>
 
 Controller::Controller(const char *name)
     : input_name(name), input_id(-1), stream(NULL), input_buffer() {
   clear_msg_buf();
   list_available_controllers();
-}
-
-f32 Controller::normalize_event_bipolar(i32 value){
-  return ((f32)value / (INT8_MAX + 1)) * 2.0f - 1.0f;
-}
-
-f32 Controller::normalize_event(i32 value){
-  return ((f32)value / INT8_MAX);
 }
 
 bool Controller::open(void) {
@@ -91,8 +82,8 @@ void Controller::get_midi_device_by_name(void) {
 Midi_Input_Msg Controller::parse_event(PmEvent event){
   return Midi_Input_Msg(
     Pm_MessageStatus(event.message),
-    Pm_MessageData1(event.message),
-    Pm_MessageData2(event.message)
+    (i8)Pm_MessageData1(event.message),
+    (i8)Pm_MessageData2(event.message)
   );
 }
 

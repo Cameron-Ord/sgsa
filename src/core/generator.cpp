@@ -1,4 +1,4 @@
-#include "../../inc/audio.hpp"
+#include "../../inc/synth.hpp"
 #include <cmath>
 
 f32 Generator::polyblep(f32 inc, f32 phase){

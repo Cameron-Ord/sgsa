@@ -1,4 +1,4 @@
-#include "../../inc/audio.hpp"
+#include "../../inc/synth.hpp"
 #include "../../inc/util.hpp"
 
 Oscillator::Oscillator(void) : gen(), phase(), time() {}

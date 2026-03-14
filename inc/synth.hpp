@@ -4,9 +4,9 @@
 
 #include <vector>
 #include <array>
+#include <string>
 
-#include <SDL3/SDL.h>
-
+#include <portmidi.h>
 
 #define CENTS_TO_OCTAVE 1.0f / 1200.0f
 #define ONE_SEMITONE_CENTS 100.0f
@@ -48,7 +48,64 @@ enum SIZES : size_t {
   MAX_OSC_COUNT = 6,
 };
 
-void stream_get(void *data, SDL_AudioStream *stream, i32 add, i32 total);
+enum EVENT_CONSTANTS : size_t {
+  INPUT_BUFFER_MAX = 64
+};
+
+enum EVENT_TYPE : size_t {
+  NOTE_ON = 0x90,
+  NOTE_OFF = 0x80,
+  PITCH_BEND = 0xE0,
+  CONTROL = 0xB0,
+  CONTROL_ON = 0x7F,
+  CONTROL_OFF = 0x0,
+  CONTROL_MOD_WHEEL = 1,
+  CONTROL_VOLUME_KNOB = 7,
+};
+
+struct Midi_Input_Msg {
+  Midi_Input_Msg(void) : status(0), msg1(0), msg2(0) {}
+  Midi_Input_Msg(u32 _status, u32 _msg1, u32 _msg2) : status(_status), msg1(_msg1), msg2(_msg2) {}
+  u32 status;
+  u32 msg1, msg2;
+};
+
+struct Keyboard_Command {
+  enum Type : i32 {
+    pitch_bend,
+    note_on,
+    note_off,
+    mod_wheel,
+    vol_knob,
+  } type;
+
+  Midi_Input_Msg input;
+};
+
+class Controller {
+public:
+  Controller(const char *name_arg);
+  ~Controller(void) = default;
+
+  bool open(void);
+  bool close(void);
+  void list_available_controllers(void);
+  void get_midi_device_by_name(void);
+  bool open_stream(i32 bufsize);
+  bool close_stream(void);
+  i32 read_input(void);
+  void clear_msg_buf(void);
+  const PmEvent *get_event_at(i32 pos) const;
+  const std::array<PmEvent, INPUT_BUFFER_MAX>& get_input_buffer(void) const { return input_buffer; }
+  Midi_Input_Msg parse_event(PmEvent event);
+  
+private:
+  std::string input_name;
+  i32 input_id;
+  PortMidiStream *stream;
+  std::array<PmEvent, INPUT_BUFFER_MAX> input_buffer;
+};
+
 
 enum ENV_STATE : size_t { ATK, DEC, REL, SUS, OFF };
 //    STATE_INTEGRATOR,
@@ -154,7 +211,7 @@ public:
   Voice(void);
   LPF &get_lpf(void) { return lpf; }
 
-  i32 get_key(void) const { return midi_key; }
+  u32 get_key(void) const { return midi_key; }
   i32 get_active_count(void) const { return active_oscillators; }
   u8 get_env_state(void) const { return env_state; }
  
@@ -180,7 +237,7 @@ public:
   bool releasing(void) const;
 
   void zero_voice_sums(void);
-  void set_key(i32 key) { midi_key = key; }
+  void set_key(u32 key) { midi_key = key; }
   void set_freq(f32 val) { freq = val; }
   void set_active_count(i32 val) { active_oscillators = val; }
   void set_envelope(f32 val) { envelope = val; }
@@ -191,13 +248,12 @@ public:
   Amp_Modulator& get_amod(void) { return amod; }
   Freq_Modulator& get_fmod(void) { return fmod; }
 
-
   void set_vol_mult(f32 val) { volume_multiplier = val; }
   f32 get_vol_mult(void) { return volume_multiplier; }
 
 private:
   i32 active_oscillators;
-  i32 midi_key;
+  u32 midi_key;
   u8 env_state;
   f32 freq;
   f32 envelope;
@@ -241,8 +297,8 @@ public:
   void zero_loop_sums(void);
   void add_sum_at(size_t pos, f32 sum);
 
-  void loop_voicings_off(i32 midi_key);
-  void loop_voicings_on(i32 midi_key, f32 norm_velocity);
+  void loop_voicings_off(u32 midi_key);
+  void loop_voicings_on(u32 midi_key, f32 norm_velocity);
 
   void set_attack(f32 val) { attack = val; }
   void set_decay(f32 val) { decay = val; }
@@ -293,9 +349,11 @@ public:
   f32 get_trem_depth_max(void) const { return trem_depth_max; } 
   void set_trem_depth(f32 val) { tremolo_depth = val; }
   
-  void update_fmod(f32 normalized_event, i32 type);
   f32 calculate_pitch_bend(f32 cents, f32 normalized_event) const;
   f32 map_vibrato_depth(f32 normalized_event) const;
+
+  std::vector<Keyboard_Command> read_event(Controller& cont);
+  void run_events(std::vector<Keyboard_Command>& commands);
 
 private:
   f32 volume = 1.0f, volume_min = 0.0f, volume_max = 2.0f;
@@ -321,30 +379,6 @@ private:
   Generator generator;
   Delay delay;
   std::array<f32, CHANNEL_MAX> loop_sums;
-};
-
-class Audio_Sys {
-public:
-  Audio_Sys(i32 chan, i32 sample_rate);
-  ~Audio_Sys(void) = default;
-  bool open(void *userdata);
-  void close(void);
-  bool set_audio_callback(void *userdata);
-  bool bind_stream(void);
-  bool unbind_stream(void);
-  bool open_audio_device(void);
-  bool create_audio_stream(void);
-  bool close_audio_device(void);
-  bool destroy_audio_stream(void);
-  bool resume(void);
-  bool pause(void);
-  void clear(void);
-
-private:
-  u32 dev;
-  SDL_AudioStream *stream;
-  SDL_AudioSpec internal;
-  SDL_AudioSpec output;
 };
 
 #endif

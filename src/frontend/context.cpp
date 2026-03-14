@@ -3,10 +3,42 @@
 
 Window::Window(size_t _window_flags, i32 _width, i32 _height) 
   : flags(_window_flags), w(nullptr), width(_width), height(_height),
-  rend(width, height), win_events() {}
+  rend(width, height) {}
 
 Window::~Window(void){
   destroy_window();
+}
+
+void Window::run_events(std::vector<Event_Command>& commands){
+  for(size_t i = 0; i < commands.size(); i++){
+    switch(commands[i].type){
+      default: break;
+      case Event_Command::quit:{
+        set_quit(true);
+      } break;
+    }
+  }
+}
+
+std::vector<Event_Command> Window::read_event(void){
+  SDL_Event event;
+  std::vector<Event_Command> commands(0);
+
+  while (SDL_PollEvent(&event)) {
+    switch (event.type) {
+    default: break;
+
+    case SDL_EVENT_MOUSE_BUTTON_DOWN: {
+      commands.push_back({Event_Command::mouse_down, Mouse_Event{ (i32)event.button.x, (i32)event.button.y }, Key_Event{}});
+    } break;
+
+    case SDL_EVENT_QUIT: {
+      commands.push_back({Event_Command::quit, Mouse_Event{}, Key_Event{}});
+    } break;
+    }
+  }
+
+  return commands;
 }
 
 void Window::destroy_window(void){

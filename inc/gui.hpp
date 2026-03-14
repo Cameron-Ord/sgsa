@@ -12,6 +12,26 @@
 class Window;
 class Renderer;
 
+struct Mouse_Event {
+  i32 x = 0, y = 0;
+};
+
+struct Key_Event {
+  i32 keycode = 0;
+  i32 keymod = 0;
+};
+
+struct Event_Command{
+  enum Type {
+    mouse_down,
+    mouse_up,
+    quit,
+  } type;
+  
+  Mouse_Event mouse;
+  Key_Event key;
+};
+
 struct Param_Float {
   const std::string param_name;
   const f32& max;
@@ -96,11 +116,6 @@ private:
   const i32& window_height;
 };
 
-class Events {
-public:
-private:
-};
-
 class Window {
 public:
   Window(size_t _window_flags, i32 _width, i32 _height);
@@ -113,12 +128,18 @@ public:
   void hide_window(void);
   void show_window(void);
 
+  std::vector<Event_Command> read_event(void);
+  void run_events(std::vector<Event_Command>& commands);
+
+  bool get_quit(void) { return quit; }
+  void set_quit(bool val) { quit = val; }
+
 private:
   size_t flags;
   SDL_Window *w;
   i32 width, height;
   Renderer rend;
-  Events win_events;
+  bool quit = false;
 };
 
 #endif

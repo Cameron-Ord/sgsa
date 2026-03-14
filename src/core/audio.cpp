@@ -1,4 +1,7 @@
-#include "../../inc/audio.hpp"
+#include "../../inc/synth.hpp"
+#include "../../inc/audio_sys.hpp"
+// Wanna split this file up /clean it up at some point
+
 #include <cmath>
 #include <iostream>
 

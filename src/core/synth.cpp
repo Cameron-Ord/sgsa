@@ -1,6 +1,5 @@
-#include "../../inc/audio.hpp"
+#include "../../inc/synth.hpp"
 #include "../../inc/util.hpp"
-#include "../../inc/controller.hpp"
 
 #include <cmath>
 
@@ -12,16 +11,69 @@ Synth::Synth(void)
     : oscs(DEFAULT_OSC_COUNT), voices(), generator(), 
     delay(sample_rate, DEFAULT_DELAY_TIME, DEFAULT_DELAY_FEEDBACK), loop_sums() {}
 
-void Synth::update_fmod(f32 normalized_event, i32 type){
-  switch(type){
-    default: break;
-    case CONTROL_MOD_WHEEL: {
-      set_vibrato_depth(map_vibrato_depth(normalized_event));
-    } break;
-    case PITCH_BEND: {
-      set_pitch_bend(calculate_pitch_bend(TWO_SEMITONE_CENTS, normalized_event));
-    } break;
+void Synth::run_events(std::vector<Keyboard_Command>& commands){
+  for(size_t i = 0; i < commands.size(); i++){
+    switch(commands[i].type){
+      default: break;
+      
+      case Keyboard_Command::pitch_bend: {
+        f32 bend = calculate_pitch_bend(TWO_SEMITONE_CENTS, normalize_msg_bipolar(commands[i].input.msg2));
+        set_pitch_bend(bend);
+      } break;
+
+      case Keyboard_Command::note_on: {
+        loop_voicings_on(commands[i].input.msg1, normalize_msg(commands[i].input.msg2));
+      } break;
+      
+      case Keyboard_Command::note_off: {
+        loop_voicings_off(commands[i].input.msg1);
+      } break;
+      
+      case Keyboard_Command::mod_wheel: {
+        set_vibrato_depth(map_vibrato_depth(normalize_msg(commands[i].input.msg2)));
+      } break;
+      //not impl
+      case Keyboard_Command::vol_knob: {
+      } break;
+    }
   }
+}
+
+std::vector<Keyboard_Command> Synth::read_event(Controller& cont) {
+  cont.clear_msg_buf();
+  std::vector<Keyboard_Command> commands(0);
+
+  const i32 event_count = cont.read_input();
+  for(i32 i = 0; i < event_count; i++){
+    const PmEvent *ev = cont.get_event_at(i);
+    if(!ev){
+      continue;
+    }
+    Midi_Input_Msg msg = cont.parse_event(*ev);
+    
+    switch(msg.status){
+      case CONTROL:{
+        switch(msg.msg1){
+          case CONTROL_MOD_WHEEL:{
+            commands.push_back({ Keyboard_Command::mod_wheel, msg });
+          } break;
+        }
+      }break;
+
+      case PITCH_BEND:{
+        commands.push_back({ Keyboard_Command::pitch_bend, msg });
+      } break;
+
+      case NOTE_ON: {
+        commands.push_back({ Keyboard_Command::note_on, msg });
+      }break;
+      case NOTE_OFF: {
+        commands.push_back({ Keyboard_Command::note_off, msg });
+      }break;
+    }
+  }
+
+  return commands;
 }
 
 f32 Synth::calculate_pitch_bend(f32 cents, f32 normalized_midi_event) const {
@@ -59,7 +111,7 @@ void Synth::add_sum_at(size_t pos, f32 sum){
   }
 }
 
-void Synth::loop_voicings_off(i32 midi_key) {
+void Synth::loop_voicings_off(u32 midi_key) {
   for (size_t i = 0; i < voices.size(); i++) {
     Voice *v = &voices[i];
     if (v->get_key() == midi_key) {
@@ -71,13 +123,13 @@ void Synth::loop_voicings_off(i32 midi_key) {
   }
 }
 
-void Synth::loop_voicings_on(i32 midi_key, f32 normalized_velocity) {
+void Synth::loop_voicings_on(u32 midi_key, f32 normalized_velocity) {
   for (size_t i = 0; i < voices.size(); i++) {
     Voice *v = &voices[i];
     if (v->get_active_count() <= 0 && v->done()) {
       v->set_active_count(0);
       v->set_key(midi_key);
-      v->set_freq(midi_to_freq(midi_key));
+      v->set_freq(midi_to_freq((i32)midi_key));
       v->get_lpf().reset();
 
       for (size_t o = 0; o < oscs.size(); o++) {
