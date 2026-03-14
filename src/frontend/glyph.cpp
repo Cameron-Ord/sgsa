@@ -27,7 +27,7 @@ Glyphs::~Glyphs(void){
 const Glyph_Entry *Glyphs::get_glyph_at(const u8 ch, size_t colour_index) const {
   if(colour_index >= glyph_table.size() && glyph_table.size() > 0){
     colour_index = glyph_table.size() - 1;
-  } else {
+  } else if(glyph_table.size() == 0) {
     return nullptr;
   }
 

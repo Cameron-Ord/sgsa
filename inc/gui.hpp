@@ -65,7 +65,7 @@ private:
 
 class Renderer {
 public:
-  Renderer(void);
+  Renderer(const i32& _window_width, const i32& _window_height);
   ~Renderer(void);
   
   void destroy_renderer(void);
@@ -74,12 +74,18 @@ public:
   void clear(void);
   void clear_colour(u8 r, u8 g, u8 b, u8 a);
   void present(void);
-  void render_float_list(std::vector<Param_Float> params, i32 viewport_index);
+  void render_float_list(std::vector<Param_Float> params, size_t viewport_index, const Glyphs& g);
+  void render_string(const Glyphs& g, const std::string& str, const i32& y);
+  void render_char(const Glyph_Entry *glyph, const i32& y, const i32& x);
+  void set_viewport(const SDL_Rect& viewport);
+  const SDL_Rect* get_viewport_at(size_t pos) const;
   SDL_Renderer *get_renderer(void) { return r; }
 
 private:
   std::array<SDL_Rect, SCREEN_SIZE> viewports;
   SDL_Renderer *r;
+  const i32& window_width;
+  const i32& window_height;
 };
 
 class Events {

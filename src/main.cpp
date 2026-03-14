@@ -107,6 +107,14 @@ int main(int argc, char **argv) {
   Controller controller(name_arg);
   Audio_Sys audio(syn.get_synth_cfg().channels, syn.get_synth_cfg().sample_rate);
 
+
+  std::vector<Param_Float> items = {
+    Param_Float{ "test", syn.get_synth_cfg().gain },
+    Param_Float{ "test", syn.get_synth_cfg().gain },
+    Param_Float{ "test", syn.get_synth_cfg().gain },
+    Param_Float{ "test", syn.get_synth_cfg().gain }
+  };
+
   audio.open(&syn);
   controller.open();
   win.show_window();
@@ -155,7 +163,9 @@ int main(int argc, char **argv) {
         }break;
       }
     }
+    
 
+    win.get_render_class().render_float_list(items, SCREEN_LEFT, glyphs);
     win.get_render_class().present();
 
     const u64 FT = SDL_GetTicks() - START;

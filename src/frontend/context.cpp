@@ -3,7 +3,7 @@
 
 Window::Window(size_t _window_flags, i32 _width, i32 _height) 
   : flags(_window_flags), w(nullptr), width(_width), height(_height),
-  rend(), win_events() {}
+  rend(width, height), win_events() {}
 
 Window::~Window(void){
   destroy_window();
@@ -14,7 +14,6 @@ void Window::destroy_window(void){
     SDL_DestroyWindow(w);
   }
 }
-
 
 void Window::hide_window(void){
   if(!SDL_HideWindow(w)){
@@ -47,8 +46,16 @@ void Window::update_size(void){
   width = tmp_width, height = tmp_height;
 }
 
-Renderer::Renderer(void) 
-  : viewports(), r(nullptr) {}
+Renderer::Renderer(const i32& _window_width, const i32& _window_height) 
+  : viewports(), r(nullptr), window_width(_window_width), window_height(_window_height) {
+  const i32 half_width = window_width / 2;
+
+  SDL_Rect& left = viewports[SCREEN_LEFT];
+  SDL_Rect& right = viewports[SCREEN_RIGHT];
+
+  left = SDL_Rect{0, 0, half_width, window_height};
+  right = SDL_Rect{half_width, 0, half_width, window_height}; 
+}
 
 Renderer::~Renderer(void){
   destroy_renderer();
@@ -77,6 +84,17 @@ SDL_Texture *Renderer::create_texture(SDL_Surface *surf){
     return nullptr;
   }
   return texture;
+}
+
+void Renderer::set_viewport(const SDL_Rect& viewport){
+  SDL_SetRenderViewport(r, &viewport);
+}
+
+const SDL_Rect *Renderer::get_viewport_at(size_t pos) const {
+  if(pos < viewports.size()){
+    return &viewports[pos];
+  }
+  return nullptr;
 }
 
 void Renderer::clear_colour(u8 r8, u8 g8, u8 b8, u8 a8) {

@@ -1,7 +1,7 @@
 TARGET = sgsa
 CC = x86_64-w64-mingw32-g++
 LFLAGS = -lm -lSDL3 -lSDL3_ttf -lportmidi 
-CFLAGS  = -Wall -Wextra -Wpedantic -O3 -std=c++17
+CFLAGS  = -Wall -Wextra -Wpedantic -O0 -std=c++17
 DEBUG_CFLAGS = -Wshadow -Wconversion -Wnull-dereference -Wdouble-promotion -g
 
 SRCS = src/main.cpp
@@ -17,6 +17,7 @@ SRCS += src/core/delay.cpp
 SRCS += src/core/modulations.cpp
 
 SRCS += src/frontend/context.cpp
+SRCS += src/frontend/renderer.cpp
 SRCS += src/frontend/glyph.cpp
 
 all: $(TARGET)
