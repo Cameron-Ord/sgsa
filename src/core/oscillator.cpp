@@ -1,7 +1,7 @@
 #include "../../inc/audio.hpp"
 #include "../../inc/util.hpp"
 
-Oscillator::Oscillator(void) : gen(), inc(0.0f), phase(0.0f), time(0.0f) {}
+Oscillator::Oscillator(void) : gen(), phase(), time() {}
 
 f32 Oscillator::phase_clamp(f32 phase_val, f32 max) {
   if(phase_val < 0.0f){
@@ -12,35 +12,58 @@ f32 Oscillator::phase_clamp(f32 phase_val, f32 max) {
   return phase_val;
 }
 
-f32 Oscillator::get_sample_at(size_t pos) const {
-  if(pos >= gen.size()){
-    return 0.0f;
+std::array<f32, CHANNEL_MAX>* Oscillator::get_sample_array_at(size_t pos){
+  if(pos < VOICES){
+    return &gen[pos];
   }
-  return gen[pos];
+  return nullptr;
 }
 
-void Oscillator::mult_sample_at(size_t pos, f32 factor){
-  if(pos < gen.size()){
-    gen[pos] = gen[pos] * factor;
+f32 Oscillator::get_phase_at(size_t pos) const {
+  if(pos < VOICES){
+    return phase[pos];
+  }
+  return 0.0f;
+}
+
+f32 Oscillator::get_time_at(size_t pos) const {
+  if(pos < VOICES){
+    return time[pos];
+  }
+  return 0.0f;
+}
+
+f32 Oscillator::get_sample_at(const std::array<f32, CHANNEL_MAX>* buf, size_t pos) const {
+  if(buf && pos < buf->size()){
+    return (*buf)[pos];
+  }
+  return 0.0f;
+}
+
+void Oscillator::set_sample_at(std::array<f32, CHANNEL_MAX>* buf, size_t pos, f32 value) {
+  if(buf && pos < buf->size()){
+    (*buf)[pos] = value;
   }
 }
 
-void Oscillator::set_sample_at(size_t pos, f32 value) {
-  if(pos < gen.size()){
-    gen[pos] = value;
+void Oscillator::reset(size_t voice_index) {
+  if(voice_index < VOICES){
+    phase[voice_index] = rand_f32_range(0.0f, 0.5f);
+    time[voice_index] = 0.0f;
   }
 }
 
-void Oscillator::start(void) {
-  phase = rand_f32_range(0.0f, 0.1f);
-  time = 0.0f;
+void Oscillator::increment_time_at(f32 dt, size_t pos) { 
+  if(pos < VOICES){
+    time[pos] += dt;
+  }
 }
 
-void Oscillator::increment_time(f32 dt) { time += dt; }
-
-void Oscillator::increment_phase(f32 max) {
-  phase += inc;
-  if (phase >= max) {
-    phase -= max;
+void Oscillator::increment_phase_at(f32 inc, f32 max, size_t pos) {
+  if(pos < VOICES){
+    phase[pos] += inc;
+    if (phase[pos] >= max) {
+      phase[pos] -= max;
+    }
   }
 }

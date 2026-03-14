@@ -95,24 +95,18 @@ int main(int argc, char **argv) {
     return 1;
   }
   glyphs.find_line_skip();
-  std::cout << "here1" << std::endl;
 
   if(!glyphs.table_allocate(win.get_render_class())){
     quit();
     return 1;
   }
-  std::cout << "here2" << std::endl;
 
   Synth syn;
   Controller controller(name_arg);
-  Audio_Sys audio(syn.get_synth_cfg().channels, syn.get_synth_cfg().sample_rate);
+  Audio_Sys audio(syn.get_channels(), syn.get_sample_rate());
 
 
   std::vector<Param_Float> items = {
-    Param_Float{ "test", syn.get_synth_cfg().gain },
-    Param_Float{ "test", syn.get_synth_cfg().gain },
-    Param_Float{ "test", syn.get_synth_cfg().gain },
-    Param_Float{ "test", syn.get_synth_cfg().gain }
   };
 
   audio.open(&syn);
@@ -146,13 +140,13 @@ int main(int argc, char **argv) {
         case CONTROL:{
           switch(msg.msg1){
             case CONTROL_MOD_WHEEL:{
-              syn.loop_voicings_fmod(controller.normalize_event(msg.msg2), CONTROL_MOD_WHEEL);
+              syn.update_fmod(controller.normalize_event(msg.msg2), CONTROL_MOD_WHEEL);
             } break;
           }
         }break;
 
         case PITCH_BEND:{
-          syn.loop_voicings_fmod(controller.normalize_event_bipolar(msg.msg2), PITCH_BEND);
+          syn.update_fmod(controller.normalize_event_bipolar(msg.msg2), PITCH_BEND);
         } break;
 
         case NOTE_ON: {

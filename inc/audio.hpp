@@ -1,7 +1,5 @@
 #ifndef AUDIO_HPP
 #define AUDIO_HPP
-
-#include "config.hpp"
 #include "typedef.hpp"
 
 #include <vector>
@@ -28,6 +26,28 @@ f32 polynomial_soft_clip(f32 sample, f32 gain);
 
 #define NYQUIST(samplerate) (samplerate) / 2.0f
 
+enum LFO_ACCESS : i32 {
+  LFO_1,
+  LFO_2,
+  LFO_COUNT
+};
+
+enum WAVEFORM_TYPE : size_t {
+  SAW = 0,
+  SINE = 1,
+  SQUARE = 2,
+  TRIANGLE = 3,
+  PULSE = 4,
+  WAVEFORM_COUNT,
+};
+
+enum SIZES : size_t {
+  VOICES = 16,
+  CONTROLLER_NAME_MAX = 256,
+  CHANNEL_MAX = 2,
+  MAX_OSC_COUNT = 6,
+};
+
 void stream_get(void *data, SDL_AudioStream *stream, i32 add, i32 total);
 
 enum ENV_STATE : size_t { ATK, DEC, REL, SUS, OFF };
@@ -50,95 +70,88 @@ private:
 
 class Lfo {
 public:
-  Lfo(void) : phase(0.0f) {}
+  Lfo(void) : active(true), phase(0.0f) {}
   void increment(f32 rate, i32 sample_rate);
+  void set_active(bool val) { active = val; }
+  bool get_active_state(void) { return active; }
   f32 lfo_sine(void);
 private:
+  bool active;
   f32 phase;
 };
 
 class Amp_Modulator {
 public:
-  Amp_Modulator(void);
-  f32 get_trem_rate(void) const { return tremolo_rate; } 
-  f32 get_trem_depth(void) const { return tremolo_depth; } 
-  void set_trem_depth(f32 val) { tremolo_depth = val; }
+  Amp_Modulator(void) : lfo() {}
   Lfo& get_lfo(void) { return lfo; }
 private:
-  f32 tremolo_rate;
-  f32 tremolo_depth;
   Lfo lfo;
 };
 
 class Freq_Modulator {
 public:
-  Freq_Modulator(void);
+  Freq_Modulator(void) : lfo() {}
   
-  void set_pitch_bend(f32 val) { pitch_bend = val; }
-  f32 calculate_pitch_bend(f32 cents, f32 normalized_event);
-  f32 get_pitch_bend(void) const { return pitch_bend; }
-
-  void set_vibrato_depth(f32 val) { vibrato_depth = val; }
-  f32 map_vibrato_depth(f32 normalized_event);
-  f32 get_vibrato_depth(void) const { return vibrato_depth; }
-  f32 get_vibrato_rate(void) const { return vibrato_rate; }
   f32 create_vibrato(f32 sine, f32 cents) const;
 
   Lfo& get_lfo(void) { return lfo; }
 private:
-  f32 pitch_bend;
-  f32 vibrato_rate;
-  f32 vibrato_depth;
-  const f32 vibrato_max;
   Lfo lfo;
 };
 
 class LPF {
 public:
-  LPF(f32 cutoff, i32 sample_rate);
+  LPF(void);
   void reset(void);
-  void set_alpha(f32 val)  { alpha = val; }
-  void lerp(const std::array<f32, CHANNEL_MAX>& target, size_t c);
+  void lerp(const std::array<f32, CHANNEL_MAX>& target, size_t c, i32 sample_rate, f32 cutoff);
+  f32 alpha(f32 cutoff, i32 sample_rate);
  
-  f32 get_alpha(void) const { return alpha; }
-  f32 derive_alpha(f32 cutoff, i32 sample_rate);
   std::array<f32, CHANNEL_MAX>& get_array(void) { return low; }
   const std::array<f32, CHANNEL_MAX>& get_array(void) const { return low; }
   f32 get_value_at(size_t pos) const;
 
 private:
-  f32 alpha;
   std::array<f32, CHANNEL_MAX> low;
 };
-
 
 class Oscillator {
 public:
   Oscillator(void);
-
-  f32 get_phase_val(void) const { return phase; }
-  f32 get_time_val(void) const { return time; }
-  std::array<f32, CHANNEL_MAX>& get_sample_array(void) { return gen; }
-  f32 get_sample_at(size_t pos) const;
+  void reset(size_t voice_index);
   
   f32 phase_clamp(f32 phase_val, f32 max);
-  void mult_sample_at(size_t pos, f32 factor);
-  void set_sample_at(size_t pos, f32 value); 
-  void start(void);
-  void increment_phase(f32 max);
-  void increment_time(f32 dt);
-  f32& get_inc(void) { return inc; }
+  void increment_phase_at(f32 inc, f32 max, size_t pos);
+  void increment_time_at(f32 dt, size_t pos);
+ 
+  std::array<f32, CHANNEL_MAX>* get_sample_array_at(size_t pos);
+  f32 get_sample_at(const std::array<f32, CHANNEL_MAX>*buf, size_t pos) const;
+  void set_sample_at(std::array<f32, CHANNEL_MAX>*buf, size_t pos, f32 value); 
+
+  f32 get_inc_at(size_t pos) const;
+  f32 get_phase_at(size_t pos) const;
+  f32 get_time_at(size_t pos) const;
+
+  f32 get_detune(void) const { return detune; }
+  f32 get_duty(void) const { return duty; }
+  i32 get_waveform(void) const { return waveform; }
+
+  void set_detune(f32 val) { detune = val; }
+  void set_duty(f32 val) { duty = val; }
+  void set_waveform(i32 val) { waveform = val; }
 
 private:
-  std::array<f32, CHANNEL_MAX> gen;
-  f32 inc;
-  f32 phase;
-  f32 time;
+  f32 detune = 1.0f, detune_min = 0.9f, detune_max = 1.1f;
+  f32 duty = 0.5f, duty_min = 0.1f, duty_max = 1.0f;
+  i32 waveform = SAW;
+
+  std::array<std::array<f32, CHANNEL_MAX>, VOICES> gen;
+  std::array<f32, VOICES> phase;
+  std::array<f32, VOICES> time;
 };
 
 class Voice {
 public:
-  Voice(f32 cutoff_low, i32 sample_rate, size_t osc_count);
+  Voice(void);
   LPF &get_lpf(void) { return lpf; }
 
   i32 get_key(void) const { return midi_key; }
@@ -147,10 +160,6 @@ public:
  
   f32 get_envelope(void) const { return envelope; }
   f32 get_freq(void) const { return freq; }
-
-  std::vector<Oscillator> &get_osc_array(void) { return oscs; }
-  const std::vector<Oscillator> &get_osc_array(void) const { return oscs; }
-  Oscillator* get_osc_at(size_t pos);
 
   std::array<f32, CHANNEL_MAX>& get_sum_array(void) { return voice_sums; }
   std::array<f32, CHANNEL_MAX>& get_clipped_array(void) { return clipped_sums; }
@@ -182,8 +191,6 @@ public:
   Amp_Modulator& get_amod(void) { return amod; }
   Freq_Modulator& get_fmod(void) { return fmod; }
 
-  void update_fmod(f32 normalized_event, i32 type);
-  void update_amod(f32 normalized_velocity);
 
   void set_vol_mult(f32 val) { volume_multiplier = val; }
   f32 get_vol_mult(void) { return volume_multiplier; }
@@ -194,7 +201,6 @@ private:
   u8 env_state;
   f32 freq;
   f32 envelope;
-  std::vector<Oscillator> oscs;
   Freq_Modulator fmod;
   Amp_Modulator amod;
   f32 volume_multiplier;
@@ -221,37 +227,79 @@ private:
 class Synth {
 public:
   Synth(void);
-  void zero_loop_sums(void);
-  std::array<f32, CHANNEL_MAX>& get_sum_array(void) { return loop_sums; }
-  void add_sum_at(size_t pos, f32 sum);
   f32 get_sum_at(size_t pos);
 
-  Generator& get_generator(void) { return generator; }
-
-  const Synth_Cfg &get_synth_cfg(void) const { return synth_cfg; }
-  const Envelope_Cfg &get_env_cfg(void) const { return env_cfg; }
- 
-  const std::vector<Oscillator_Cfg>& get_osc_cfgs(void) const { return osc_cfgs; }
-  const std::vector<Voice> &get_voices(void) const { return voices; }
-  std::vector<Voice> &get_voices(void) { return voices; }
- 
-  const Oscillator_Cfg *get_osc_cfg_at(size_t pos) const;
-  size_t get_osc_count(void) const { return osc_cfgs.size(); }
   Delay& get_delay(void) { return delay; }
+  Generator& get_generator(void) { return generator; }
   
-  void set_cfg(Synth_Cfg c) { synth_cfg = c; }
-  void set_osc_cfgs(std::vector<Oscillator_Cfg> ocfgs){ osc_cfgs = ocfgs; }
-  void update_lpf(void);
-  void new_Oscillators(std::vector<Oscillator_Cfg> osc_cfgs);
+  std::array<f32, CHANNEL_MAX>& get_sum_array(void) { return loop_sums; }
+  std::array<Voice, VOICES> &get_voices(void) { return voices; }
+  const std::array<Voice, VOICES> &get_voices(void) const { return voices; }
+  std::vector<Oscillator>& get_oscillators(void) { return oscs; }
+  Oscillator *get_osc_at(size_t pos);
+ 
+  void zero_loop_sums(void);
+  void add_sum_at(size_t pos, f32 sum);
+
   void loop_voicings_off(i32 midi_key);
   void loop_voicings_on(i32 midi_key, f32 norm_velocity);
-  void loop_voicings_fmod(f32 normalized_event, i32 type);
+
+  void set_attack(f32 val) { attack = val; }
+  void set_decay(f32 val) { decay = val; }
+  void set_sustain(f32 val) { sustain = val; }
+  void set_release(f32 val) { release = val; }
+
+  f32 get_attack(void) { return attack; }
+  f32 get_decay(void) { return decay; }
+  f32 get_sustain(void) { return sustain; }
+  f32 get_release(void) { return release; }
+
+  void set_volume(f32 val) { volume = val; }
+  void set_gain(f32 val) { gain = val; }
+  void set_low_pass(f32 val) { low_pass_hz = val; }
+  
+  f32 get_volume(void) { return volume; }
+  f32 get_gain(void) { return gain; }
+  f32 get_low_pass(void) { return low_pass_hz; }
+  i32 get_channels(void) { return channels; }
+  i32 get_sample_rate(void) { return sample_rate; }
+
+  f32 get_vibrato_depth(void) const { return vibrato_depth; }
+  f32 get_vibrato_rate(void) const { return vibrato_rate; }
+  void set_vibrato_depth(f32 val) { vibrato_depth = val; }
+
+  f32 get_pitch_bend(void) const { return pitch_bend; }
+  void set_pitch_bend(f32 val) { pitch_bend = val; }
+
+  f32 get_trem_rate(void) const { return tremolo_rate; } 
+  f32 get_trem_depth(void) const { return tremolo_depth; } 
+  void set_trem_depth(f32 val) { tremolo_depth = val; }
+  
+  void update_fmod(f32 normalized_event, i32 type);
+  f32 calculate_pitch_bend(f32 cents, f32 normalized_event) const;
+  f32 map_vibrato_depth(f32 normalized_event) const;
 
 private:
-  Synth_Cfg synth_cfg;
-  Envelope_Cfg env_cfg;
-  std::vector<Oscillator_Cfg> osc_cfgs;
-  std::vector<Voice> voices;
+  f32 volume = 1.0f, volume_max = 2.0f;
+  f32 gain = 1.0f, gain_max = 16.0f;
+  f32 low_pass_hz = 2000.0f, low_pass_hz_max = 20000.0f;
+  i32 channels = 2, channel_max = 2;
+  i32 sample_rate = 48000, sample_rate_max = 96000;
+
+  f32 attack = 0.1f, attack_max = 2.5f;
+  f32 decay = 0.1f, decay_max = 2.5f;
+  f32 sustain = 0.1f, sustain_max = 2.5f;
+  f32 release = 0.1f, release_max = 2.5f;
+
+  f32 pitch_bend = 1.0f;
+  f32 vibrato_rate = 5.0f, vibrato_rate_max = 15.0f;
+  f32 vibrato_depth = 0.0f, vibrato_max = 50.0f;
+  
+  f32 tremolo_rate = 2.0f, trem_rate_max = 16.0f;
+  f32 tremolo_depth = 0.1f, trem_depth_max = 1.0f;
+
+  std::vector<Oscillator> oscs;
+  std::array<Voice, VOICES> voices;
   Generator generator;
   Delay delay;
   std::array<f32, CHANNEL_MAX> loop_sums;

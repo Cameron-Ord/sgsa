@@ -1,10 +1,9 @@
 #include "../../inc/audio.hpp"
 #include "../../inc/controller.hpp"
 
-Voice::Voice(f32 cutoff, i32 sample_rate, size_t osc_count)
+Voice::Voice(void)
     : active_oscillators(0), midi_key(0), env_state(ENV_STATE::OFF), freq(0.0f),
-      envelope(0.0f), oscs(osc_count, Oscillator()), 
-      fmod(), amod(), volume_multiplier(1.0f), lpf(cutoff, sample_rate), 
+      envelope(0.0f), fmod(), amod(), volume_multiplier(1.0f), lpf(), 
       voice_sums(), clipped_sums(), filtered_sums(), voice_out(){}
 
 f32 Voice::get_filtered_at(size_t pos) const {
@@ -65,29 +64,6 @@ f32 Voice::get_out_at(size_t pos) const {
   return 0.0f;
 }
 
-
-void Voice::update_fmod(f32 normalized_event, i32 type){
-  switch(type){
-    default: break;
-    case CONTROL_MOD_WHEEL: {
-      fmod.set_vibrato_depth(fmod.map_vibrato_depth(normalized_event));
-    } break;
-    case PITCH_BEND: {
-      fmod.set_pitch_bend(fmod.calculate_pitch_bend(TWO_SEMITONE_CENTS, normalized_event));
-    } break;
-  }
-}
-
-void Voice::update_amod(f32 normalized_velocity){
-  amod.set_trem_depth(normalized_velocity);
-}
-
-Oscillator *Voice::get_osc_at(size_t pos){
-  if(pos < oscs.size()){
-    return &oscs[pos];
-  }
-  return nullptr;
-}
 
 bool Voice::done(void) const { return env_state == ENV_STATE::OFF; }
 

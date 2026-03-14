@@ -79,10 +79,8 @@ static void delay_loop(Synth *syn, size_t count, f32 *sample_buffer){
 
 static void voice_loop(Synth *syn) {
   syn->zero_loop_sums();
-  const Synth_Cfg &p = syn->get_synth_cfg();
-  const Envelope_Cfg &e = syn->get_env_cfg();
 
-  for (size_t i = 0; i < (size_t)p.voicings && i < SIZES::VOICES; i++) {
+  for (size_t i = 0; i < SIZES::VOICES; i++) {
     Voice &v = syn->get_voices()[i];
     if (v.get_active_count() <= 0 && !v.releasing()) {
       continue;
@@ -92,78 +90,73 @@ static void voice_loop(Synth *syn) {
     Freq_Modulator& m = v.get_fmod();
     Amp_Modulator& a = v.get_amod();
 
-    m.get_lfo().increment(m.get_vibrato_rate(), p.sample_rate);
-    const f32 vib = m.create_vibrato(m.get_lfo().lfo_sine(), m.get_vibrato_depth());
+    m.get_lfo().increment(syn->get_vibrato_rate(), syn->get_sample_rate());
+    const f32 vib = m.create_vibrato(m.get_lfo().lfo_sine(), syn->get_vibrato_depth());
 
-    a.get_lfo().increment(a.get_trem_rate(), p.sample_rate);
-    const f32 trem = 1.0f + (a.get_lfo().lfo_sine() * a.get_trem_depth());
+    a.get_lfo().increment(syn->get_trem_rate(), syn->get_sample_rate());
+    const f32 trem = 1.0f + (a.get_lfo().lfo_sine() * syn->get_trem_depth());
 
-    for (size_t o = 0; o < syn->get_osc_count(); o++) {
-      Oscillator *osc = v.get_osc_at(o);
-      const Oscillator_Cfg *osc_cfg = syn->get_osc_cfg_at(o);
-
-      if(!osc || !osc_cfg) {
+    for (size_t o = 0; o < syn->get_oscillators().size(); o++) {
+      Oscillator *osc = syn->get_osc_at(o);
+      if(!osc){
         continue;
       }
-      const f32 freq = v.get_freq() * osc_cfg->detune * m.get_pitch_bend() * vib; 
 
-      const f32 dt = 1.0f / (f32)p.sample_rate;
-      const f32 inc = freq / (f32)p.sample_rate;
+      const f32 freq = v.get_freq() * osc->get_detune() * syn->get_pitch_bend() * vib; 
 
-      f32 alpha = 1.0f - expf(-dt / 0.001f);
-      osc->get_inc() += (inc - osc->get_inc()) * alpha;
+      const f32 dt = 1.0f / (f32)syn->get_sample_rate();
+      const f32 inc = freq / (f32)syn->get_sample_rate();
 
-      osc->increment_time(dt);
-      osc->increment_phase(1.0f);
+      osc->increment_time_at(dt, i);
+      osc->increment_phase_at(inc, 1.0f, i);
 
-      for (size_t c = 0; c < (size_t)p.channels; c++) {
+      for (size_t c = 0; c < (size_t)syn->get_channels(); c++) {
         f32 sample = 0.0f;
-        switch(osc_cfg->waveform){
+        switch(osc->get_waveform()){
           case SAW:{
-            sample = syn->get_generator().poly_saw(osc->get_inc(), osc->get_phase_val());
+            sample = syn->get_generator().poly_saw(inc, osc->get_phase_at(i));
           }break;
           case SQUARE:{
-            sample = syn->get_generator().poly_square(osc->get_inc(), osc->get_phase_val(), osc_cfg->duty);
+            sample = syn->get_generator().poly_square(inc, osc->get_phase_at(i), osc->get_duty());
           }break;
         }
-        osc->set_sample_at(c, sample);
-        v.add_sum_at(c, osc->get_sample_at(c));
+        osc->set_sample_at(osc->get_sample_array_at(i), c, sample);
+        v.add_sum_at(c, osc->get_sample_at(osc->get_sample_array_at(i), c));
       }
     }
     
     // saturate (make optional at some point)
-    for(size_t c = 0; c < (size_t)p.channels; c++){
-      v.set_clipped_at(c, polynomial_soft_clip(v.get_sum_at(c), p.gain));
+    for(size_t c = 0; c < (size_t)syn->get_channels(); c++){
+      v.set_clipped_at(c, polynomial_soft_clip(v.get_sum_at(c), syn->get_gain()));
     }
 
     //filter
-    for (size_t c = 0; c < (size_t)p.channels; c++) {
-      v.get_lpf().lerp(v.get_clipped_array(), c);
+    for (size_t c = 0; c < (size_t)syn->get_channels(); c++) {
+      v.get_lpf().lerp(v.get_clipped_array(), c, syn->get_sample_rate(), syn->get_low_pass());
       v.set_filtered_at(c, v.get_lpf().get_value_at(c));
     }
 
-    v.adsr(p.sample_rate, e.env_attack, e.env_decay, e.env_sustain,
-           e.env_release);
+    v.adsr(syn->get_sample_rate(), syn->get_attack(), syn->get_decay(), syn->get_sustain(), syn->get_release());
 
     // Apply amplitude scalars and scale per OSC
-    for(size_t c = 0; c < (size_t)p.channels; c++){
+    for(size_t c = 0; c < (size_t)syn->get_channels(); c++){
       const f32 sample = v.get_filtered_at(c);
       const f32 mixed = sample * trem * v.get_vol_mult() * v.get_envelope();
-      const f32 scaled = mixed * (1.0f / sqrtf((f32)syn->get_osc_count()));
+      const f32 scaled = mixed * (1.0f / sqrtf((f32)syn->get_oscillators().size()));
       v.set_out_at(c, scaled);
     }
 
     // Add scaled sum of osc and scale per VOICE
-    for (size_t c = 0; c < (size_t)p.channels; c++) {
+    for (size_t c = 0; c < (size_t)syn->get_channels(); c++) {
       const f32 sample = v.get_out_at(c);
-      const f32 scaled = sample * (1.0f / sqrtf(((f32)p.voicings)));
+      const f32 scaled = sample / sqrtf(((f32)VOICES));
       syn->add_sum_at(c, scaled);
     }
   }
 }
 
 static void generate_loop(Synth *syn, size_t count, f32 *sample_buffer) {
-  const size_t channels = static_cast<size_t>(syn->get_synth_cfg().channels);
+  const size_t channels = static_cast<size_t>(syn->get_channels());
   const size_t N = static_cast<size_t>(count / channels);
   for (size_t n = 0; n < N; n++) {
     voice_loop(syn);
