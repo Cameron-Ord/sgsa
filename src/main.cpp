@@ -9,7 +9,6 @@
 static bool initialize(void);
 static bool quit(void);
 
-
 static bool initialize(void) {
   if (!SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO)) {
     std::cerr << "Failed to initialize SDL! -> " << SDL_GetError() << std::endl;
@@ -36,19 +35,6 @@ static bool quit(void) {
     return false;
   }
   return true;
-}
-
-std::vector<Generic_Param> make_generic_param_list(const Synth& syn) {
-  std::vector<Generic_Param> items = {
-    Generic_Param{ "Attack", syn.get_attack_max(), syn.get_attack_min(), syn.get_attack() },
-    Generic_Param{ "Decay", syn.get_decay_max(), syn.get_decay_min(), syn.get_decay() },
-    Generic_Param{ "Sustain", syn.get_sustain_max(), syn.get_sustain_min(), syn.get_sustain() },
-    Generic_Param{ "Release", syn.get_release_max(), syn.get_release_min(), syn.get_release() },
-    Generic_Param{ "Low-Pass Filter Hz", syn.get_low_pass_max(), syn.get_low_pass_min(), syn.get_low_pass() },
-    Generic_Param{ "Gain", syn.get_gain_max(), syn.get_gain_min(), syn.get_gain() },
-    Generic_Param{ "Tremolo Depth", syn.get_trem_depth_max(), syn.get_trem_depth_min(), syn.get_trem_depth() }
-  };
-  return items;
 }
 
 int main(int argc, char **argv) {
@@ -87,7 +73,7 @@ int main(int argc, char **argv) {
   }
 
 
-  Glyphs glyphs("arial.ttf", 12.0f);
+  Glyphs glyphs("arial.ttf", 18.0f);
   if(!glyphs.open()){
     quit();
     return 1;
@@ -103,9 +89,7 @@ int main(int argc, char **argv) {
   Controller controller(name_arg);
   Audio_Sys audio(syn.get_channels(), syn.get_sample_rate());
 
-  win.get_render_class().generic_list_copy(make_generic_param_list(syn));
-  win.get_render_class().generic_list_set_positions(glyphs.get_line_skip());
-
+  win.get_render_class().make_render_data(&syn);
   audio.open(&syn);
   controller.open();
   win.show_window();
@@ -118,14 +102,14 @@ int main(int argc, char **argv) {
     win.get_render_class().clear_colour(0, 0, 0, 255);
     win.get_render_class().clear();
     
-    std::vector<Event_Command> sdl_cmds = win.read_event();
+    std::vector<Event_Command> sdl_cmds = win.get_event_class().read_event();
     std::vector<Keyboard_Command> midi_cmds = syn.read_event(controller);
 
     syn.run_events(midi_cmds);
-    win.run_events(sdl_cmds);
+    win._run_events(sdl_cmds);
     
     win.get_render_class().clear_colour(255, 255, 255, 255);
-    win.get_render_class().render_generic_list(SCREEN_LEFT, glyphs);
+    win.get_render_class().render_generic_data(glyphs);
     win.get_render_class().present();
 
     const u64 FT = SDL_GetTicks() - START;

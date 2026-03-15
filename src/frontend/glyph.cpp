@@ -11,8 +11,8 @@ Glyphs::Glyphs(std::string _file_path, f32 _font_size)
   font(nullptr), line_skip(0) {
 
     std::array default_colours{
-      SDL_Color{ 255, 255, 255, 255 }, 
-      SDL_Color{ 0, 0, 0, 255 }
+      SDL_Color{ 0, 0, 0, 255 },
+      SDL_Color{ 255, 255, 255, 255 }
     };
 
     for(size_t i = 0; i < colours.size(); i++){
@@ -22,6 +22,19 @@ Glyphs::Glyphs(std::string _file_path, f32 _font_size)
 
 Glyphs::~Glyphs(void){
   table_deallocate();
+}
+
+i32 Glyphs::get_string_width(const std::string& str) const {
+  i32 x = 0;
+  for(size_t i = 0; i < str.size(); i++){
+    const u8 c = static_cast<u8>(str[i]);
+    const Glyph_Entry *glyph = get_glyph_at(c, COLOUR_BASE);
+    if(!glyph){
+      continue;
+    }
+    x += glyph->width;
+  }
+  return x;
 }
 
 const Glyph_Entry *Glyphs::get_glyph_at(const u8 ch, size_t colour_index) const {

@@ -8,6 +8,7 @@
 #include <vector>
 #include <array>
 #include <string>
+#include <memory>
 
 class Synth;
 class Window;
@@ -26,6 +27,7 @@ struct Event_Command{
   enum Type {
     mouse_down,
     mouse_up,
+    mouse_motion,
     quit,
   } type;
   
@@ -33,14 +35,21 @@ struct Event_Command{
   Key_Event key;
 };
 
+struct Rect {
+  i32 x = 0, y = 0, w = 32, h = 16;
+  bool point_in_rect(i32 _x, i32 _y) const;
+};
+
 struct Generic_Param {
-  const std::string param_name;
-  const f32&  max;
-  const f32& min;
-  const f32& value;
-  i32 string_y = 0;
-  i32 box_x = 0, box_y = 0;
-  const i32 box_w = 16, box_h = 8;
+  std::string param_name;
+  const f32* max = NULL;
+  const f32* min = NULL;
+  const f32* value = NULL;
+};
+
+struct Generic_Item {
+  Generic_Param data;
+  Rect rect;
 };
 
 enum Glyph_Extra_Params : size_t {
@@ -48,10 +57,10 @@ enum Glyph_Extra_Params : size_t {
   COLOUR_COUNT,
 };
 
-enum Screen_Positions : i32 {
-  SCREEN_LEFT,
-  SCREEN_RIGHT,
-  SCREEN_SIZE,
+enum Generic_Render_Data: size_t {
+  ENVELOPE_DATA,
+  SHAPING_DATA,
+  GENERIC_DATA_SIZE
 };
 
 enum Glyph_Table_Dims : u8 {
@@ -77,6 +86,7 @@ public:
   bool table_allocate(Renderer& renderer);
   void table_deallocate(void);
   i32 get_line_skip(void) const { return line_skip; }
+  i32 get_string_width(const std::string& str) const;
   const Glyph_Entry *get_glyph_at(u8 c, size_t colour_index) const;
 
 private:
@@ -102,23 +112,40 @@ public:
   void present(void);
 
   void render_rect_i(i32 x, i32 y, i32 w, i32 h);
-  void generic_list_copy(std::vector<Generic_Param>&& list);
-  void generic_list_set_positions(i32 line_skip);
-  void render_generic_list(size_t viewport_index, const Glyphs& g);
-  void render_string(const Glyphs& g, const std::string& str, const i32& y);
+  i32 render_string(const Glyphs& g, const std::string& str, const i32& y, const i32& start_x);
   void render_char(const Glyph_Entry *glyph, const i32& y, const i32& x);
   void set_viewport(const SDL_Rect& viewport);
+  void make_render_data(Synth *syn);
+  std::vector<Generic_Item> *get_generic_data_at(size_t pos);
+  void render_generic_data(const Glyphs& g);
 
-
-  const SDL_Rect* get_viewport_at(size_t pos) const;
   SDL_Renderer *get_renderer(void) { return r; }
 
+  size_t get_data_index(void) { return data_index; }
+  void data_index_inc(size_t val);
+  void data_index_dec(size_t val);
 private:
-  std::array<SDL_Rect, SCREEN_SIZE> viewports;
-  std::vector<Generic_Param> generic_list;
+  size_t data_index;
+  std::array<std::vector<Generic_Item>, GENERIC_DATA_SIZE> render_data;
   SDL_Renderer *r;
   const i32& window_width;
   const i32& window_height;
+};
+
+class Events {
+public:
+  Events(void) = default;
+  std::vector<Event_Command> read_event(void);
+  void run_events(std::vector<Event_Command>& commands, Renderer& _rend, Window& _win);
+  bool get_quit(void) { return quit; }
+  void set_quit(bool val) { quit = val; }
+  void up(void);
+  void down(void);
+
+private:
+  const f32 inc_amount = 0.05f;
+  size_t select = 0;
+  bool quit;
 };
 
 class Window {
@@ -130,11 +157,11 @@ public:
   void update_size(void);
   SDL_Window* get_window(void) { return w; }
   Renderer& get_render_class(void) { return rend; }
+  Events& get_event_class(void) { return events; }
+
+  void _run_events(std::vector<Event_Command>& commands);
   void hide_window(void);
   void show_window(void);
-
-  std::vector<Event_Command> read_event(void);
-  void run_events(std::vector<Event_Command>& commands);
 
   bool get_quit(void) { return quit; }
   void set_quit(bool val) { quit = val; }
@@ -144,6 +171,7 @@ private:
   SDL_Window *w;
   i32 width, height;
   Renderer rend;
+  Events events;
   bool quit = false;
 };
 

@@ -1,36 +1,50 @@
 #include "../../inc/gui.hpp"
 #include <iostream>
+#include <cmath>
 
-void Renderer::generic_list_set_positions(i32 line_skip){
-  for(size_t i = 0; i < generic_list.size(); i++){
-    const f32&  min = generic_list[i].min;
-    const f32& max = generic_list[i].max;
-    const f32& value = generic_list[i].value;
-
-    const i32 y = static_cast<i32>(i) * (line_skip + generic_list[i].box_h);
-    const f32 box_x = (value - min) / max; 
-
-    generic_list[i].string_y = y;
-    generic_list[i].box_y = y + line_skip;
-    generic_list[i].box_x = static_cast<i32>(box_x * ((static_cast<f32>(window_width) / 2.0f)));
-  }
+bool Rect::point_in_rect(i32 _x, i32 _y) const {
+  return (_x >= x && _x <= x + w) && (_y >= y && _y <= y + h);
 }
 
-void Renderer::render_generic_list(size_t viewport_index, const Glyphs& g){
-  const SDL_Rect *view_rect = get_viewport_at(viewport_index);
-  if(!view_rect) {
+void Renderer::render_generic_data(const Glyphs& g){
+  std::vector<Generic_Item> *items = get_generic_data_at(data_index);
+  if(!items) {
     return;
   }
 
-  for(size_t i = 0; i < generic_list.size(); i++){
-    const std::string& str = generic_list[i].param_name;
-    render_string(g, str, generic_list[i].string_y);
-    render_rect_i(generic_list[i].box_x, generic_list[i].box_y, generic_list[i].box_w, generic_list[i].box_h);
+  const i32 padding = 4;
+  const i32 center = (window_height / 2) - (window_height / 4);
+  const f32 wwidthf = static_cast<f32>(window_width);
+
+  for(size_t i = 0; i < items->size(); i++){
+    const f32 *min = (*items)[i].data.min;
+    const f32 *max = (*items)[i].data.max;
+    const f32 *value = (*items)[i].data.value;
+    if(!min || !max || !value){
+      return;
+    }
+
+    Rect& rect = (*items)[i].rect;
+    const f32 val_scr_posf = ((*value - *min) / (*max - *min)) * wwidthf;
+    const i32 val_scr_posi = static_cast<i32>(roundf(val_scr_posf));
+
+    const std::string& str = (*items)[i].data.param_name;
+    const i32 str_width = g.get_string_width(str);
+    const i32 n = static_cast<i32>(i);
+    const i32 y = center + n * (g.get_line_skip() + padding); 
+   
+    rect.y = y;
+    rect.x = val_scr_posi;
+    rect.w = str_width + padding;
+    rect.h = g.get_line_skip();
+ 
+    render_rect_i(rect.x, rect.y, rect.w, rect.h);
+    render_string(g, str, y, val_scr_posi);
   }
 }
 
-void Renderer::render_string(const Glyphs& g, const std::string& str, const i32& y){
-  i32 x = 0;
+i32 Renderer::render_string(const Glyphs& g, const std::string& str, const i32& y, const i32& start_x){
+  i32 x = start_x;
   for(size_t i = 0; i < str.size(); i++){
     const u8 c = static_cast<u8>(str[i]);
     const Glyph_Entry *glyph = g.get_glyph_at(c, COLOUR_BASE);
@@ -40,6 +54,8 @@ void Renderer::render_string(const Glyphs& g, const std::string& str, const i32&
     render_char(glyph, y, x);
     x += glyph->width;
   }
+
+  return x - start_x;
 }
 
 void Renderer::render_rect_i(i32 x, i32 y, i32 w, i32 h){

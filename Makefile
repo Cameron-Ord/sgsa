@@ -19,6 +19,7 @@ SRCS += src/core/modulations.cpp
 SRCS += src/frontend/context.cpp
 SRCS += src/frontend/renderer.cpp
 SRCS += src/frontend/glyph.cpp
+SRCS += src/frontend/events.cpp
 
 all: $(TARGET)
 
