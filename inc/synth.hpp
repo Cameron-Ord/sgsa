@@ -281,7 +281,7 @@ private:
   i32 channels = 2, channel_max = 2;
   i32 sample_rate = 48000, sample_rate_max = 96000;
   f32 vibrato_rate = 5.0f, vibrato_rate_max = 15.0f;
-  f32 vibrato_depth = 0.0f;
+  f32 vibrato_depth = 0.0f, vibrato_max = 50.0f;
   f32 pitch_bend = 1.0f;
   f32 tremolo_rate = 2.0f, trem_rate_max = 16.0f;
 

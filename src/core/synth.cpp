@@ -161,7 +161,7 @@ f32 Synth::calculate_pitch_bend(f32 cents, f32 normalized_midi_event) const {
 }
 
 f32 Synth::map_vibrato_depth(f32 normalized_midi_event) const {
-  return normalized_midi_event * vibrato_depth;
+  return normalized_midi_event * vibrato_max;
 }
 
 void Synth::zero_loop_sums(void){
