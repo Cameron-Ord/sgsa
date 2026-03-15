@@ -1,6 +1,6 @@
 #ifndef AUDIO_SYS_HPP
 #define AUDIO_SYS_HPP
-#include "typedef.hpp"
+#include "define.hpp"
 #include <SDL3/SDL.h>
 
 void stream_get(void *data, SDL_AudioStream *stream, i32 add, i32 total);

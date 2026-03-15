@@ -1,10 +1,9 @@
 #ifndef AUDIO_HPP
 #define AUDIO_HPP
-#include "typedef.hpp"
+#include "define.hpp"
 
 #include <vector>
 #include <array>
-#include <string>
 
 #include <portmidi.h>
 
@@ -15,53 +14,6 @@
 f32 exp_hard_clip(f32 sample, f32 gain, f32 mix);
 f32 polynomial_soft_clip(f32 sample, f32 gain);
 
-#define PI 3.141592653589793f
-// (VALUE - VALUE) / SAMPLES
-#define ATTACK_INCREMENT(samplerate, ATK)                                      \
-  1.0f / (((ATK) <= 0.0f ? 1.0f : (ATK)) * (samplerate))
-#define DECAY_INCREMENT(samplerate, DEC, SUS)                                  \
-  (1.0f - (SUS)) / (((DEC) <= 0.0f ? 1.0f : (DEC)) * (samplerate))
-#define RELEASE_INCREMENT(samplerate, REL)                                     \
-  (REL) <= 0.0f ? 1.0f : 1.0f / ((REL) * (samplerate))
-
-#define NYQUIST(samplerate) (samplerate) / 2.0f
-
-enum LFO_ACCESS : i32 {
-  LFO_1,
-  LFO_2,
-  LFO_COUNT
-};
-
-enum WAVEFORM_TYPE : size_t {
-  SAW = 0,
-  SINE = 1,
-  SQUARE = 2,
-  TRIANGLE = 3,
-  PULSE = 4,
-  WAVEFORM_COUNT,
-};
-
-enum SIZES : size_t {
-  VOICES = 16,
-  CONTROLLER_NAME_MAX = 256,
-  CHANNEL_MAX = 2,
-  MAX_OSC_COUNT = 6,
-};
-
-enum EVENT_CONSTANTS : size_t {
-  INPUT_BUFFER_MAX = 64
-};
-
-enum EVENT_TYPE : size_t {
-  NOTE_ON = 0x90,
-  NOTE_OFF = 0x80,
-  PITCH_BEND = 0xE0,
-  CONTROL = 0xB0,
-  CONTROL_ON = 0x7F,
-  CONTROL_OFF = 0x0,
-  CONTROL_MOD_WHEEL = 1,
-  CONTROL_VOLUME_KNOB = 7,
-};
 
 struct Midi_Input_Msg {
   Midi_Input_Msg(void) : status(0), msg1(0), msg2(0) {}
@@ -106,7 +58,6 @@ private:
   std::array<PmEvent, INPUT_BUFFER_MAX> input_buffer;
 };
 
-
 enum ENV_STATE : size_t { ATK, DEC, REL, SUS, OFF };
 //    STATE_INTEGRATOR,
 //    STATE_DC_X,
@@ -118,6 +69,7 @@ public:
   void delay_write(f32 sample);
   f32 delay_read(void);
   void increment(size_t read_inc, size_t write_inc);
+  void rebuild(i32 sample_rate, f32 delay_time_s);
 private:
   std::vector<f32> buffer;
   size_t read, write;
@@ -148,9 +100,7 @@ private:
 class Freq_Modulator {
 public:
   Freq_Modulator(void) : lfo() {}
-  
   f32 create_vibrato(f32 sine, f32 cents) const;
-
   Lfo& get_lfo(void) { return lfo; }
 private:
   Lfo lfo;
@@ -290,7 +240,7 @@ public:
   std::array<f32, CHANNEL_MAX>& get_sum_array(void) { return loop_sums; }
   std::array<Voice, VOICES> &get_voices(void) { return voices; }
   const std::array<Voice, VOICES> &get_voices(void) const { return voices; }
- 
+
   std::vector<Oscillator>& get_oscillators(void) { return oscs; }
   Oscillator *get_osc_at(size_t pos);
  
@@ -301,72 +251,39 @@ public:
   void loop_voicings_off(u32 midi_key);
   void loop_voicings_on(u32 midi_key, f32 norm_velocity);
 
-   const f32& get_attack(void)  const { return attack; }
-   const f32& get_decay(void)  const { return decay; }
-   const f32& get_sustain(void) const  { return sustain; }
-   const f32& get_release(void)  const { return release; }
-   const f32& get_attack_max(void) const  { return attack_max; }
-   const f32& get_decay_max(void)  const { return decay_max; }
-   const f32& get_sustain_max(void) const  { return sustain_max; }
-   const f32& get_release_max(void) const  { return release_max; }
-   const f32& get_attack_min(void)  const { return attack_min; }
-   const f32& get_decay_min(void)  const { return decay_min; }
-   const f32& get_sustain_min(void) const  { return sustain_min; }
-   const f32& get_release_min(void)  const { return release_min; }
-   const f32& get_volume(void)  const { return volume; }
-   const f32& get_volume_min(void)  const { return volume_min; }
-   const f32& get_volume_max(void)  const { return volume_max; }
-   const f32& get_gain(void)  const { return gain; }
-   const f32& get_low_pass(void)  const { return low_pass_hz; }
-   const i32& get_channels(void) const  { return channels; }
-   const i32& get_sample_rate(void)  const { return sample_rate; }
-   const f32& get_low_pass_max(void)  const { return low_pass_hz_max; }
-   const f32& get_low_pass_min(void) const  { return low_pass_hz_min; }
-   const f32& get_gain_max(void) const  { return gain_max; }
-   const f32& get_gain_min(void) const  { return gain_min; }
-   const f32& get_trem_rate(void) const  { return tremolo_rate; } 
-   const f32& get_trem_depth(void) const  { return tremolo_depth; } 
-   const f32& get_trem_depth_min(void)  const { return trem_depth_min; } 
-   const f32& get_trem_depth_max(void)  const { return trem_depth_max; } 
-   const f32& get_vibrato_depth(void) const  { return vibrato_depth; }
-   const f32& get_vibrato_rate(void) const  { return vibrato_rate; }
-   const f32& get_pitch_bend(void) const  { return pitch_bend; }
+  f32 clamp_param_f32(f32 min, f32 max, f32 value);
+  const ParamF32 *get_param(SYNTH_PARAMETER location) const;
+  ParamF32 *get_param(SYNTH_PARAMETER location);
+  void set_param(SYNTH_PARAMETER param, f32 value);
+  void inc_param(SYNTH_PARAMETER param);
+  void dec_param(SYNTH_PARAMETER param);
+  std::array<ParamF32, S_PARAM_COUNT> init_params(void);
+  const std::array<ParamF32, S_PARAM_COUNT>& get_param_list(void) const { return params; }
    
-  void set_attack(f32 val) { attack = val; }
-  void set_decay(f32 val) { decay = val; }
-  void set_sustain(f32 val) { sustain = val; }
-  void set_release(f32 val) { release = val; }
-  void set_pitch_bend(f32 val) { pitch_bend = val; }
-  void set_vibrato_depth(f32 val) { vibrato_depth = val; }
-  void set_trem_depth(f32 val) { tremolo_depth = val; }
-  void set_volume(f32 val) { volume = val; }
-  void set_gain(f32 val) { gain = val; }
-  void set_low_pass(f32 val) { low_pass_hz = val; }
-  
   f32 calculate_pitch_bend(f32 cents, f32 normalized_event) const;
   f32 map_vibrato_depth(f32 normalized_event) const;
 
   std::vector<Keyboard_Command> read_event(Controller& cont);
   void run_events(std::vector<Keyboard_Command>& commands);
 
+  const f32& get_vibrato_rate(void) const { return vibrato_rate; }
+  const f32& get_vibrato_depth(void) const { return vibrato_depth; }
+  const f32& get_pitch_bend(void) const { return pitch_bend; }
+   void set_pitch_bend(f32 val) {  pitch_bend = val; }
+   void set_vibrato_depth(f32 val) { vibrato_depth = val; }
+  const f32& get_trem_rate(void) const { return tremolo_rate; }
+
+  const i32& get_channels(void) const { return channels; }
+  const i32& get_sample_rate(void) const { return sample_rate; }
+
 private:
-  f32 volume = 1.0f, volume_min = 0.0f, volume_max = 2.0f;
-  f32 gain = 1.0f, gain_min = 0.5f, gain_max = 16.0f;
-  f32 low_pass_hz = 2000.0f, low_pass_hz_min = 200.0f, low_pass_hz_max = 20000.0f;
+  std::array<ParamF32, S_PARAM_COUNT>  params; 
   i32 channels = 2, channel_max = 2;
   i32 sample_rate = 48000, sample_rate_max = 96000;
-
-  f32 attack = 0.2f, attack_min = 0.0f, attack_max = 2.5f;
-  f32 decay = 0.2f, decay_min = 0.0f, decay_max = 2.5f;
-  f32 sustain = 0.4f, sustain_min = 0.0f, sustain_max = 2.5f;
-  f32 release = 0.2f, release_min = 0.0f, release_max = 2.5f;
-
-  f32 pitch_bend = 1.0f;
   f32 vibrato_rate = 5.0f, vibrato_rate_max = 15.0f;
-  f32 vibrato_depth = 0.0f, vibrato_max = 50.0f;
-  
+  f32 vibrato_depth = 0.0f;
+  f32 pitch_bend = 1.0f;
   f32 tremolo_rate = 2.0f, trem_rate_max = 16.0f;
-  f32 tremolo_depth = 0.1f, trem_depth_min = 0.1f, trem_depth_max = 1.0f;
 
   std::vector<Oscillator> oscs;
   std::array<Voice, VOICES> voices;

@@ -82,8 +82,8 @@ void Controller::get_midi_device_by_name(void) {
 Midi_Input_Msg Controller::parse_event(PmEvent event){
   return Midi_Input_Msg(
     Pm_MessageStatus(event.message),
-    (i8)Pm_MessageData1(event.message),
-    (i8)Pm_MessageData2(event.message)
+    Pm_MessageData1(event.message),
+    Pm_MessageData2(event.message)
   );
 }
 

@@ -8,8 +8,87 @@ const f32 DEFAULT_DELAY_TIME = 0.5f;
 const f32 DEFAULT_DELAY_FEEDBACK = 0.5f;
 
 Synth::Synth(void)
-    : oscs(DEFAULT_OSC_COUNT), voices(), generator(), 
+    : params(init_params()), oscs(DEFAULT_OSC_COUNT), voices(), generator(), 
     delay(sample_rate, DEFAULT_DELAY_TIME, DEFAULT_DELAY_FEEDBACK), loop_sums() {}
+
+
+std::array<ParamF32, S_PARAM_COUNT> Synth::init_params(void){
+  // MIN - MAX - VALUE - INC
+  return {
+    ParamF32("Attack", 0.01f, 1.5f, 0.01f, 0.05f),
+    ParamF32("Decay", 0.01f, 1.5f, 0.3f, 0.05f),
+    ParamF32("Sustain", 0.1f, 1.5f, 0.8f, 0.05f),
+    ParamF32("Release", 0.01f, 1.5f, 0.05f, 0.05f),
+    ParamF32("Volume", 0.0f, 1.0f, 1.0f, 0.1f),
+    ParamF32("Gain", 1.0f, 10.0f, 1.0f, 1.0f),
+    ParamF32("Low-Pass", 100.0f, 8000.0f, 2000.0f, 100.0f),
+    ParamF32("Tremolo", 0.1f, 1.0, 0.25f, 0.1f),
+    ParamF32("Delay Time", 0.1f, 2.0f, 0.5f, 0.25f),
+  };
+}
+
+
+void Synth::inc_param(SYNTH_PARAMETER param){
+  if(param < params.size()){
+    const f32 min = params[param].min;
+    const f32 max = params[param].max;
+    const f32 base_val = params[param].value;
+    const f32 inc_val = params[param].inc;
+
+    params[param].value = clamp_param_f32(min, max, base_val + inc_val);
+    if(param == S_DELAY_TIME){
+      delay.rebuild(sample_rate, params[param].value);
+    }
+  }
+}
+
+void Synth::dec_param(SYNTH_PARAMETER param){
+  if(param < params.size()){
+    const f32 min = params[param].min;
+    const f32 max = params[param].max;
+    const f32 base_val = params[param].value;
+    const f32 inc_val = -params[param].inc;
+
+    params[param].value = clamp_param_f32(min, max, base_val + inc_val);
+    if(param == S_DELAY_TIME){
+      delay.rebuild(sample_rate, params[param].value);
+    }
+  }
+}
+
+f32 Synth::clamp_param_f32(f32 min, f32 max, f32 value){
+  if(value < min){
+    value = min;
+  }
+
+  if(value > max){
+    value = max;
+  }
+
+  return value;
+}
+
+void Synth::set_param(SYNTH_PARAMETER param, f32 value){
+  if(param < params.size()){
+    params[param].value = clamp_param_f32(params[param].min, params[param].max, value);
+  }
+}
+
+ParamF32 *Synth::get_param(SYNTH_PARAMETER param) {
+  if(param < params.size()){
+    return &params[param];
+  }
+
+  return nullptr;
+}
+
+const ParamF32 *Synth::get_param(SYNTH_PARAMETER param) const {
+  if(param < params.size()){
+    return &params[param];
+  }
+
+  return nullptr;
+}
 
 void Synth::run_events(std::vector<Keyboard_Command>& commands){
   for(size_t i = 0; i < commands.size(); i++){
@@ -82,7 +161,7 @@ f32 Synth::calculate_pitch_bend(f32 cents, f32 normalized_midi_event) const {
 }
 
 f32 Synth::map_vibrato_depth(f32 normalized_midi_event) const {
-  return normalized_midi_event * vibrato_max;
+  return normalized_midi_event * vibrato_depth;
 }
 
 void Synth::zero_loop_sums(void){

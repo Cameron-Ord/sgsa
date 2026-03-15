@@ -1,6 +1,6 @@
 #ifndef WINDOW_HPP
 #define WINDOW_HPP
-#include "typedef.hpp"
+#include "define.hpp"
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_render.h>
 #include <SDL3_ttf/SDL_ttf.h>
@@ -8,7 +8,6 @@
 #include <vector>
 #include <array>
 #include <string>
-#include <memory>
 
 class Synth;
 class Window;
@@ -19,8 +18,8 @@ struct Mouse_Event {
 };
 
 struct Key_Event {
-  i32 keycode = 0;
-  i32 keymod = 0;
+  SDL_Keycode keycode = 0;
+  SDL_Keycode keymod = 0;
 };
 
 struct Event_Command{
@@ -28,11 +27,22 @@ struct Event_Command{
     mouse_down,
     mouse_up,
     mouse_motion,
+    keydown,
     quit,
   } type;
   
   Mouse_Event mouse;
   Key_Event key;
+};
+
+struct Modify_Request {
+  const SYNTH_PARAMETER index;
+  enum Method : size_t {
+    REQ_DEC,
+    REQ_INC
+  } method;
+
+  Modify_Request(SYNTH_PARAMETER _index, Method _method) : index(_index), method(_method) {}
 };
 
 struct Rect {
@@ -111,22 +121,13 @@ public:
   void clear_colour(u8 r, u8 g, u8 b, u8 a);
   void present(void);
 
-  void render_rect_i(i32 x, i32 y, i32 w, i32 h);
-  i32 render_string(const Glyphs& g, const std::string& str, const i32& y, const i32& start_x);
-  void render_char(const Glyph_Entry *glyph, const i32& y, const i32& x);
+  void render_param_list(const std::array<ParamF32, S_PARAM_COUNT> &items, const Glyphs& g) const;
+  void render_rect_i(i32 x, i32 y, i32 w, i32 h) const;
+  i32 render_string(const Glyphs& g, const std::string& str, const i32& y, const i32& start_x) const;
+  void render_char(const Glyph_Entry *glyph, const i32& y, const i32& x) const;
   void set_viewport(const SDL_Rect& viewport);
-  void make_render_data(Synth *syn);
-  std::vector<Generic_Item> *get_generic_data_at(size_t pos);
-  void render_generic_data(const Glyphs& g);
-
   SDL_Renderer *get_renderer(void) { return r; }
-
-  size_t get_data_index(void) { return data_index; }
-  void data_index_inc(size_t val);
-  void data_index_dec(size_t val);
 private:
-  size_t data_index;
-  std::array<std::vector<Generic_Item>, GENERIC_DATA_SIZE> render_data;
   SDL_Renderer *r;
   const i32& window_width;
   const i32& window_height;
@@ -136,16 +137,17 @@ class Events {
 public:
   Events(void) = default;
   std::vector<Event_Command> read_event(void);
-  void run_events(std::vector<Event_Command>& commands, Renderer& _rend, Window& _win);
-  bool get_quit(void) { return quit; }
-  void set_quit(bool val) { quit = val; }
+  void run_events(std::vector<Event_Command>& commands, Window& _win);
+  std::vector<Modify_Request>& get_requests(void) { return requests; }
+  void clear_requests(void) { requests.clear(); }
+  void emit_inc_param(void);
+  void emit_dec_param(void);
   void up(void);
   void down(void);
 
 private:
-  const f32 inc_amount = 0.05f;
-  size_t select = 0;
-  bool quit;
+  SYNTH_PARAMETER cursor;
+  std::vector<Modify_Request> requests; 
 };
 
 class Window {

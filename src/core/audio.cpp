@@ -82,8 +82,9 @@ static void delay_loop(Synth *syn, size_t count, f32 *sample_buffer){
 
 static void voice_loop(Synth *syn) {
   syn->zero_loop_sums();
+  const std::array<ParamF32, S_PARAM_COUNT>& param_list = syn->get_param_list();
 
-  for (size_t i = 0; i < SIZES::VOICES; i++) {
+  for (size_t i = 0; i < VOICES; i++) {
     Voice &v = syn->get_voices()[i];
     if (v.get_active_count() <= 0 && !v.releasing()) {
       continue;
@@ -97,7 +98,7 @@ static void voice_loop(Synth *syn) {
     const f32 vib = m.create_vibrato(m.get_lfo().lfo_sine(), syn->get_vibrato_depth());
 
     a.get_lfo().increment(syn->get_trem_rate(), syn->get_sample_rate());
-    const f32 trem = 1.0f + (a.get_lfo().lfo_sine() * syn->get_trem_depth());
+    const f32 trem = 1.0f + (a.get_lfo().lfo_sine() * param_list[S_TREMOLO_DEPTH].value);
 
     for (size_t o = 0; o < syn->get_oscillators().size(); o++) {
       Oscillator *osc = syn->get_osc_at(o);
@@ -106,7 +107,6 @@ static void voice_loop(Synth *syn) {
       }
 
       const f32 freq = v.get_freq() * osc->get_detune() * syn->get_pitch_bend() * vib; 
-
       const f32 dt = 1.0f / (f32)syn->get_sample_rate();
       const f32 inc = freq / (f32)syn->get_sample_rate();
 
@@ -127,19 +127,23 @@ static void voice_loop(Synth *syn) {
         v.add_sum_at(c, osc->get_sample_at(osc->get_sample_array_at(i), c));
       }
     }
-    
     // saturate (make optional at some point)
     for(size_t c = 0; c < (size_t)syn->get_channels(); c++){
-      v.set_clipped_at(c, polynomial_soft_clip(v.get_sum_at(c), syn->get_gain()));
+      v.set_clipped_at(c, polynomial_soft_clip(v.get_sum_at(c), param_list[S_GAIN].value));
     }
 
     //filter
     for (size_t c = 0; c < (size_t)syn->get_channels(); c++) {
-      v.get_lpf().lerp(v.get_clipped_array(), c, syn->get_sample_rate(), syn->get_low_pass());
+      v.get_lpf().lerp(v.get_clipped_array(), c, syn->get_sample_rate(), param_list[S_LOW_PASS].value);
       v.set_filtered_at(c, v.get_lpf().get_value_at(c));
     }
 
-    v.adsr(syn->get_sample_rate(), syn->get_attack(), syn->get_decay(), syn->get_sustain(), syn->get_release());
+    const f32& attack = param_list[S_ATTACK].value;
+    const f32& decay = param_list[S_DECAY].value;
+    const f32& sustain = param_list[S_SUSTAIN].value;
+    const f32& release = param_list[S_RELEASE].value;
+
+    v.adsr(syn->get_sample_rate(), attack, decay, sustain, release);
 
     // Apply amplitude scalars and scale per OSC
     for(size_t c = 0; c < (size_t)syn->get_channels(); c++){
@@ -152,8 +156,8 @@ static void voice_loop(Synth *syn) {
     // Add scaled sum of osc and scale per VOICE
     for (size_t c = 0; c < (size_t)syn->get_channels(); c++) {
       const f32 sample = v.get_out_at(c);
-      const f32 scaled = sample / sqrtf(((f32)VOICES));
-      syn->add_sum_at(c, scaled);
+      const f32 scaled = sample / sqrtf((f32)VOICES);
+      syn->add_sum_at(c, scaled * param_list[S_VOLUME].value);
     }
   }
 }

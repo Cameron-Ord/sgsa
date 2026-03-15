@@ -6,44 +6,25 @@ bool Rect::point_in_rect(i32 _x, i32 _y) const {
   return (_x >= x && _x <= x + w) && (_y >= y && _y <= y + h);
 }
 
-void Renderer::render_generic_data(const Glyphs& g){
-  std::vector<Generic_Item> *items = get_generic_data_at(data_index);
-  if(!items) {
-    return;
-  }
+// She const on my non const renderer data until I constawsdk pnlasdas
+void Renderer::render_param_list(const std::array<ParamF32, S_PARAM_COUNT> &items, const Glyphs& g) const {
+  const f32 width_f32 = static_cast<f32>(window_width);
+  for(size_t i = 0; i < items.size(); i++){
+    const ParamF32& p = items[i];
 
-  const i32 padding = 4;
-  const i32 center = (window_height / 2) - (window_height / 4);
-  const f32 wwidthf = static_cast<f32>(window_width);
-
-  for(size_t i = 0; i < items->size(); i++){
-    const f32 *min = (*items)[i].data.min;
-    const f32 *max = (*items)[i].data.max;
-    const f32 *value = (*items)[i].data.value;
-    if(!min || !max || !value){
-      return;
-    }
-
-    Rect& rect = (*items)[i].rect;
-    const f32 val_scr_posf = ((*value - *min) / (*max - *min)) * wwidthf;
-    const i32 val_scr_posi = static_cast<i32>(roundf(val_scr_posf));
-
-    const std::string& str = (*items)[i].data.param_name;
-    const i32 str_width = g.get_string_width(str);
+    const i32 rect_width = g.get_string_width(p.name);
     const i32 n = static_cast<i32>(i);
-    const i32 y = center + n * (g.get_line_skip() + padding); 
-   
-    rect.y = y;
-    rect.x = val_scr_posi;
-    rect.w = str_width + padding;
-    rect.h = g.get_line_skip();
- 
-    render_rect_i(rect.x, rect.y, rect.w, rect.h);
-    render_string(g, str, y, val_scr_posi);
+    const i32 y = n * g.get_line_skip();
+    const i32 x = static_cast<i32>(roundf((p.value - p.min) / (p.max - p.min) * width_f32));
+
+    Rect rect{x, y, rect_width, g.get_line_skip()};
+
+    render_rect_i(rect.x - (rect_width / 2), rect.y, rect.w, rect.h);
+    render_string(g, p.name, y, x - (rect_width / 2));
   }
 }
 
-i32 Renderer::render_string(const Glyphs& g, const std::string& str, const i32& y, const i32& start_x){
+i32 Renderer::render_string(const Glyphs& g, const std::string& str, const i32& y, const i32& start_x) const {
   i32 x = start_x;
   for(size_t i = 0; i < str.size(); i++){
     const u8 c = static_cast<u8>(str[i]);
@@ -58,12 +39,12 @@ i32 Renderer::render_string(const Glyphs& g, const std::string& str, const i32& 
   return x - start_x;
 }
 
-void Renderer::render_rect_i(i32 x, i32 y, i32 w, i32 h){
+void Renderer::render_rect_i(i32 x, i32 y, i32 w, i32 h) const {
   SDL_FRect rect{(f32)x, (f32)y, (f32)w, (f32)h};
   SDL_RenderFillRect(r, &rect);
 }
 
-void Renderer::render_char(const Glyph_Entry *glyph, const i32& y, const i32& x) {
+void Renderer::render_char(const Glyph_Entry *glyph, const i32& y, const i32& x) const {
   SDL_FRect box = { (f32)x, (f32)y, (f32)glyph->width, (f32)glyph->height };
   if(!SDL_RenderTexture(r, glyph->texture, NULL, &box)){
     std::cerr << "Failed to render character: " << SDL_GetError() << std::endl;

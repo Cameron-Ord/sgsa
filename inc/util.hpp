@@ -1,6 +1,6 @@
 #ifndef UTIL_HPP
 #define UTIL_HPP
-#include "typedef.hpp"
+#include "define.hpp"
 
 #define ARR_LEN(arr) sizeof(arr) / sizeof(arr[0])
 

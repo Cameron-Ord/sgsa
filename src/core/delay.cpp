@@ -14,3 +14,12 @@ f32 Delay::delay_read(void){
   read = (read + 1) % end;
   return out;
 }
+
+void Delay::rebuild(i32 sample_rate, f32 delay_time_s){
+  const f32 sample_rate_f32 = static_cast<f32>(sample_rate);
+  std::vector<f32> tmp(static_cast<size_t>(sample_rate_f32 * delay_time_s));
+  read = 0;
+  write = 0;
+  buffer = tmp;
+  end = tmp.size();
+}
