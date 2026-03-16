@@ -1,6 +1,6 @@
 #include "../../inc/synth.hpp"
-#include <iostream>
 #include <cstring>
+#include <iostream>
 
 Controller::Controller(const char *name)
     : input_name(name), input_id(-1), stream(NULL), input_buffer() {
@@ -78,13 +78,10 @@ void Controller::get_midi_device_by_name(void) {
   std::cout << "Failed to find specified device" << std::endl;
 }
 
-
-Midi_Input_Msg Controller::parse_event(PmEvent event){
-  return Midi_Input_Msg(
-    Pm_MessageStatus(event.message),
-    Pm_MessageData1(event.message),
-    Pm_MessageData2(event.message)
-  );
+Midi_Input_Msg Controller::parse_event(PmEvent event) {
+  return Midi_Input_Msg(Pm_MessageStatus(event.message),
+                        Pm_MessageData1(event.message),
+                        Pm_MessageData2(event.message));
 }
 
 void Controller::clear_msg_buf(void) {
@@ -94,7 +91,7 @@ void Controller::clear_msg_buf(void) {
 }
 
 const PmEvent *Controller::get_event_at(i32 pos) const {
-  if((size_t)pos >= input_buffer.size() || pos < 0){
+  if ((size_t)pos >= input_buffer.size() || pos < 0) {
     return nullptr;
   }
   return &input_buffer[(size_t)pos];

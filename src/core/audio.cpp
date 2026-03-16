@@ -1,6 +1,7 @@
-#include "../../inc/synth.hpp"
 #include "../../inc/audio_sys.hpp"
-// Wanna split this file up /clean it up at some point
+#include "../../inc/synth.hpp"
+
+// Wanna split this file up /clean it up at some point its kinda messy
 
 #include <cmath>
 #include <iostream>
@@ -9,48 +10,14 @@ static bool stream_feed(SDL_AudioStream *stream, const f32 samples[], i32 len);
 static void generate_loop(Synth *syn, size_t count, f32 *sample_buffer);
 static void delay_loop(Synth *syn, size_t count, f32 *sample_buffer);
 static void voice_loop(Synth *syn);
+static void osc_loop(Synth *syn, const size_t &voice_iter, Voice &v,
+                     const f32 &vibrato);
+static f32 lfo_vibrato(Synth *syn, Voice &v);
+static f32 lfo_tremolo(Synth *syn, Voice &v);
 
 const i32 CHUNK_MAX = 128;
 const f32 DELAY_MIX = 0.2f;
 const f32 SAMPLE_MIX = 0.8f;
-
-
-//Source: DAFX page 127
-f32 exp_hard_clip(f32 sample, f32 gain, f32 mix){
-  f32 q = sample * gain;
-  f32 z = copysignf(1.0f - expf(-fabsf(q)), q);
-  return mix * z + (1.0f - mix) * sample;
-}
-
-//Source: DAFX page 125
-f32 polynomial_soft_clip(f32 sample, f32 gain){
-  f32 threshold = 1.0f / 3.0f;
-  f32 x = sample * gain;
-  f32 y = 0.0f;
-  if(fabsf(x) < threshold){
-    y = 2.0f * x;
-  }
-
-  if(fabsf(x) >= threshold){
-    if(x > 0.0f){
-      y = (3.0f - powf(2.0f - x * 3.0f, 2.0f)) / 3.0f;
-    } else {
-      y = -(3.0f - powf(2.0f - fabsf(x) * 3.0f, 2.0f)) / 3.0f;
-    }
-  }
-
-  if(fabsf(x) > 2.0f * threshold){
-    if(x > 0.0f) {
-      y = 1.0f;
-    }
-
-    if(x < 0.0f){
-      y = -1.0f;
-    }
-  }
-
-  return y;
-}
 
 void stream_get(void *data, SDL_AudioStream *stream, i32 add, i32 total) {
   Synth *syn = static_cast<Synth *>(data);
@@ -71,93 +38,126 @@ void stream_get(void *data, SDL_AudioStream *stream, i32 add, i32 total) {
   return;
 }
 
-static void delay_loop(Synth *syn, size_t count, f32 *sample_buffer){
-  for(size_t i = 0; i < count; i++){
+static void delay_loop(Synth *syn, size_t count, f32 *sample_buffer) {
+  for (size_t i = 0; i < count; i++) {
     f32 delayed = syn->get_delay().delay_read();
-    const f32 mixed = SAMPLE_MIX * sample_buffer[i] + DELAY_MIX * tanhf(sample_buffer[i] + delayed);
+    const f32 mixed = SAMPLE_MIX * sample_buffer[i] +
+                      DELAY_MIX * tanhf(sample_buffer[i] + delayed);
     sample_buffer[i] = mixed;
     syn->get_delay().delay_write(sample_buffer[i]);
   }
 }
 
+static f32 lfo_vibrato(Synth *syn, Voice &v) {
+  Lfo &lfo_vibrato = v.get_vibrato_lfo();
+  const f32 &vibrato_rate = syn->get_vibrato_rate();
+  const f32 &depth = syn->get_vibrato_depth();
+  const i32 &sample_rate = syn->get_sample_rate();
+  lfo_vibrato.increment(vibrato_rate, sample_rate);
+  return create_vibrato(lfo_vibrato.lfo_sine(), depth);
+}
+
+static f32 lfo_tremolo(Synth *syn, Voice &v) {
+  Lfo &lfo_tremolo = v.get_trem_lfo();
+  const f32 &trem_rate = syn->get_trem_rate();
+  const f32 &depth = syn->get_param_list()[S_TREMOLO_DEPTH].value;
+  const i32 &sample_rate = syn->get_sample_rate();
+  lfo_tremolo.increment(trem_rate, sample_rate);
+  return 1.0f + (lfo_tremolo.lfo_sine() * depth);
+}
+
+static void osc_loop(Synth *syn, const size_t &voice_iter, Voice &v,
+                     const f32 &vibrato) {
+  for (size_t o = 0; o < syn->get_oscillators().size(); o++) {
+    Oscillator *osc = syn->get_osc_at(o);
+    if (!osc) {
+      continue;
+    }
+
+    const f32 freq =
+        v.get_freq() * osc->get_detune() * syn->get_pitch_bend() * vibrato;
+    const f32 dt = 1.0f / (f32)syn->get_sample_rate();
+    const f32 inc = freq / (f32)syn->get_sample_rate();
+
+    osc->increment_time_at(dt, voice_iter);
+    osc->increment_phase_at(inc, 1.0f, voice_iter);
+
+    for (size_t c = 0; c < (size_t)syn->get_channels(); c++) {
+      f32 sample = 0.0f;
+      switch (osc->get_waveform()) {
+      case SAW: {
+        sample =
+            syn->get_generator().poly_saw(inc, osc->get_phase_at(voice_iter));
+      } break;
+      case SQUARE: {
+        sample = syn->get_generator().poly_square(
+            inc, osc->get_phase_at(voice_iter), osc->get_duty());
+      } break;
+      }
+      osc->set_sample_at(osc->get_sample_array_at(voice_iter), c, sample);
+      v.add_sum_at(c,
+                   osc->get_sample_at(osc->get_sample_array_at(voice_iter), c));
+    }
+  }
+}
+
 static void voice_loop(Synth *syn) {
   syn->zero_loop_sums();
-  const std::array<ParamF32, S_PARAM_COUNT>& param_list = syn->get_param_list();
+  const std::array<ParamF32, S_PARAM_COUNT> &param_list = syn->get_param_list();
 
   for (size_t i = 0; i < VOICES; i++) {
     Voice &v = syn->get_voices()[i];
     if (v.get_active_count() <= 0 && !v.releasing()) {
       continue;
     }
-    
+
     v.zero_voice_sums();
-    Freq_Modulator& m = v.get_fmod();
-    Amp_Modulator& a = v.get_amod();
+    const f32 trem = lfo_tremolo(syn, v);
+    const f32 vibrato = lfo_vibrato(syn, v);
 
-    m.get_lfo().increment(syn->get_vibrato_rate(), syn->get_sample_rate());
-    const f32 vib = m.create_vibrato(m.get_lfo().lfo_sine(), syn->get_vibrato_depth());
-
-    a.get_lfo().increment(syn->get_trem_rate(), syn->get_sample_rate());
-    const f32 trem = 1.0f + (a.get_lfo().lfo_sine() * param_list[S_TREMOLO_DEPTH].value);
-
-    for (size_t o = 0; o < syn->get_oscillators().size(); o++) {
-      Oscillator *osc = syn->get_osc_at(o);
-      if(!osc){
-        continue;
-      }
-
-      const f32 freq = v.get_freq() * osc->get_detune() * syn->get_pitch_bend() * vib; 
-      const f32 dt = 1.0f / (f32)syn->get_sample_rate();
-      const f32 inc = freq / (f32)syn->get_sample_rate();
-
-      osc->increment_time_at(dt, i);
-      osc->increment_phase_at(inc, 1.0f, i);
-
-      for (size_t c = 0; c < (size_t)syn->get_channels(); c++) {
-        f32 sample = 0.0f;
-        switch(osc->get_waveform()){
-          case SAW:{
-            sample = syn->get_generator().poly_saw(inc, osc->get_phase_at(i));
-          }break;
-          case SQUARE:{
-            sample = syn->get_generator().poly_square(inc, osc->get_phase_at(i), osc->get_duty());
-          }break;
-        }
-        osc->set_sample_at(osc->get_sample_array_at(i), c, sample);
-        v.add_sum_at(c, osc->get_sample_at(osc->get_sample_array_at(i), c));
-      }
-    }
+    osc_loop(syn, i, v, vibrato);
     // saturate (make optional at some point)
-    for(size_t c = 0; c < (size_t)syn->get_channels(); c++){
-      v.set_clipped_at(c, polynomial_soft_clip(v.get_sum_at(c), param_list[S_GAIN].value));
-    }
-
-    //filter
     for (size_t c = 0; c < (size_t)syn->get_channels(); c++) {
-      v.get_lpf().lerp(v.get_clipped_array(), c, syn->get_sample_rate(), param_list[S_LOW_PASS].value);
+      const f32 clipped =
+          syn->polynomial_soft_clip(v.get_sum_at(c), param_list[S_GAIN].value);
+      v.set_clipped_at(c, &clipped);
+    }
+    // filter
+    const f32 filter_alpha =
+        v.get_lpf().alpha(param_list[S_LOW_PASS].value, syn->get_sample_rate());
+    for (size_t c = 0; c < (size_t)syn->get_channels(); c++) {
+      lerp_f32(v.get_clipped_at(c), v.get_lpf().get_value_at(c), filter_alpha);
       v.set_filtered_at(c, v.get_lpf().get_value_at(c));
     }
 
-    const f32& attack = param_list[S_ATTACK].value;
-    const f32& decay = param_list[S_DECAY].value;
-    const f32& sustain = param_list[S_SUSTAIN].value;
-    const f32& release = param_list[S_RELEASE].value;
+    const f32 &attack = param_list[S_ATTACK].value;
+    const f32 &decay = param_list[S_DECAY].value;
+    const f32 &sustain = param_list[S_SUSTAIN].value;
+    const f32 &release = param_list[S_RELEASE].value;
 
-    v.adsr(syn->get_sample_rate(), attack, decay, sustain, release);
+    v.adsr(syn->get_dt(), attack, decay, sustain, release);
 
     // Apply amplitude scalars and scale per OSC
-    for(size_t c = 0; c < (size_t)syn->get_channels(); c++){
-      const f32 sample = v.get_filtered_at(c);
-      const f32 mixed = sample * trem * v.get_vol_mult() * v.get_envelope();
-      const f32 scaled = mixed * (1.0f / sqrtf((f32)syn->get_oscillators().size()));
-      v.set_out_at(c, scaled);
+    for (size_t c = 0; c < (size_t)syn->get_channels(); c++) {
+      const f32 *sample = v.get_filtered_at(c);
+      if (!sample) {
+        continue;
+      }
+      const f32 mixed = *sample * trem * v.get_vol_mult() * v.get_envelope();
+      const f32 scaled =
+          mixed * (1.0f / sqrtf((f32)syn->get_oscillators().size()));
+      v.set_out_at(c, &scaled);
     }
 
     // Add scaled sum of osc and scale per VOICE
     for (size_t c = 0; c < (size_t)syn->get_channels(); c++) {
-      const f32 sample = v.get_out_at(c);
-      const f32 scaled = sample / sqrtf((f32)VOICES);
-      syn->add_sum_at(c, scaled * param_list[S_VOLUME].value);
+      const f32 *sample = v.get_out_at(c);
+      if (!sample) {
+        continue;
+      }
+      const f32 scaled =
+          (*sample / sqrtf((f32)VOICES)) * param_list[S_VOLUME].value;
+      syn->add_sum_at(c, &scaled);
     }
   }
 }

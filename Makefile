@@ -1,6 +1,6 @@
 TARGET = sgsa
 CC = x86_64-w64-mingw32-g++
-LFLAGS = -lm -lSDL3 -lSDL3_ttf -lportmidi 
+LFLAGS = -lm -lSDL3 -lSDL3_ttf -lSDL3_image -lportmidi 
 CFLAGS  = -Wall -Wextra -Wpedantic -O0 -std=c++17
 DEBUG_CFLAGS = -Wshadow -Wconversion -Wnull-dereference -Wdouble-promotion -g
 

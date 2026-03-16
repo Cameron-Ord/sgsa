@@ -39,21 +39,21 @@ static bool quit(void) {
 }
 
 
-static void listen_event_emits(Events& events, Synth& syn){
-  std::vector<Modify_Request> reqs = events.get_requests();
-  for(size_t i = 0; i < reqs.size(); i++){
-    const Modify_Request& req = reqs[i];
-    switch(req.method){
-      case Modify_Request::REQ_DEC: {
-        syn.dec_param(req.index);
-      } break;
-      case Modify_Request::REQ_INC: {
-        syn.inc_param(req.index);
-      } break;
-    }
-  }
-  events.clear_requests();
-}
+ //static void listen_event_emits(Events& events, Synth& syn){
+   //std::vector<Modify_Request> reqs = events.get_requests();
+   //for(size_t i = 0; i < reqs.size(); i++){
+     //const Modify_Request& req = reqs[i];
+     //switch(req.method){
+       //case Modify_Request::REQ_DEC: {
+         //syn.dec_param(req.index);
+       //} break;
+       //case Modify_Request::REQ_INC: {
+         //syn.inc_param(req.index);
+       //} break;
+     //}
+   //}
+   //events.clear_requests();
+ //}
 
 int main(int argc, char **argv) {
   const char *name_arg = NULL;
@@ -124,11 +124,8 @@ int main(int argc, char **argv) {
 
     syn.run_events(midi_cmds);
     win._run_events(sdl_cmds);
-
-    listen_event_emits(win.get_event_class(), syn);
     
     win.get_render_class().clear_colour(255, 255, 255, 255);
-    win.get_render_class().render_param_list(syn.get_param_list(), glyphs);
     win.get_render_class().present();
 
     const u64 FT = SDL_GetTicks() - START;
