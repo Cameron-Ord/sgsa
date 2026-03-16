@@ -1,5 +1,6 @@
 #include "../../inc/synth.hpp"
 #include <cmath>
+#include <iostream>
 
 Voice::Voice(void)
     : active_oscillators(0), midi_key(0), env_state(ENV_STATE::OFF), freq(0.0f),
@@ -94,8 +95,9 @@ const f32 *Voice::get_out_at(size_t pos) const {
   return nullptr;
 }
 
-f32 Voice::get_env_alpha(f32 dt, f32 adsr_stage_value) {
-  return 1.0f - expf(-dt / adsr_stage_value);
+// https://en.wikipedia.org/wiki/Exponential_smoothing
+f32 Voice::get_env_alpha(f32 dt, f32 time) {
+  return 1.0f - expf(-dt / -(time / logf(1.0f - 0.96f)));
 }
 
 bool Voice::done(void) const { return env_state == ENV_STATE::OFF; }
@@ -103,7 +105,7 @@ bool Voice::done(void) const { return env_state == ENV_STATE::OFF; }
 bool Voice::releasing(void) const { return env_state == ENV_STATE::REL; }
 
 void Voice::adsr(f32 dt, f32 atk, f32 dec, f32 sus, f32 rel) {
-  const f32 EPS = 1e-5f, ZERO = 0.0f, ONE = 1.0f;
+  const f32 EPS = 1.0f - 0.95f, ZERO = 0.0f, ONE = 1.0f;
   switch (env_state) {
   default:
     return;
